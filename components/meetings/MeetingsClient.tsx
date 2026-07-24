@@ -940,7 +940,7 @@ function handleNoteSecurityKeyDown(
 
     if (!selectedWatchlistEntry) {
       setPtChangeError(
-        "This security does not have an active Watchlist entry."
+        "This security does not have an active Portfolio entry."
       );
       return;
     }
@@ -1586,43 +1586,6 @@ function handleNoteSecurityKeyDown(
                     </div>
                   ) : null}
                 </div>
-                
-                <div className="mt-4">
-                  <label className="text-sm font-medium text-slate-700">
-                    Comment Tag
-                  </label>
-
-                  <div className="mt-2 grid grid-cols-4 gap-2">
-                    {noteTagOptions.map(
-                      ([value, label]) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() =>
-                            setSelectedNoteTags(
-                              (current) => ({
-                                ...current,
-                                [activeMeetingForNote.id]:
-                                  value,
-                              })
-                            )
-                          }
-                          className={`rounded-xl px-3 py-2 text-xs font-medium ${
-                            selectedNoteTag === value
-                              ? value === "PT"
-                                ? "bg-amber-600 text-white"
-                                : "bg-slate-900 text-white"
-                              : value === "PT"
-                                ? "border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
-                                : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                          }`}
-                        >
-                          {label}
-                        </button>
-                      )
-                    )}
-                  </div>
-                </div>
                 {selectedNoteSecurity ? (
                   <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
                     <div className="flex items-center justify-between gap-3">
@@ -1716,6 +1679,43 @@ function handleNoteSecurityKeyDown(
                     ) : null}
                   </div>
                 ) : null}
+                <div className="mt-4">
+                  <label className="text-sm font-medium text-slate-700">
+                    Comment Tag
+                  </label>
+
+                  <div className="mt-2 grid grid-cols-4 gap-2">
+                    {noteTagOptions.map(
+                      ([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() =>
+                            setSelectedNoteTags(
+                              (current) => ({
+                                ...current,
+                                [activeMeetingForNote.id]:
+                                  value,
+                              })
+                            )
+                          }
+                          className={`rounded-xl px-3 py-2 text-xs font-medium ${
+                            selectedNoteTag === value
+                              ? value === "PT"
+                                ? "bg-amber-600 text-white"
+                                : "bg-slate-900 text-white"
+                              : value === "PT"
+                                ? "border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                                : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
+
                 {selectedNoteTag === "PT" ? (
                   <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
                     <p className="text-sm font-semibold text-amber-900">
@@ -1730,13 +1730,13 @@ function handleNoteSecurityKeyDown(
                     ) : !selectedWatchlistEntry ? (
                       <p className="mt-2 text-sm leading-6 text-amber-800">
                         This security does not have an
-                        active Watchlist entry.
+                        active Portfolio entry.
                       </p>
                     ) : (
                       <div className="mt-4 space-y-4">
                         <div>
                           <label className="text-xs font-semibold uppercase tracking-wide text-amber-800">
-                            Watchlist Side
+                          Portfolio Side    
                           </label>
 
                           <select
@@ -1750,11 +1750,11 @@ function handleNoteSecurityKeyDown(
                             className="mt-2 w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-50"
                           >
                             <option value="LONG">
-                              Long Watchlist
+                              Long 
                             </option>
 
                             <option value="SHORT">
-                              Short Watchlist
+                             Short 
                             </option>
                           </select>
 

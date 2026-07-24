@@ -1107,10 +1107,12 @@ function AddStockModal({
 
 function EditWatchlistModal({
   entry,
+  mode,
   onClose,
   onSave,
 }: {
   entry: any | null;
+  mode: "WATCHLIST" | "PORTFOLIO";
   onClose: () => void;
   onSave: (
     entry: any,
@@ -1221,7 +1223,9 @@ function EditWatchlistModal({
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-xl font-semibold text-slate-950">
-              Edit Watchlist Item
+              {mode === "PORTFOLIO"
+                ? "Edit Portfolio Targets"
+                : "Edit Watchlist Item"}
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
@@ -1241,16 +1245,29 @@ function EditWatchlistModal({
         <div className="mt-5 space-y-4">
           <div>
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Watchlist Side
+              {mode === "PORTFOLIO"
+                ? "Portfolio Side"
+                : "Watchlist Side"}
             </label>
 
             <select
               value={side}
-              onChange={(event) => setSide(event.target.value)}
+              onChange={(event) =>
+                setSide(event.target.value)
+              }
               className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
             >
-              <option value="LONG">Long Watchlist</option>
-              <option value="SHORT">Short Watchlist</option>
+              <option value="LONG">
+                {mode === "PORTFOLIO"
+                  ? "Long Portfolio"
+                  : "Long Watchlist"}
+              </option>
+
+              <option value="SHORT">
+                {mode === "PORTFOLIO"
+                  ? "Short Portfolio"
+                  : "Short Watchlist"}
+              </option>
             </select>
 
             <p className="mt-1 text-xs text-slate-500">
@@ -1937,7 +1954,10 @@ async function handleRemoveEntry(entry: any) {
 
       <EditWatchlistModal
         entry={editingEntry}
-        onClose={() => setEditingEntry(null)}
+        mode={mode}
+        onClose={() =>
+          setEditingEntry(null)
+        }
         onSave={handleSaveEdit}
       />
       <MarketDataModal
