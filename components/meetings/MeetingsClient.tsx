@@ -12,9 +12,19 @@ import Badge from "@/components/common/Badge";
 import CurrentUserPill from "@/components/auth/CurrentUserPill";
 import LocalDateTime from "@/components/common/LocalDateTime";
 
+type FundEquitySnapshot = {
+  id: string;
+  asOfDate: string;
+  netEquity: number;
+  source: string;
+};
+
 type MeetingsClientProps = {
   initialMeetings: any[];
   securities: any[];
+  fundEquitySnapshot:
+    | FundEquitySnapshot
+    | null;
 };
 
 function getTodayInputValue() {
@@ -43,9 +53,154 @@ function formatMeetingDate(
   ).format(new Date(value));
 }
 
+function toFiniteNumber(
+  value: unknown
+): number | null {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+    return null;
+  }
+
+  const numericValue =
+    Number(value);
+
+  return Number.isFinite(
+    numericValue
+  )
+    ? numericValue
+    : null;
+}
+
+function formatMoney(
+  value: number | null | undefined
+) {
+  if (
+    value == null ||
+    !Number.isFinite(value)
+  ) {
+    return "—";
+  }
+
+  return value.toLocaleString(
+    "en-US",
+    {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }
+  );
+}
+
+function formatPrice(
+  value: number | null | undefined
+) {
+  if (
+    value == null ||
+    !Number.isFinite(value)
+  ) {
+    return "—";
+  }
+
+  return value.toLocaleString(
+    "en-US",
+    {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }
+  );
+}
+
+function formatPositionPercent(
+  value: number | null | undefined
+) {
+  if (
+    value == null ||
+    !Number.isFinite(value)
+  ) {
+    return "—";
+  }
+
+  return `${value.toFixed(2)}%`;
+}
+
+function getSecurityMarketValue(
+  security: any
+) {
+  const positions = Array.isArray(
+    security?.positions
+  )
+    ? security.positions
+    : [];
+
+  if (!positions.length) {
+    return null;
+  }
+
+  return positions.reduce(
+    (
+      total: number,
+      position: any
+    ) =>
+      total +
+      Math.abs(
+        toFiniteNumber(
+          position.marketValue
+        ) ?? 0
+      ),
+    0
+  );
+}
+
+function getSecurityCurrentPrice(
+  security: any
+) {
+  const marketData =
+    security?.marketData?.[0];
+
+  const quotedPrice =
+    toFiniteNumber(
+      marketData?.currentPrice
+    );
+
+  if (quotedPrice != null) {
+    return quotedPrice;
+  }
+
+  const position =
+    security?.positions?.[0];
+
+  const shares =
+    toFiniteNumber(
+      position?.shares
+    );
+
+  const marketValue =
+    toFiniteNumber(
+      position?.marketValue
+    );
+
+  if (
+    shares == null ||
+    marketValue == null ||
+    shares === 0
+  ) {
+    return null;
+  }
+
+  return Math.abs(
+    marketValue / shares
+  );
+}
+
 export default function MeetingsClient({
   initialMeetings,
   securities,
+  fundEquitySnapshot,
 }: MeetingsClientProps) {
   const [meetings, setMeetings] =
     useState(initialMeetings);
@@ -99,7 +254,24 @@ export default function MeetingsClient({
   ] = useState<Record<string, string>>(
     {}
   );
+  const [
+    selectedNoteTags,
+    setSelectedNoteTags,
+  ] = useState<
+    Record<string, string>
+  >({});
 
+
+  const noteTagOptions = [
+    ["COMMENT", "Comment"],
+    ["NOTE", "Note"],
+    ["PT", "Change PT"],
+    ["THESIS", "Thesis"],
+    ["RISK", "Risk"],
+    ["CATALYST", "Catalyst"],
+    ["TRADE", "Trade"],
+    ["EXIT", "Exit"],
+  ] as const;
   const [
     selectedSecurityIds,
     setSelectedSecurityIds,
@@ -187,6 +359,47 @@ const selectedNoteSecurity =
       selectedNoteSecurityId
   ) ?? null;
 
+const selectedNoteTag =
+  activeMeetingForNote
+    ? selectedNoteTags[
+        activeMeetingForNote.id
+      ] || "NOTE"
+    : "NOTE";
+
+const selectedSecurityMarketValue =
+  selectedNoteSecurity
+    ? getSecurityMarketValue(
+        selectedNoteSecurity
+      )
+    : null;
+
+const selectedSecurityCurrentPrice =
+  selectedNoteSecurity
+    ? getSecurityCurrentPrice(
+        selectedNoteSecurity
+      )
+    : null;
+
+const latestNetEquity =
+  toFiniteNumber(
+    fundEquitySnapshot?.netEquity
+  );
+
+const selectedSecurityPortfolioPct =
+  selectedSecurityMarketValue != null &&
+  latestNetEquity != null &&
+  latestNetEquity > 0
+    ? (
+        selectedSecurityMarketValue /
+        latestNetEquity
+      ) * 100
+    : null;
+
+const selectedWatchlistEntry =
+  selectedNoteSecurity
+    ?.watchlistEntries?.[0] ??
+  null;
+
 
 useEffect(() => {
   if (!activeMeetingForNote) {
@@ -228,7 +441,6 @@ useEffect(() => {
 }, [
   activeMeetingForNote,
   securities,
-  selectedSecurityIds,
 ]);
 
 
@@ -400,7 +612,7 @@ function handleClearNoteSecurity() {
         "",
     })
   );
-
+    
   setSecuritySearchQuery("");
   setIsSecurityDropdownOpen(
     true
@@ -526,7 +738,10 @@ function handleNoteSecurityKeyDown(
                 selectedSecurityIds[
                   meetingId
                 ] || null,
-              tag: "NOTE",
+              tag:
+                selectedNoteTags[
+                  meetingId
+                ] || "NOTE",
               content,
             }),
           }
@@ -571,7 +786,12 @@ function handleNoteSecurityKeyDown(
       [meetingId]: "",
     })
   );
-
+  setSelectedNoteTags(
+    (current) => ({
+      ...current,
+       [meetingId]:"NOTE",
+    })
+  );
       setSecuritySearchQuery("");
       setIsSecurityDropdownOpen(
         false
@@ -722,17 +942,27 @@ function handleNoteSecurityKeyDown(
                                   <div className="flex items-center gap-2">
                                     {comment.security ? (
                                       <Badge tone="blue">
-                                        {
-                                          comment
-                                            .security
-                                            .ticker
-                                        }
+                                        {comment.security.ticker}
                                       </Badge>
-                                    ) : (
-                                      <Badge>
-                                        NOTE
-                                      </Badge>
-                                    )}
+                                    ) : null}
+
+                                    <Badge
+                                      tone={
+                                        comment.tag === "PT"
+                                          ? "amber"
+                                          : comment.tag === "RISK" ||
+                                              comment.tag === "EXIT"
+                                            ? "red"
+                                            : comment.tag ===
+                                                  "CATALYST" ||
+                                                comment.tag ===
+                                                  "THESIS"
+                                              ? "green"
+                                              : "slate"
+                                      }
+                                    >
+                                      {comment.tag || "NOTE"}
+                                    </Badge>
                                   </div>
 
                                   <LocalDateTime
@@ -841,7 +1071,7 @@ function handleNoteSecurityKeyDown(
         ) : null}
         {activeMeetingForNote ? (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 p-4">
-                <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl">
+              <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
                 <div className="flex items-start justify-between">
                     <div>
                     <h3 className="text-xl font-semibold">
@@ -1096,25 +1326,181 @@ function handleNoteSecurityKeyDown(
                     </div>
                   ) : null}
                 </div>
+                
+                <div className="mt-4">
+                  <label className="text-sm font-medium text-slate-700">
+                    Comment Tag
+                  </label>
 
-                <textarea
+                  <div className="mt-2 grid grid-cols-4 gap-2">
+                    {noteTagOptions.map(
+                      ([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() =>
+                            setSelectedNoteTags(
+                              (current) => ({
+                                ...current,
+                                [activeMeetingForNote.id]:
+                                  value,
+                              })
+                            )
+                          }
+                          className={`rounded-xl px-3 py-2 text-xs font-medium ${
+                            selectedNoteTag === value
+                              ? value === "PT"
+                                ? "bg-amber-600 text-white"
+                                : "bg-slate-900 text-white"
+                              : value === "PT"
+                                ? "border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                                : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
+                {selectedNoteSecurity ? (
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-900">
+                          {selectedNoteSecurity.ticker}
+                        </p>
+
+                        <p className="mt-0.5 truncate text-xs text-slate-500">
+                          {selectedNoteSecurity.name}
+                        </p>
+                      </div>
+
+                      {selectedNoteSecurity.positions?.length ? (
+                        <Badge
+                          tone={
+                            selectedNoteSecurity
+                              .positions[0]?.side ===
+                            "SHORT"
+                              ? "red"
+                              : "green"
+                          }
+                        >
+                          {selectedNoteSecurity
+                            .positions[0]?.side ||
+                            "ACTIVE"}
+                        </Badge>
+                      ) : (
+                        <Badge tone="slate">
+                          No Active Position
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-3 gap-3">
+                      <div className="rounded-2xl bg-slate-50 p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                          Current Price
+                        </p>
+
+                        <p className="mt-1 font-semibold tabular-nums text-slate-950">
+                          {formatPrice(
+                            selectedSecurityCurrentPrice
+                          )}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl bg-slate-50 p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                          % of Net Equity
+                        </p>
+
+                        <p className="mt-1 font-semibold tabular-nums text-slate-950">
+                          {formatPositionPercent(
+                            selectedSecurityPortfolioPct
+                          )}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl bg-slate-50 p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                          Market Value
+                        </p>
+
+                        <p className="mt-1 font-semibold tabular-nums text-slate-950">
+                          {formatMoney(
+                            selectedSecurityMarketValue
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    {fundEquitySnapshot &&
+                    selectedSecurityPortfolioPct != null ? (
+                      <p className="mt-2 text-[11px] text-slate-400">
+                        Position percentage uses Net Equity
+                        as of{" "}
+                        {new Date(
+                          fundEquitySnapshot.asOfDate
+                        ).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                            timeZone: "UTC",
+                          }
+                        )}
+                        .
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+                {selectedNoteTag === "PT" ? (
+                  <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                    <p className="text-sm font-semibold text-amber-900">
+                      Change Price Target
+                    </p>
+
+                    {!selectedNoteSecurity ? (
+                      <p className="mt-1 text-sm leading-6 text-amber-800">
+                        Select a security to change its
+                        price targets.
+                      </p>
+                    ) : !selectedWatchlistEntry ? (
+                      <p className="mt-1 text-sm leading-6 text-amber-800">
+                        This security does not have an
+                        active Watchlist entry.
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-sm leading-6 text-amber-800">
+                        The selected security has an active
+                        Watchlist entry. The price-target
+                        editor will appear here in the next
+                        update.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <textarea
                     value={
-                    noteDrafts[
+                      noteDrafts[
                         activeMeetingForNote.id
-                    ] || ""
+                      ] || ""
                     }
                     onChange={(event) =>
-                    setNoteDrafts(
+                      setNoteDrafts(
                         (current) => ({
-                        ...current,
-                        [activeMeetingForNote.id]:
+                          ...current,
+                          [activeMeetingForNote.id]:
                             event.target.value,
                         })
-                    )
+                      )
                     }
                     placeholder="Write meeting note..."
                     className="mt-4 min-h-32 w-full rounded-2xl border border-slate-200 px-4 py-3"
-                />
+                  />
+                )}
 
                 <div className="mt-5 flex justify-end gap-2">
                     <button
@@ -1130,6 +1516,10 @@ function handleNoteSecurityKeyDown(
                     <button
                       type="button"
                       onClick={async () => {
+                        if (selectedNoteTag === "PT") {
+                          return;
+                        }
+
                         const content =
                           noteDrafts[
                             activeMeetingForNote.id
@@ -1148,6 +1538,7 @@ function handleNoteSecurityKeyDown(
                         );
                       }}
                       disabled={
+                        selectedNoteTag === "PT" ||
                         !noteDrafts[
                           activeMeetingForNote.id
                         ]?.trim() ||
@@ -1159,7 +1550,9 @@ function handleNoteSecurityKeyDown(
                       {savingMeetingNoteId ===
                       activeMeetingForNote.id
                         ? "Saving..."
-                        : "Add Note"}
+                        : selectedNoteTag === "PT"
+                          ? "PT Editor Required"
+                          : "Add Note"}
                     </button>
                 </div>
                 </div>

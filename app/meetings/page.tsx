@@ -4,39 +4,97 @@ import MeetingsClient from "@/components/meetings/MeetingsClient";
 export const dynamic = "force-dynamic";
 
 export default async function MeetingsPage() {
-  const meetings = await prisma.meeting.findMany({
-    include: {
-      comments: {
-        where: {
-          archivedAt: null,
-        },
-        include: {
-          security: true,
-          author: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true,
+  const [
+    meetings,
+    securities,
+    latestFundEquitySnapshot,
+  ] = await Promise.all([
+    prisma.meeting.findMany({
+      include: {
+        comments: {
+          where: {
+            archivedAt: null,
+          },
+          include: {
+            security: true,
+            author: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+              },
             },
           },
-        },
-        orderBy: {
-          createdAt: "desc",
+          orderBy: {
+            createdAt: "desc",
+          },
         },
       },
-    },
-    orderBy: {
-      meetingDate: "desc",
-    },
-  });
+      orderBy: {
+        meetingDate: "desc",
+      },
+    }),
 
-  const securities =
-    await prisma.security.findMany({
+    prisma.security.findMany({
+      include: {
+        marketData: {
+          take: 1,
+          orderBy: {
+            updatedAt: "desc",
+          },
+        },
+
+        positions: {
+          where: {
+            status: "ACTIVE",
+            source: "WELLS_FARGO",
+          },
+          select: {
+            id: true,
+            side: true,
+            shares: true,
+            marketValue: true,
+            sourceReportDate: true,
+          },
+        },
+
+        watchlistEntries: {
+          where: {
+            archivedAt: null,
+          },
+          orderBy: {
+            updatedAt: "desc",
+          },
+          select: {
+            id: true,
+            side: true,
+            targetPrice: true,
+            entryTargetPrice: true,
+            exitTargetPrice: true,
+            notes: true,
+          },
+        },
+      },
       orderBy: {
         ticker: "asc",
       },
-    });
+    }),
+
+    prisma.fundEquitySnapshot.findFirst({
+      orderBy: {
+        asOfDate: "desc",
+      },
+      select: {
+        id: true,
+        asOfDate: true,
+        netEquity: true,
+        source: true,
+      },
+    }),
+  ]);
+
+
 
   return (
     <MeetingsClient
@@ -46,6 +104,15 @@ export default async function MeetingsPage() {
       securities={JSON.parse(
         JSON.stringify(securities)
       )}
+      fundEquitySnapshot={
+        latestFundEquitySnapshot
+          ? JSON.parse(
+              JSON.stringify(
+                latestFundEquitySnapshot
+              )
+            )
+          : null
+      }
     />
   );
 }
