@@ -210,33 +210,31 @@ export function getDisplayDayPnl(
 
 export function getDisplayPortfolioPct(
   position: DashboardMetricPosition,
-  positions: DashboardMetricPosition[]
+  netEquity: number | null | undefined
 ): number | null {
-  const positionMarketValue = getNumber(
-    position.marketValue
-  );
+  const positionMarketValue =
+    getNumber(
+      position.marketValue
+    );
 
-  if (positionMarketValue == null) {
-    return null;
-  }
+  const validNetEquity =
+    getNumber(netEquity);
 
-  const grossMarketValue = positions.reduce(
-    (sum, currentPosition) => {
-      const marketValue = getNumber(
-        currentPosition.marketValue
-      );
-
-      return sum + Math.abs(marketValue ?? 0);
-    },
-    0
-  );
-
-  if (grossMarketValue === 0) {
+  if (
+    positionMarketValue == null ||
+    validNetEquity == null ||
+    validNetEquity <= 0
+  ) {
     return null;
   }
 
   return (
-    (Math.abs(positionMarketValue) / grossMarketValue) *
+    (
+      Math.abs(
+        positionMarketValue
+      ) /
+      validNetEquity
+    ) *
     100
   );
 }

@@ -195,7 +195,7 @@ function PositionGrid({
   title,
   tone,
   positions,
-  portfolioPositions,
+  netEquity,
   selectedId,
   onSelect,
   onMarketData,
@@ -205,7 +205,7 @@ function PositionGrid({
   title: string;
   tone: "green" | "red";
   positions: any[];
-  portfolioPositions: any[];
+  netEquity: number | null;
   selectedId?: string;
   onSelect: (position: any) => void;
   onMarketData: (position: any) => void;
@@ -222,7 +222,7 @@ function PositionGrid({
           <div className="col-span-2">Company Name</div>
           <div>Current Price</div>
           <div>% Change In Trading Day</div>
-          <div>% Of Portfolio</div>
+          <div>% Of Net Equity</div>
           <div>Total # Of Shares</div>
           <div>WAP</div>
           <div>Mrkt Value Of Position</div>
@@ -241,7 +241,11 @@ function PositionGrid({
           const currentPrice = getDisplayCurrentPrice(position);
           const wap = getDisplayWap(position);
           const totalPctChange = getDisplayTotalPctChange(position);
-          const portfolioPct = getDisplayPortfolioPct(position, portfolioPositions);
+          const portfolioPct =
+            getDisplayPortfolioPct(
+              position,
+              netEquity
+            );
           const dayPctChange = getDisplayDayPctChange(position);
           
 
@@ -1695,7 +1699,18 @@ export default function DashboardClient({
   fundEquitySnapshot,
 }: DashboardClientProps) {
   const [localPositions, setLocalPositions] = useState<any[]>(positions);
- 
+ const dashboardNetEquity = Number(
+    fundEquitySnapshot?.netEquity
+  );
+
+  const validDashboardNetEquity =
+    Number.isFinite(
+      dashboardNetEquity
+    ) &&
+    dashboardNetEquity > 0
+      ? dashboardNetEquity
+      : null;
+
 
   const [selectedPosition, setSelectedPosition] = useState<any | null>(null);
 
@@ -1882,13 +1897,17 @@ useEffect(() => {
         return (aTotalPctChange ?? 0) - (bTotalPctChange ?? 0);
       }
 
-      return (
-        (getDisplayPortfolioPct(b, localPositions) ?? 0) -
-        (getDisplayPortfolioPct(a, localPositions) ?? 0)
-      );
+  return (
+    (getDisplayPortfolioPct(b, validDashboardNetEquity) ?? 0) - (getDisplayPortfolioPct(a,validDashboardNetEquity) ?? 0)
+  );
     });
 
-}, [localPositions, query, activeFilter]);
+}, [
+  localPositions,
+  query,
+  activeFilter,
+  validDashboardNetEquity,
+]);
 
 const longPositions = useMemo(
   () => filteredPositions.filter((position) => position.side === "LONG"),
@@ -2366,30 +2385,32 @@ async function handleSaveFlag(payload: {
                   
                 </div>
                 </div>
-
                 <PositionGrid
                   title="Long Positions"
                   tone="green"
                   positions={longPositions}
+                  netEquity={
+                    validDashboardNetEquity
+                  }
                   selectedId={selectedPosition?.id}
                   onSelect={setSelectedPosition}
                   onMarketData={setMarketDataPosition}
                   onComment={handleOpenComment}
                   canComment={userCanCreateComments}
-                  portfolioPositions={localPositions}
                 />
-
-                
+                                
                 <PositionGrid
                   title="Short Positions"
                   tone="red"
                   positions={shortPositions}
+                  netEquity={
+                    validDashboardNetEquity
+                  }
                   selectedId={selectedPosition?.id}
                   onSelect={setSelectedPosition}
                   onMarketData={setMarketDataPosition}
                   onComment={handleOpenComment}
                   canComment={userCanCreateComments}
-                  portfolioPositions={localPositions}
                 />
               </div>
             </div>
