@@ -4,12 +4,29 @@ import DashboardClient from "@/components/dashboard/DashboardClient";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const wellsActivePositionCount = await prisma.position.count({
-    where: {
-      status: "ACTIVE",
-      source: "WELLS_FARGO",
-    },
-  });
+  const [
+    wellsActivePositionCount,
+    latestFundEquitySnapshot,
+  ] = await Promise.all([
+    prisma.position.count({
+      where: {
+        status: "ACTIVE",
+        source: "WELLS_FARGO",
+      },
+    }),
+
+    prisma.fundEquitySnapshot.findFirst({
+      orderBy: {
+        asOfDate: "desc",
+      },
+      select: {
+        id: true,
+        asOfDate: true,
+        netEquity: true,
+        source: true,
+      },
+    }),
+  ]);
 
 
   const positions = await prisma.position.findMany({
@@ -124,7 +141,26 @@ export default async function HomePage() {
   });
 
 
-  const serializedPositions = JSON.parse(JSON.stringify(positions));
+  const serializedPositions =
+    JSON.parse(
+      JSON.stringify(positions)
+    );
 
-  return <DashboardClient positions={serializedPositions} />;
+  const serializedFundEquitySnapshot =
+    latestFundEquitySnapshot
+      ? JSON.parse(
+          JSON.stringify(
+            latestFundEquitySnapshot
+          )
+        )
+      : null;
+
+  return (
+    <DashboardClient
+      positions={serializedPositions}
+      fundEquitySnapshot={
+        serializedFundEquitySnapshot
+      }
+    />
+  );
 }

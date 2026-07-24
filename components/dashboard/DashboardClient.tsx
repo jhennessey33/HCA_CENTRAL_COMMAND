@@ -24,9 +24,18 @@ import {
   getDisplayDayPctChange,
 } from "@/lib/dashboard/position-metrics";
 
+type FundEquitySnapshot = {
+  id: string;
+  asOfDate: string;
+  netEquity: number;
+  source: string;
+};
 
 type DashboardClientProps = {
   positions: any[];
+  fundEquitySnapshot:
+    | FundEquitySnapshot
+    | null;
 };
 
 
@@ -1681,7 +1690,10 @@ function SectorModal({
   );
 }
 
-export default function DashboardClient({ positions }: DashboardClientProps) {
+export default function DashboardClient({
+  positions,
+  fundEquitySnapshot,
+}: DashboardClientProps) {
   const [localPositions, setLocalPositions] = useState<any[]>(positions);
  
 
@@ -2443,6 +2455,9 @@ async function handleSaveFlag(payload: {
                 setShowSummaryModal(false)
               }
               positions={localPositions}
+              fundEquitySnapshot={
+                fundEquitySnapshot
+              }
             />
             <FlagModal
               position={flagPosition}
