@@ -3,6 +3,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import Badge from "@/components/common/Badge";
@@ -287,11 +288,26 @@ export default function TradeCalculatorWorkspace({
     setCurrentUser,
   ] = useState<any | null>(null);
 
-  const [securityQuery, setSecurityQuery] =
-    useState("");
+const [securityQuery, setSecurityQuery] =
+  useState("");
 
-  const [selectedSecurityId, setSelectedSecurityId] =
-    useState("");
+const [
+  isSecurityDropdownOpen,
+  setIsSecurityDropdownOpen,
+] = useState(false);
+
+const [
+  highlightedSecurityIndex,
+  setHighlightedSecurityIndex,
+] = useState(0);
+
+const securityComboboxRef =
+  useRef<HTMLDivElement | null>(
+    null
+  );
+
+const [selectedSecurityId, setSelectedSecurityId] =
+  useState("");
 
   const [selectedPositionId, setSelectedPositionId] =
     useState("");
@@ -329,31 +345,89 @@ export default function TradeCalculatorWorkspace({
     };
   }, []);
 
+  useEffect(() => {
+    function handlePointerDown(
+      event: MouseEvent
+    ) {
+      const target =
+        event.target as Node;
+
+      if (
+        securityComboboxRef.current &&
+        !securityComboboxRef.current.contains(
+          target
+        )
+      ) {
+        setIsSecurityDropdownOpen(
+  false
+);
+
+  if (selectedSecurityId) {
+    const selectedSecurity =
+      localSecurities.find(
+        (security) =>
+          security.id ===
+          selectedSecurityId
+      );
+
+    if (selectedSecurity) {
+      setSecurityQuery(
+        `${selectedSecurity.ticker} — ${selectedSecurity.name}`
+      );
+    }
+  }
+      }
+    }
+
+    document.addEventListener(
+      "mousedown",
+      handlePointerDown
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handlePointerDown
+      );
+    };
+  }, []);
+
+  
   const normalizedQuery =
     securityQuery.trim().toLowerCase();
 
+
+  useEffect(() => {
+    setHighlightedSecurityIndex(0);
+  }, [normalizedQuery]);
+
   const filteredSecurities = useMemo(
     () =>
-      localSecurities.filter((security) => {
-        if (!normalizedQuery) {
-          return true;
-        }
+      localSecurities
+        .filter((security) => {
+          if (!normalizedQuery) {
+            return true;
+          }
 
-        const searchable = [
-          security.ticker,
-          security.name,
-          security.sector,
-          security.industry,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
+          const searchable = [
+            security.ticker,
+            security.name,
+            security.sector,
+            security.industry,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
 
-        return searchable.includes(
-          normalizedQuery
-        );
-      }),
-    [localSecurities, normalizedQuery]
+          return searchable.includes(
+            normalizedQuery
+          );
+        })
+        .slice(0, 50),
+    [
+      localSecurities,
+      normalizedQuery,
+    ]
   );
 
   const selectedSecurity =
@@ -508,15 +582,118 @@ export default function TradeCalculatorWorkspace({
         )
     );
   }
-  function handleSecurityChange(
-    securityId: string
-  ) {
-    setSelectedSecurityId(
-      securityId
+function handleSecurityChange(
+  securityId: string
+) {
+  setSelectedSecurityId(
+    securityId
+  );
+
+  setSelectedPositionId("");
+
+  const selectedSecurity =
+    localSecurities.find(
+      (security) =>
+        security.id === securityId
     );
 
-    setSelectedPositionId("");
+  setSecurityQuery(
+    selectedSecurity
+      ? `${selectedSecurity.ticker} — ${selectedSecurity.name}`
+      : ""
+  );
+
+  setIsSecurityDropdownOpen(
+    false
+  );
+
+  setHighlightedSecurityIndex(
+    0
+  );
+}
+
+function handleClearSecurity() {
+  setSelectedSecurityId("");
+  setSelectedPositionId("");
+  setSecurityQuery("");
+  setIsSecurityDropdownOpen(
+    true
+  );
+  setHighlightedSecurityIndex(
+    0
+  );
+}
+
+function handleSecurityKeyDown(
+  event: React.KeyboardEvent<HTMLInputElement>
+) {
+  if (
+    event.key === "Escape"
+  ) {
+    setIsSecurityDropdownOpen(
+      false
+    );
+    return;
   }
+
+  if (
+    event.key === "ArrowDown"
+  ) {
+    event.preventDefault();
+
+    setIsSecurityDropdownOpen(
+      true
+    );
+
+    setHighlightedSecurityIndex(
+      (currentIndex) =>
+        Math.min(
+          currentIndex + 1,
+          Math.max(
+            filteredSecurities.length -
+              1,
+            0
+          )
+        )
+    );
+
+    return;
+  }
+
+  if (
+    event.key === "ArrowUp"
+  ) {
+    event.preventDefault();
+
+    setHighlightedSecurityIndex(
+      (currentIndex) =>
+        Math.max(
+          currentIndex - 1,
+          0
+        )
+    );
+
+    return;
+  }
+
+  if (
+    event.key === "Enter" &&
+    isSecurityDropdownOpen
+  ) {
+    event.preventDefault();
+
+    const highlightedSecurity =
+      filteredSecurities[
+        highlightedSecurityIndex
+      ];
+
+    if (highlightedSecurity) {
+      handleSecurityChange(
+        highlightedSecurity.id
+      );
+    }
+  }
+}
 
   return (
     <div className="grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
@@ -537,59 +714,177 @@ export default function TradeCalculatorWorkspace({
           </p>
         </div>
 
-        <div className="mt-5">
-          <label className="text-sm font-medium text-slate-700">
-            Search Securities
-          </label>
-
-          <input
-            value={securityQuery}
-            onChange={(event) =>
-              setSecurityQuery(
-                event.target.value
-              )
-            }
-            placeholder="Search ticker, company, sector, or industry..."
-            className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-slate-900"
-          />
-        </div>
-
-        <div className="mt-4">
+        <div
+          ref={securityComboboxRef}
+          className="relative mt-5"
+        >
           <label className="text-sm font-medium text-slate-700">
             Security
           </label>
 
-          <select
-            value={selectedSecurityId}
-            onChange={(event) =>
-              handleSecurityChange(
-                event.target.value
-              )
-            }
-            className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
-          >
-            <option value="">
-              Select a Security
-            </option>
+          <div className="relative mt-2">
+            <input
+              value={securityQuery}
+              onFocus={() => {
+                if (selectedSecurityId) {
+                  setSecurityQuery("");
+                }
 
-            {filteredSecurities.map(
-              (security) => (
-                <option
-                  key={security.id}
-                  value={security.id}
+                setIsSecurityDropdownOpen(
+                  true
+                );
+              }}
+              onChange={(event) => {
+                setSecurityQuery(
+                  event.target.value
+                );
+
+                if (selectedSecurityId) {
+                  setSelectedSecurityId("");
+                  setSelectedPositionId("");
+                }
+
+                setIsSecurityDropdownOpen(
+                  true
+                );
+              }}
+              onKeyDown={
+                handleSecurityKeyDown
+              }
+              placeholder="Search ticker, company, sector, or industry..."
+              autoComplete="off"
+              role="combobox"
+              aria-expanded={
+                isSecurityDropdownOpen
+              }
+              aria-controls="trade-calculator-security-options"
+              className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-4 pr-20 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            />
+
+            <div className="absolute inset-y-0 right-3 flex items-center gap-1">
+              {selectedSecurityId ||
+              securityQuery ? (
+                <button
+                  type="button"
+                  onClick={
+                    handleClearSecurity
+                  }
+                  aria-label="Clear selected security"
+                  className="rounded-lg px-2 py-1 text-sm text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                 >
-                  {security.ticker} —{" "}
-                  {security.name}
-                </option>
-              )
-            )}
-          </select>
+                  ✕
+                </button>
+              ) : null}
 
-          {normalizedQuery &&
-          filteredSecurities.length === 0 ? (
-            <p className="mt-2 text-xs font-medium text-amber-700">
-              No Securities matched the search.
-            </p>
+              <button
+                type="button"
+                onClick={() =>
+                  setIsSecurityDropdownOpen(
+                    (current) => !current
+                  )
+                }
+                aria-label="Toggle security options"
+                className="rounded-lg px-2 py-1 text-xs text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              >
+                ▼
+              </button>
+            </div>
+          </div>
+
+          {isSecurityDropdownOpen ? (
+            <div
+              id="trade-calculator-security-options"
+              role="listbox"
+              className="absolute z-40 mt-2 max-h-80 w-full overflow-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl"
+            >
+              {filteredSecurities.length ? (
+                filteredSecurities.map(
+                  (
+                    security,
+                    index
+                  ) => {
+                    const isHighlighted =
+                      highlightedSecurityIndex ===
+                      index;
+
+                    const isSelected =
+                      selectedSecurityId ===
+                      security.id;
+
+                    return (
+                      <button
+                        key={security.id}
+                        type="button"
+                        role="option"
+                        aria-selected={
+                          isSelected
+                        }
+                        onMouseEnter={() =>
+                          setHighlightedSecurityIndex(
+                            index
+                          )
+                        }
+                        onMouseDown={(
+                          event
+                        ) => {
+                          event.preventDefault();
+
+                          handleSecurityChange(
+                            security.id
+                          );
+                        }}
+                        className={`flex w-full items-start justify-between gap-4 rounded-xl px-3 py-2.5 text-left ${
+                          isHighlighted ||
+                          isSelected
+                            ? "bg-slate-100"
+                            : "hover:bg-slate-50"
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-950">
+                              {security.ticker}
+                            </span>
+
+                            {security.sector ? (
+                              <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                                {security.sector}
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <p className="mt-0.5 truncate text-xs text-slate-600">
+                            {security.name}
+                          </p>
+
+                          {security.industry ? (
+                            <p className="mt-0.5 truncate text-[11px] text-slate-400">
+                              {security.industry}
+                            </p>
+                          ) : null}
+                        </div>
+
+                        {isSelected ? (
+                          <span className="shrink-0 text-sm font-semibold text-emerald-600">
+                            ✓
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  }
+                )
+              ) : (
+                <div className="px-4 py-8 text-center">
+                  <p className="text-sm font-medium text-slate-700">
+                    No securities matched
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    Try searching by ticker, company, sector, or industry.
+                  </p>
+                </div>
+              )}
+            </div>
           ) : null}
         </div>
 
