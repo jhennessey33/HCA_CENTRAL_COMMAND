@@ -207,7 +207,7 @@ export default function SettingsClient({
     wellsNetEquityDate,
     setWellsNetEquityDate,
   ] = useState(
-    getTodayDateInputValue
+    getDefaultNetEquityDateInputValue
   );
 
   const [
@@ -468,19 +468,26 @@ async function saveFundEquity(
 
   return data;
 }
-function getTodayDateInputValue() {
-  const now = new Date();
+function getDefaultNetEquityDateInputValue() {
+  const date = new Date();
 
-  const year = now.getFullYear();
+  date.setDate(
+    date.getDate() - 1
+  );
+
+  const year = date.getFullYear();
+
   const month = String(
-    now.getMonth() + 1
+    date.getMonth() + 1
   ).padStart(2, "0");
+
   const day = String(
-    now.getDate()
+    date.getDate()
   ).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
+
 function parseMoneyInput(
   value: string
 ): number | null {
