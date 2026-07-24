@@ -83,6 +83,32 @@ function parseOrigin(value: unknown) {
     (typeof VALID_ORIGINS)[number];
 }
 
+function parseShortLocateNumber(
+  value: unknown
+) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return null;
+  }
+
+  const locateNumber =
+    String(value).trim();
+
+  if (!locateNumber) {
+    return null;
+  }
+
+  if (locateNumber.length > 200) {
+    throw new RequestValidationError(
+      "Short Locate Number must be 200 characters or fewer."
+    );
+  }
+
+  return locateNumber;
+}
+
 function parseTradeDate(value: unknown) {
   if (
     value === null ||
@@ -200,9 +226,36 @@ export async function POST(
       body.origin
     );
 
-    const comment = body.comment
-      ? String(body.comment).trim()
+  const userComment = body.comment
+    ? String(body.comment).trim()
+    : null;
+
+  const shortLocateNumber =
+    parseShortLocateNumber(
+      body.shortLocateNumber
+    );
+
+  if (
+    tradeType === "SHORT" &&
+    !shortLocateNumber
+  ) {
+    throw new RequestValidationError(
+      "Short Locate Number is required for a short trade."
+    );
+  }
+
+  const shortLocateNote =
+    tradeType === "SHORT" &&
+    shortLocateNumber
+      ? `Short Locate Number: ${shortLocateNumber}`
       : null;
+
+  const comment =
+    userComment && shortLocateNote
+      ? `${userComment}\n\n${shortLocateNote}`
+      : userComment ||
+        shortLocateNote ||
+        null;
 
     const shares =
       tradeType === "SELL" ||
@@ -337,6 +390,7 @@ export async function POST(
                     createdTrade.notional,
                   dateTraded,
                   comment,
+                  shortLocateNumber,
                   source:
                     createdTrade.source,
                   reconciliationStatus:

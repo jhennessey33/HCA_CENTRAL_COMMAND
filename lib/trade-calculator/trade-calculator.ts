@@ -30,8 +30,8 @@ export type ManualTradeDraft = {
   avgPrice: number;
   dateTraded: string;
   comment: string;
+  shortLocateNumber: string;
 };
-
 export type TradeCalculatorInput = {
   securityId: string;
   positionId: string | null;
@@ -55,8 +55,9 @@ export type TradeCalculatorInput = {
   estimatedPrice?: number | null;
   stopPrice?: number | null;
   targetPrice?: number | null;
-  dateTraded?: string | null;
-  comment?: string | null;
+dateTraded?: string | null;
+comment?: string | null;
+  shortLocateNumber?: string | null;
   
 };
 
@@ -386,6 +387,19 @@ export function calculateTradeScenario(
 ): TradeCalculatorResult {
   const errors: string[] = [];
   const warnings: string[] = [];
+  const shortLocateNumber =
+    String(
+      input.shortLocateNumber || ""
+    ).trim();
+
+  if (
+    input.tradeAction === "SHORT" &&
+    !shortLocateNumber
+  ) {
+    errors.push(
+      "Short Locate Number is required for a short trade."
+    );
+  }
 
   const wellsExposure = Math.abs(
     toFiniteNumber(input.wellsShares) ?? 0
@@ -1001,6 +1015,7 @@ export function calculateTradeScenario(
             String(
               input.comment || ""
             ).trim(),
+            shortLocateNumber,
         }
       : null;
 

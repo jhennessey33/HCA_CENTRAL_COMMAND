@@ -327,6 +327,11 @@ export default function TradeScenarioPanel({
 
   const [comment, setComment] =
     useState("");
+  
+  const [
+    shortLocateNumber,
+    setShortLocateNumber,
+  ] = useState("");
 
   const [isReviewOpen, setIsReviewOpen] =
     useState(false);    
@@ -367,6 +372,7 @@ export default function TradeScenarioPanel({
     );
 
     setComment("");
+    setShortLocateNumber("");
     setIsReviewOpen(false);
     setIsSubmitting(false);
     setSubmissionError("");
@@ -458,6 +464,7 @@ export default function TradeScenarioPanel({
         dateTraded:
           serializedDateTraded,
         comment,
+        shortLocateNumber,
       }),
     [
       security,
@@ -479,6 +486,7 @@ export default function TradeScenarioPanel({
       targetPriceInput,
       serializedDateTraded,
       comment,
+      shortLocateNumber,
     ]
   );
   const scenarioActionLabel =
@@ -608,6 +616,7 @@ export default function TradeScenarioPanel({
 
     setComment("");
     setIsReviewOpen(false);
+    setShortLocateNumber("");
     setSubmissionError("");
     setSubmissionMessage("");
   }
@@ -658,6 +667,8 @@ export default function TradeScenarioPanel({
               draft.avgPrice,
             comment:
               draft.comment,
+            shortLocateNumber:
+              draft.shortLocateNumber,
             origin:
               "TRADE_CALCULATOR",
           }),
@@ -698,6 +709,7 @@ export default function TradeScenarioPanel({
       );
 
       setComment("");
+      setShortLocateNumber("");
 
       setSubmissionMessage(
         `${draft.tradeType} ${draft.shares.toLocaleString(
@@ -1072,7 +1084,35 @@ export default function TradeScenarioPanel({
               className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
             />
           </div>
+          {tradeAction === "SHORT" ? (
+            <div className="mt-4">
+              <label className="text-sm font-medium text-slate-700">
+                Short Locate Number
+                <span className="ml-1 text-rose-600">
+                  *
+                </span>
+              </label>
 
+              <input
+                value={shortLocateNumber}
+                onChange={(event) =>
+                  setShortLocateNumber(
+                    event.target.value
+                  )
+                }
+                required
+                autoComplete="off"
+                placeholder="Enter short locate number"
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+              />
+
+              <p className="mt-1 text-xs text-slate-500">
+                Required for short trades. The locate
+                number will be appended to the saved
+                trade note.
+              </p>
+            </div>
+          ) : null}
           <div className="mt-4">
             <label className="text-sm font-medium text-slate-700">
               Trade Note

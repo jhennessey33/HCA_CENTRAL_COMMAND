@@ -940,6 +940,7 @@ function AddTradeModal({
     shares: string;
     avgPrice: string;
     comment: string;
+    shortLocateNumber: string;
   }) => Promise<void>;
 }) {
   const [tradeType, setTradeType] = useState("BUY");
@@ -947,7 +948,13 @@ function AddTradeModal({
   const [shares, setShares] = useState("");
   const [avgPrice, setAvgPrice] = useState("");
   const [comment, setComment] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
+
+  const [
+    shortLocateNumber,
+    setShortLocateNumber,
+  ] = useState("");
+
+const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [confirmingSave, setConfirmingSave] =
   useState(false);
@@ -980,6 +987,7 @@ function AddTradeModal({
     setShares("");
     setAvgPrice("");
     setComment("");
+    setShortLocateNumber("");
     setError("");
   }, [position]);
 
@@ -1000,6 +1008,15 @@ function AddTradeModal({
 
         if (!avgPrice.trim()) {
       setError("Average price is required.");
+      return;
+    }
+    if (
+      tradeType === "SHORT" &&
+      !shortLocateNumber.trim()
+    ) {
+      setError(
+        "Short Locate Number is required for a short trade."
+      );
       return;
     }
 
@@ -1039,8 +1056,9 @@ function AddTradeModal({
         shares,
         avgPrice,
         comment,
-      });
-
+        shortLocateNumber:
+          shortLocateNumber.trim(),
+        });
       onClose();
     } catch (error) {
       setError(
@@ -1122,6 +1140,34 @@ function AddTradeModal({
             className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
             placeholder="Average price"
           />
+          {tradeType === "SHORT" ? (
+            <div>
+              <label className="text-sm font-medium text-slate-700">
+                Short Locate Number
+                <span className="ml-1 text-rose-600">
+                  *
+                </span>
+              </label>
+
+              <input
+                value={shortLocateNumber}
+                onChange={(event) =>
+                  setShortLocateNumber(
+                    event.target.value
+                  )
+                }
+                required
+                autoComplete="off"
+                placeholder="Enter short locate number"
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+              />
+
+              <p className="mt-1 text-xs text-slate-500">
+                Required for short trades and appended
+                to the saved trade note.
+              </p>
+            </div>
+          ) : null}
 
           <div className="rounded-2xl bg-slate-50 p-3 text-sm text-slate-600">
             Estimated notional:{" "}
@@ -1934,6 +1980,7 @@ const {
     shares: string;
     avgPrice: string;
     comment: string;
+    shortLocateNumber: string;
   }) {
     const response = await fetch("/api/trades/manual", {
       method: "POST",

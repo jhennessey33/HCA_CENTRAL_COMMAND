@@ -239,6 +239,17 @@ export default function ManualTradeReviewModal({
                 }
                 detail="Stored as an exact timestamp"
               />
+              {draft.tradeType === "SHORT" ? (
+                <ReviewValue
+                  label="Short Locate Number"
+                  value={
+                    draft.shortLocateNumber ||
+                    "—"
+                  }
+                  detail="Required locate reference"
+                />
+              ) : null}
+
             </div>
           </section>
 

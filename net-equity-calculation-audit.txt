@@ -1,0 +1,1254 @@
+﻿HCA CENTRAL COMMAND - NET EQUITY CALCULATION AUDIT
+Generated: 2026-07-24 07:13:43
+Root: C:\HCA_CENTRAL_COMMAND
+
+====================================================================================================
+DENOMINATOR VARIABLES
+====================================================================================================
+
+app\api\auth\register\route.ts:94
+  throw new Error("REGISTRATION_APPROVAL_UNAVAILABLE");
+app\api\auth\register\route.ts:166
+  error.message === "REGISTRATION_APPROVAL_UNAVAILABLE"
+app\api\fund-equity\route.ts:35
+  function getValidNetEquity(
+app\api\fund-equity\route.ts:38
+  const netEquity = Number(value);
+app\api\fund-equity\route.ts:41
+  !Number.isFinite(netEquity) ||
+app\api\fund-equity\route.ts:42
+  netEquity <= 0
+app\api\fund-equity\route.ts:47
+  return netEquity;
+app\api\fund-equity\route.ts:77
+  const netEquity =
+app\api\fund-equity\route.ts:78
+  getValidNetEquity(
+app\api\fund-equity\route.ts:79
+  body.netEquity
+app\api\fund-equity\route.ts:94
+  if (netEquity == null) {
+app\api\fund-equity\route.ts:108
+  .fundEquitySnapshot
+app\api\fund-equity\route.ts:120
+  .fundEquitySnapshot
+app\api\fund-equity\route.ts:127
+  netEquity,
+app\api\fund-equity\route.ts:134
+  netEquity,
+app\api\fund-equity\route.ts:151
+  "FundEquitySnapshot",
+app\api\fund-equity\route.ts:160
+  netEquity:
+app\api\fund-equity\route.ts:162
+  .netEquity,
+app\api\fund-equity\route.ts:176
+  netEquity:
+app\api\fund-equity\route.ts:178
+  .netEquity,
+app\trade-calculator\page.tsx:10
+  fundEquitySnapshots,
+app\trade-calculator\page.tsx:106
+  prisma.fundEquitySnapshot.findMany({
+app\trade-calculator\page.tsx:113
+  netEquity: true,
+app\trade-calculator\page.tsx:119
+  const grossPortfolioMarketValue =
+app\trade-calculator\page.tsx:133
+  const serializedFundEquitySnapshots =
+app\trade-calculator\page.tsx:136
+  fundEquitySnapshots
+app\trade-calculator\page.tsx:145
+  grossPortfolioMarketValue={
+app\trade-calculator\page.tsx:146
+  grossPortfolioMarketValue
+app\trade-calculator\page.tsx:148
+  fundEquitySnapshots={
+app\trade-calculator\page.tsx:149
+  serializedFundEquitySnapshots
+app\trades\page.tsx:9
+  fundEquitySnapshots,
+app\trades\page.tsx:18
+  prisma.fundEquitySnapshot.findMany({
+app\trades\page.tsx:25
+  netEquity: true,
+app\trades\page.tsx:149
+  const serializedFundEquitySnapshots =
+app\trades\page.tsx:152
+  fundEquitySnapshots
+app\trades\page.tsx:159
+  fundEquitySnapshots={
+app\trades\page.tsx:160
+  serializedFundEquitySnapshots
+components\audit-logs\AuditLogsClient.tsx:377
+  <nav className="space-y-2">
+components\audit-logs\AuditLogsClient.tsx:427
+  </nav>
+components\common\AppSidebar.tsx:4
+  function NavItem({
+components\common\AppSidebar.tsx:34
+  const navItems = [
+components\common\AppSidebar.tsx:60
+  <nav className="space-y-2">
+components\common\AppSidebar.tsx:61
+  {navItems.map((item) => (
+components\common\AppSidebar.tsx:62
+  <NavItem
+components\common\AppSidebar.tsx:69
+  </nav>
+components\dashboard\DashboardClient.tsx:1892
+  totalMarketValue,
+components\dashboard\DashboardClient.tsx:1893
+  netMarketValue,
+components\dashboard\DashboardClient.tsx:2285
+  value={formatMoney(totalMarketValue)}
+components\dashboard\DashboardClient.tsx:2291
+  value={formatMoney(netMarketValue)}
+components\reminders\ReminderStartupPopup.tsx:4
+  import { useRouter } from "next/navigation";
+components\settings\SettingsClient.tsx:203
+  const [wellsNetEquity, setWellsNetEquity] =
+components\settings\SettingsClient.tsx:207
+  wellsNetEquityDate,
+components\settings\SettingsClient.tsx:208
+  setWellsNetEquityDate,
+components\settings\SettingsClient.tsx:214
+  isSavingFundEquity,
+components\settings\SettingsClient.tsx:215
+  setIsSavingFundEquity,
+components\settings\SettingsClient.tsx:219
+  wellsFundEquityResult,
+components\settings\SettingsClient.tsx:220
+  setWellsFundEquityResult,
+components\settings\SettingsClient.tsx:224
+  wellsFundEquityError,
+components\settings\SettingsClient.tsx:225
+  setWellsFundEquityError,
+components\settings\SettingsClient.tsx:429
+  async function saveFundEquity(
+components\settings\SettingsClient.tsx:431
+  netEquity: number
+components\settings\SettingsClient.tsx:444
+  netEquity,
+components\settings\SettingsClient.tsx:508
+  async function handleSaveFundEquity() {
+components\settings\SettingsClient.tsx:509
+  const parsedNetEquity =
+components\settings\SettingsClient.tsx:511
+  wellsNetEquity
+components\settings\SettingsClient.tsx:514
+  if (!wellsNetEquityDate) {
+components\settings\SettingsClient.tsx:515
+  setWellsFundEquityError(
+components\settings\SettingsClient.tsx:521
+  if (parsedNetEquity == null) {
+components\settings\SettingsClient.tsx:522
+  setWellsFundEquityError(
+components\settings\SettingsClient.tsx:528
+  setIsSavingFundEquity(true);
+components\settings\SettingsClient.tsx:529
+  setWellsFundEquityResult(null);
+components\settings\SettingsClient.tsx:530
+  setWellsFundEquityError("");
+components\settings\SettingsClient.tsx:534
+  await saveFundEquity(
+components\settings\SettingsClient.tsx:535
+  wellsNetEquityDate,
+components\settings\SettingsClient.tsx:536
+  parsedNetEquity
+components\settings\SettingsClient.tsx:539
+  setWellsFundEquityResult(
+components\settings\SettingsClient.tsx:543
+  setWellsNetEquity("");
+components\settings\SettingsClient.tsx:545
+  setWellsFundEquityError(
+components\settings\SettingsClient.tsx:551
+  setIsSavingFundEquity(false);
+components\settings\SettingsClient.tsx:1076
+  Save the Wells Net Equity / NAV independently from the CSV uploads.
+components\settings\SettingsClient.tsx:1088
+  value={wellsNetEquityDate}
+components\settings\SettingsClient.tsx:1090
+  isSavingFundEquity
+components\settings\SettingsClient.tsx:1093
+  setWellsNetEquityDate(
+components\settings\SettingsClient.tsx:1096
+  setWellsFundEquityResult(
+components\settings\SettingsClient.tsx:1099
+  setWellsFundEquityError(
+components\settings\SettingsClient.tsx:1109
+  Net Equity / NAV
+components\settings\SettingsClient.tsx:1120
+  value={wellsNetEquity}
+components\settings\SettingsClient.tsx:1122
+  isSavingFundEquity
+components\settings\SettingsClient.tsx:1125
+  setWellsNetEquity(
+components\settings\SettingsClient.tsx:1128
+  setWellsFundEquityResult(
+components\settings\SettingsClient.tsx:1131
+  setWellsFundEquityError(
+components\settings\SettingsClient.tsx:1144
+  onClick={handleSaveFundEquity}
+components\settings\SettingsClient.tsx:1145
+  disabled={isSavingFundEquity}
+components\settings\SettingsClient.tsx:1148
+  {isSavingFundEquity
+components\settings\SettingsClient.tsx:1153
+  {wellsFundEquityError ? (
+components\settings\SettingsClient.tsx:1155
+  {wellsFundEquityError}
+components\settings\SettingsClient.tsx:1205
+  wellsNetEquity
+components\settings\SettingsClient.tsx:1219
+  {wellsFundEquityResult?.snapshot ? (
+components\settings\SettingsClient.tsx:1230
+  wellsFundEquityResult
+components\settings\SettingsClient.tsx:1247
+  wellsFundEquityResult
+components\settings\SettingsClient.tsx:1248
+  .snapshot.netEquity
+components\settings\SettingsClient.tsx:1262
+  {wellsFundEquityResult.created
+components\trade-calculator\TradeCalculatorClient.tsx:9
+  type FundEquitySnapshot = {
+components\trade-calculator\TradeCalculatorClient.tsx:12
+  netEquity: number;
+components\trade-calculator\TradeCalculatorClient.tsx:18
+  grossPortfolioMarketValue: number;
+components\trade-calculator\TradeCalculatorClient.tsx:19
+  fundEquitySnapshots: FundEquitySnapshot[];
+components\trade-calculator\TradeCalculatorClient.tsx:41
+  grossPortfolioMarketValue,
+components\trade-calculator\TradeCalculatorClient.tsx:42
+  fundEquitySnapshots,
+components\trade-calculator\TradeCalculatorClient.tsx:132
+  grossPortfolioMarketValue={
+components\trade-calculator\TradeCalculatorClient.tsx:133
+  grossPortfolioMarketValue
+components\trade-calculator\TradeCalculatorClient.tsx:135
+  fundEquitySnapshots={
+components\trade-calculator\TradeCalculatorClient.tsx:136
+  fundEquitySnapshots
+components\trade-calculator\TradeCalculatorWorkspace.tsx:17
+  type FundEquitySnapshot = {
+components\trade-calculator\TradeCalculatorWorkspace.tsx:20
+  netEquity: number;
+components\trade-calculator\TradeCalculatorWorkspace.tsx:26
+  grossPortfolioMarketValue: number;
+components\trade-calculator\TradeCalculatorWorkspace.tsx:27
+  fundEquitySnapshots: FundEquitySnapshot[];
+components\trade-calculator\TradeCalculatorWorkspace.tsx:218
+  netEquity: number | null
+components\trade-calculator\TradeCalculatorWorkspace.tsx:227
+  netEquity == null ||
+components\trade-calculator\TradeCalculatorWorkspace.tsx:228
+  netEquity <= 0
+components\trade-calculator\TradeCalculatorWorkspace.tsx:235
+  netEquity) *
+components\trade-calculator\TradeCalculatorWorkspace.tsx:277
+  grossPortfolioMarketValue,
+components\trade-calculator\TradeCalculatorWorkspace.tsx:278
+  fundEquitySnapshots,
+components\trade-calculator\TradeCalculatorWorkspace.tsx:454
+  const latestFundEquitySnapshot =
+components\trade-calculator\TradeCalculatorWorkspace.tsx:455
+  fundEquitySnapshots[0] ?? null;
+components\trade-calculator\TradeCalculatorWorkspace.tsx:457
+  const latestNetEquity =
+components\trade-calculator\TradeCalculatorWorkspace.tsx:458
+  latestFundEquitySnapshot
+components\trade-calculator\TradeCalculatorWorkspace.tsx:460
+  latestFundEquitySnapshot
+components\trade-calculator\TradeCalculatorWorkspace.tsx:461
+  .netEquity
+components\trade-calculator\TradeCalculatorWorkspace.tsx:469
+  latestNetEquity
+components\trade-calculator\TradeCalculatorWorkspace.tsx:675
+  trade submission will remain unavailable
+components\trade-calculator\TradeCalculatorWorkspace.tsx:804
+  latestNetEquity
+components\trade-calculator\TradeCalculatorWorkspace.tsx:808
+  {latestFundEquitySnapshot ? (
+components\trade-calculator\TradeCalculatorWorkspace.tsx:812
+  latestFundEquitySnapshot
+components\trade-calculator\TradeCalculatorWorkspace.tsx:834
+  grossPortfolioMarketValue
+components\trade-calculator\TradeCalculatorWorkspace.tsx:1009
+  grossPortfolioMarketValue={
+components\trade-calculator\TradeCalculatorWorkspace.tsx:1010
+  grossPortfolioMarketValue
+components\trade-calculator\TradeCalculatorWorkspace.tsx:1012
+  fundEquitySnapshots={
+components\trade-calculator\TradeCalculatorWorkspace.tsx:1013
+  fundEquitySnapshots
+components\trade-calculator\TradeScenarioPanel.tsx:18
+  type FundEquitySnapshot = {
+components\trade-calculator\TradeScenarioPanel.tsx:21
+  netEquity: number;
+components\trade-calculator\TradeScenarioPanel.tsx:33
+  grossPortfolioMarketValue: number;
+components\trade-calculator\TradeScenarioPanel.tsx:34
+  fundEquitySnapshots: FundEquitySnapshot[];
+components\trade-calculator\TradeScenarioPanel.tsx:276
+  grossPortfolioMarketValue,
+components\trade-calculator\TradeScenarioPanel.tsx:277
+  fundEquitySnapshots,
+components\trade-calculator\TradeScenarioPanel.tsx:387
+  const applicableFundEquity =
+components\trade-calculator\TradeScenarioPanel.tsx:389
+  ? fundEquitySnapshots.find(
+components\trade-calculator\TradeScenarioPanel.tsx:397
+  const netEquity =
+components\trade-calculator\TradeScenarioPanel.tsx:398
+  applicableFundEquity
+components\trade-calculator\TradeScenarioPanel.tsx:400
+  applicableFundEquity
+components\trade-calculator\TradeScenarioPanel.tsx:401
+  .netEquity
+components\trade-calculator\TradeScenarioPanel.tsx:405
+  const validNetEquity =
+components\trade-calculator\TradeScenarioPanel.tsx:406
+  netEquity != null &&
+components\trade-calculator\TradeScenarioPanel.tsx:407
+  Number.isFinite(netEquity) &&
+components\trade-calculator\TradeScenarioPanel.tsx:408
+  netEquity > 0
+components\trade-calculator\TradeScenarioPanel.tsx:409
+  ? netEquity
+components\trade-calculator\TradeScenarioPanel.tsx:429
+  grossPortfolioMarketValue,
+components\trade-calculator\TradeScenarioPanel.tsx:430
+  netEquity: validNetEquity,
+components\trade-calculator\TradeScenarioPanel.tsx:468
+  grossPortfolioMarketValue,
+components\trade-calculator\TradeScenarioPanel.tsx:469
+  validNetEquity,
+components\trade-calculator\TradeScenarioPanel.tsx:861
+  {applicableFundEquity &&
+components\trade-calculator\TradeScenarioPanel.tsx:862
+  validNetEquity != null
+components\trade-calculator\TradeScenarioPanel.tsx:864
+  validNetEquity
+components\trade-calculator\TradeScenarioPanel.tsx:866
+  applicableFundEquity
+components\trade-calculator\TradeScenarioPanel.tsx:1178
+  : "Unavailable for this scenario"
+components\trades\TradesClient.tsx:10
+  type FundEquitySnapshot = {
+components\trades\TradesClient.tsx:13
+  netEquity: number;
+components\trades\TradesClient.tsx:19
+  fundEquitySnapshots: FundEquitySnapshot[];
+components\trades\TradesClient.tsx:213
+  fundEquitySnapshots,
+components\trades\TradesClient.tsx:506
+  const applicableFundEquity =
+components\trades\TradesClient.tsx:507
+  fundEquitySnapshots.find(
+components\trades\TradesClient.tsx:514
+  const dayNetEquity = Number(
+components\trades\TradesClient.tsx:515
+  applicableFundEquity
+components\trades\TradesClient.tsx:516
+  ?.netEquity
+components\trades\TradesClient.tsx:519
+  const hasValidDayNetEquity =
+components\trades\TradesClient.tsx:521
+  dayNetEquity
+components\trades\TradesClient.tsx:523
+  dayNetEquity > 0;
+components\trades\TradesClient.tsx:526
+  hasValidDayNetEquity
+components\trades\TradesClient.tsx:530
+  dayNetEquity
+components\trades\TradesClient.tsx:535
+  hasValidDayNetEquity
+components\trades\TradesClient.tsx:539
+  dayNetEquity
+components\trades\TradesClient.tsx:577
+  applicableFundEquity
+components\trades\TradesClient.tsx:579
+  dayNetEquity
+components\trades\TradesClient.tsx:582
+  applicableFundEquity
+components\trades\TradesClient.tsx:598
+  applicableFundEquity
+components\trades\TradesClient.tsx:600
+  dayNetEquity
+components\trades\TradesClient.tsx:603
+  applicableFundEquity
+lib\auth.ts:2
+  import { redirect } from "next/navigation";
+lib\dashboard\position-metrics.ts:223
+  const grossMarketValue = positions.reduce(
+lib\dashboard\position-metrics.ts:234
+  if (grossMarketValue === 0) {
+lib\dashboard\position-metrics.ts:239
+  (Math.abs(positionMarketValue) / grossMarketValue) *
+lib\dashboard\position-metrics.ts:245
+  const totalMarketValue = positions.reduce(
+lib\dashboard\position-metrics.ts:250
+  const netMarketValue = positions.reduce(
+lib\dashboard\position-metrics.ts:266
+  totalMarketValue,
+lib\dashboard\position-metrics.ts:267
+  netMarketValue,
+lib\trade-calculator\trade-calculator.ts:46
+  grossPortfolioMarketValue: number;
+lib\trade-calculator\trade-calculator.ts:47
+  netEquity: number | null;
+lib\trade-calculator\trade-calculator.ts:91
+  projectedGrossPortfolioMarketValue: number | null;
+lib\trade-calculator\trade-calculator.ts:228
+  netEquity: number
+lib\trade-calculator\trade-calculator.ts:232
+  netEquity <= 0
+lib\trade-calculator\trade-calculator.ts:239
+  netEquity) *
+lib\trade-calculator\trade-calculator.ts:246
+  netEquity: number
+lib\trade-calculator\trade-calculator.ts:254
+  netEquity <= 0
+lib\trade-calculator\trade-calculator.ts:260
+  netEquity *
+lib\trade-calculator\trade-calculator.ts:271
+  netEquity,
+lib\trade-calculator\trade-calculator.ts:278
+  netEquity: number;
+lib\trade-calculator\trade-calculator.ts:359
+  netEquity > 0
+lib\trade-calculator\trade-calculator.ts:361
+  netEquity) *
+lib\trade-calculator\trade-calculator.ts:450
+  const grossPortfolioMarketValue =
+lib\trade-calculator\trade-calculator.ts:453
+  input.grossPortfolioMarketValue
+lib\trade-calculator\trade-calculator.ts:457
+  const netEquity =
+lib\trade-calculator\trade-calculator.ts:460
+  input.netEquity
+lib\trade-calculator\trade-calculator.ts:474
+  netEquity
+lib\trade-calculator\trade-calculator.ts:553
+  netEquity <= 0
+lib\trade-calculator\trade-calculator.ts:563
+  netEquity *
+lib\trade-calculator\trade-calculator.ts:603
+  netEquity <= 0
+lib\trade-calculator\trade-calculator.ts:615
+  netEquity
+lib\trade-calculator\trade-calculator.ts:777
+  const projectedGrossPortfolioMarketValue =
+lib\trade-calculator\trade-calculator.ts:781
+  grossPortfolioMarketValue -
+lib\trade-calculator\trade-calculator.ts:791
+  netEquity > 0
+lib\trade-calculator\trade-calculator.ts:796
+  netEquity
+lib\trade-calculator\trade-calculator.ts:957
+  netEquity,
+lib\trade-calculator\trade-calculator.ts:965
+  "This Security does not have an active HCA position. The scenario may be calculated, but manual-trade submission is unavailable."
+lib\trade-calculator\trade-calculator.ts:1038
+  projectedGrossPortfolioMarketValue,
+
+====================================================================================================
+PERCENTAGE AND BPS CALCULATIONS
+====================================================================================================
+
+app\api\ingestion\wells\manual-upload\route.ts:347
+  portfolioPct: 0,
+components\dashboard\DashboardClient.tsx:20
+  getDisplayPortfolioPct,
+components\dashboard\DashboardClient.tsx:94
+  return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
+components\dashboard\DashboardClient.tsx:235
+  const portfolioPct = getDisplayPortfolioPct(position, portfolioPositions);
+components\dashboard\DashboardClient.tsx:272
+  {portfolioPct != null ? `${portfolioPct.toFixed(2)}%` : "—"}
+components\dashboard\DashboardClient.tsx:758
+  {lot.roi != null ? `${lot.roi.toFixed(1)}%` : "—"}
+components\dashboard\DashboardClient.tsx:792
+  ["VWAP", marketData?.vwap != null ? `$${marketData.vwap.toFixed(2)}` : "N/A"],
+components\dashboard\DashboardClient.tsx:795
+  marketData?.high52w != null ? `$${marketData.high52w.toFixed(2)}` : "N/A",
+components\dashboard\DashboardClient.tsx:799
+  marketData?.low52w != null ? `$${marketData.low52w.toFixed(2)}` : "N/A",
+components\dashboard\DashboardClient.tsx:801
+  ["Beta", marketData?.beta != null ? marketData.beta.toFixed(2) : "N/A"],
+components\dashboard\DashboardClient.tsx:818
+  ["P/LTM EPS", marketData?.peLtm != null ? `${marketData.peLtm.toFixed(1)}x` : "N/A"],
+components\dashboard\DashboardClient.tsx:822
+  ? `${marketData.priceToTangBook.toFixed(1)}x`
+components\dashboard\DashboardClient.tsx:825
+  ["P/NTM EPS", marketData?.peNtm != null ? `${marketData.peNtm.toFixed(1)}x` : "N/A"],
+components\dashboard\DashboardClient.tsx:829
+  ? `${marketData.priceToBook.toFixed(1)}x`
+components\dashboard\DashboardClient.tsx:835
+  ? `${marketData.debtToEbitda.toFixed(1)}x`
+components\dashboard\DashboardClient.tsx:838
+  ["EPS", marketData?.eps != null ? `$${marketData.eps.toFixed(2)}` : "N/A"],
+components\dashboard\DashboardClient.tsx:1874
+  (getDisplayPortfolioPct(b, localPositions) ?? 0) -
+components\dashboard\DashboardClient.tsx:1875
+  (getDisplayPortfolioPct(a, localPositions) ?? 0)
+components\dashboard\ExpandedTradeHistoryModal.tsx:111
+  return `${value >= 0 ? "+" : ""}${value.toFixed(
+components\dashboard\SummaryModal.tsx:46
+  return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
+components\dashboard\SummaryModal.tsx:552
+  {pct.toFixed(
+components\past-positions\PastPositionsClient.tsx:88
+  return ((entryPrice - exitPrice) / entryPrice) * 100;
+components\past-positions\PastPositionsClient.tsx:91
+  return ((exitPrice - entryPrice) / entryPrice) * 100;
+components\past-positions\PastPositionsClient.tsx:140
+  return `${Number(value) >= 0 ? "+" : ""}${Number(value).toFixed(1)}%`;
+components\trade-calculator\ManualTradeReviewModal.tsx:88
+  return `${sign}${value.toFixed(2)}%`;
+components\trade-calculator\ManualTradeReviewModal.tsx:313
+  result.currentPortfolioWeightPct
+components\trade-calculator\ManualTradeReviewModal.tsx:321
+  result.projectedPortfolioWeightPct
+components\trade-calculator\ManualTradeReviewModal.tsx:329
+  result.portfolioWeightChangePctPoints,
+components\trade-calculator\ManualTradeReviewModal.tsx:375
+  result.portfolioRiskPct
+components\trade-calculator\ManualTradeReviewModal.tsx:393
+  ? `${result.rewardRiskRatio.toFixed(
+components\trade-calculator\TradeCalculatorWorkspace.tsx:130
+  return `${value.toFixed(2)}%`;
+components\trade-calculator\TradeCalculatorWorkspace.tsx:216
+  function getWellsPortfolioWeight(
+components\trade-calculator\TradeCalculatorWorkspace.tsx:465
+  const wellsPortfolioWeight =
+components\trade-calculator\TradeCalculatorWorkspace.tsx:467
+  ? getWellsPortfolioWeight(
+components\trade-calculator\TradeCalculatorWorkspace.tsx:910
+  wellsPortfolioWeight
+components\trade-calculator\TradeScenarioPanel.tsx:198
+  return `${sign}${value.toFixed(2)}%`;
+components\trade-calculator\TradeScenarioPanel.tsx:298
+  basisPointsInput,
+components\trade-calculator\TradeScenarioPanel.tsx:299
+  setBasisPointsInput,
+components\trade-calculator\TradeScenarioPanel.tsx:302
+  targetWeightPctInput,
+components\trade-calculator\TradeScenarioPanel.tsx:303
+  setTargetWeightPctInput,
+components\trade-calculator\TradeScenarioPanel.tsx:311
+  ? currentPrice.toFixed(2)
+components\trade-calculator\TradeScenarioPanel.tsx:353
+  setBasisPointsInput("");
+components\trade-calculator\TradeScenarioPanel.tsx:354
+  setTargetWeightPctInput("");
+components\trade-calculator\TradeScenarioPanel.tsx:358
+  ? currentPrice.toFixed(2)
+components\trade-calculator\TradeScenarioPanel.tsx:438
+  basisPointsInput:
+components\trade-calculator\TradeScenarioPanel.tsx:440
+  basisPointsInput
+components\trade-calculator\TradeScenarioPanel.tsx:442
+  targetWeightPctInput:
+components\trade-calculator\TradeScenarioPanel.tsx:444
+  targetWeightPctInput
+components\trade-calculator\TradeScenarioPanel.tsx:475
+  basisPointsInput,
+components\trade-calculator\TradeScenarioPanel.tsx:476
+  targetWeightPctInput,
+components\trade-calculator\TradeScenarioPanel.tsx:498
+  setBasisPointsInput("");
+components\trade-calculator\TradeScenarioPanel.tsx:504
+  setTargetWeightPctInput("");
+components\trade-calculator\TradeScenarioPanel.tsx:516
+  setBasisPointsInput("");
+components\trade-calculator\TradeScenarioPanel.tsx:517
+  setTargetWeightPctInput("");
+components\trade-calculator\TradeScenarioPanel.tsx:521
+  ? currentPrice.toFixed(2)
+components\trade-calculator\TradeScenarioPanel.tsx:607
+  setBasisPointsInput("");
+components\trade-calculator\TradeScenarioPanel.tsx:608
+  setTargetWeightPctInput("");
+components\trade-calculator\TradeScenarioPanel.tsx:612
+  ? currentPrice.toFixed(2)
+components\trade-calculator\TradeScenarioPanel.tsx:656
+  basisPointsInput.trim()
+components\trade-calculator\TradeScenarioPanel.tsx:659
+  targetWeightPctInput.trim()
+components\trade-calculator\TradeScenarioPanel.tsx:729
+  ["AMOUNT_BPS", "Amount (BPS)"],
+components\trade-calculator\TradeScenarioPanel.tsx:768
+  targetWeightPctInput
+components\trade-calculator\TradeScenarioPanel.tsx:771
+  setTargetWeightPctInput(
+components\trade-calculator\TradeScenarioPanel.tsx:837
+  Amount (BPS)
+components\trade-calculator\TradeScenarioPanel.tsx:843
+  basisPointsInput
+components\trade-calculator\TradeScenarioPanel.tsx:846
+  setBasisPointsInput(
+components\trade-calculator\TradeScenarioPanel.tsx:856
+  bps
+components\trade-calculator\TradeScenarioPanel.tsx:1140
+  result.projectedPortfolioWeightPct
+components\trade-calculator\TradeScenarioPanel.tsx:1148
+  result.portfolioWeightChangePctPoints,
+components\trade-calculator\TradeScenarioPanel.tsx:1153
+  result.portfolioWeightChangePctPoints
+components\trade-calculator\TradeScenarioPanel.tsx:1185
+  result.currentPortfolioWeightPct
+components\trade-calculator\TradeScenarioPanel.tsx:1242
+  result.portfolioRiskPct
+components\trade-calculator\TradeScenarioPanel.tsx:1259
+  ? `${result.rewardRiskRatio.toFixed(
+components\trades\TradesClient.tsx:55
+  )} bps`;
+components\trades\TradesClient.tsx:531
+  ) * 10_000
+components\trades\TradesClient.tsx:540
+  ) * 10_000
+components\watchlist\WatchlistClient.tsx:183
+  return ((targetPrice - currentPrice) / currentPrice) * 100;
+components\watchlist\WatchlistClient.tsx:203
+  return `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
+components\watchlist\WatchlistClient.tsx:429
+  ["VWAP", marketData?.vwap != null ? `$${marketData.vwap.toFixed(2)}` : "N/A"],
+components\watchlist\WatchlistClient.tsx:430
+  ["52 Week High", marketData?.high52w != null ? `$${marketData.high52w.toFixed(2)}` : "N/A"],
+components\watchlist\WatchlistClient.tsx:431
+  ["52 Week Low", marketData?.low52w != null ? `$${marketData.low52w.toFixed(2)}` : "N/A"],
+components\watchlist\WatchlistClient.tsx:432
+  ["Beta", marketData?.beta != null ? marketData.beta.toFixed(2) : "N/A"],
+components\watchlist\WatchlistClient.tsx:441
+  ["P/LTM EPS", marketData?.peLtm != null ? `${marketData.peLtm.toFixed(1)}x` : "N/A"],
+components\watchlist\WatchlistClient.tsx:445
+  ? `${marketData.priceToTangBook.toFixed(1)}x`
+components\watchlist\WatchlistClient.tsx:448
+  ["P/NTM EPS", marketData?.peNtm != null ? `${marketData.peNtm.toFixed(1)}x` : "N/A"],
+components\watchlist\WatchlistClient.tsx:452
+  ? `${marketData.priceToBook.toFixed(1)}x`
+components\watchlist\WatchlistClient.tsx:458
+  ? `${marketData.debtToEbitda.toFixed(1)}x`
+components\watchlist\WatchlistClient.tsx:461
+  ["EPS", marketData?.eps != null ? `$${marketData.eps.toFixed(2)}` : "N/A"],
+lib\dashboard\position-metrics.ts:129
+  return (unrealizedPnl / Math.abs(costBasis)) * 100;
+lib\dashboard\position-metrics.ts:205
+  return marketValue * (dayPctChange / 100);
+lib\dashboard\position-metrics.ts:211
+  export function getDisplayPortfolioPct(
+lib\dashboard\trade-history-analytics.ts:264
+  }${positionChangePct.toFixed(1)}%`;
+lib\trade-calculator\trade-calculator.ts:53
+  basisPointsInput?: number | null;
+lib\trade-calculator\trade-calculator.ts:54
+  targetWeightPctInput?: number | null;
+lib\trade-calculator\trade-calculator.ts:88
+  currentPortfolioWeightPct: number | null;
+lib\trade-calculator\trade-calculator.ts:89
+  projectedPortfolioWeightPct: number | null;
+lib\trade-calculator\trade-calculator.ts:90
+  portfolioWeightChangePctPoints: number | null;
+lib\trade-calculator\trade-calculator.ts:106
+  portfolioRiskPct: number | null;
+lib\trade-calculator\trade-calculator.ts:141
+  10_000
+lib\trade-calculator\trade-calculator.ts:142
+  ) / 10_000
+lib\trade-calculator\trade-calculator.ts:245
+  targetWeightPct: number,
+lib\trade-calculator\trade-calculator.ts:249
+  targetWeightPct / 100;
+lib\trade-calculator\trade-calculator.ts:294
+  portfolioRiskPct: null,
+lib\trade-calculator\trade-calculator.ts:357
+  const portfolioRiskPct =
+lib\trade-calculator\trade-calculator.ts:375
+  portfolioRiskPct,
+lib\trade-calculator\trade-calculator.ts:471
+  const currentPortfolioWeightPct =
+lib\trade-calculator\trade-calculator.ts:540
+  const basisPointsInput =
+lib\trade-calculator\trade-calculator.ts:542
+  input.basisPointsInput
+lib\trade-calculator\trade-calculator.ts:546
+  basisPointsInput == null ||
+lib\trade-calculator\trade-calculator.ts:547
+  basisPointsInput <= 0
+lib\trade-calculator\trade-calculator.ts:550
+  "Amount (BPS) must be greater than zero."
+lib\trade-calculator\trade-calculator.ts:556
+  "Net Equity is required for Amount (BPS) sizing."
+lib\trade-calculator\trade-calculator.ts:564
+  (basisPointsInput / 10_000);
+lib\trade-calculator\trade-calculator.ts:576
+  "The Amount (BPS) value is too small to purchase one share."
+lib\trade-calculator\trade-calculator.ts:589
+  const targetWeightPct =
+lib\trade-calculator\trade-calculator.ts:591
+  input.targetWeightPctInput
+lib\trade-calculator\trade-calculator.ts:595
+  targetWeightPct == null ||
+lib\trade-calculator\trade-calculator.ts:596
+  targetWeightPct <= 0 ||
+lib\trade-calculator\trade-calculator.ts:597
+  targetWeightPct >= 100
+lib\trade-calculator\trade-calculator.ts:614
+  targetWeightPct,
+lib\trade-calculator\trade-calculator.ts:789
+  const projectedPortfolioWeightPct =
+lib\trade-calculator\trade-calculator.ts:797
+  ) * 100
+lib\trade-calculator\trade-calculator.ts:800
+  const portfolioWeightChangePctPoints =
+lib\trade-calculator\trade-calculator.ts:801
+  projectedPortfolioWeightPct != null &&
+lib\trade-calculator\trade-calculator.ts:802
+  currentPortfolioWeightPct != null
+lib\trade-calculator\trade-calculator.ts:803
+  ? projectedPortfolioWeightPct -
+lib\trade-calculator\trade-calculator.ts:804
+  currentPortfolioWeightPct
+lib\trade-calculator\trade-calculator.ts:830
+  }${exposureChangePct.toFixed(1)}%`;
+lib\trade-calculator\trade-calculator.ts:1035
+  currentPortfolioWeightPct,
+lib\trade-calculator\trade-calculator.ts:1036
+  projectedPortfolioWeightPct,
+lib\trade-calculator\trade-calculator.ts:1037
+  portfolioWeightChangePctPoints,
+
+====================================================================================================
+POSSIBLE CAPITAL-BASED DIVISION
+====================================================================================================
+
+components\common\AppSidebar.tsx:36
+  { href: "/portfolio", label: "Portfolio" },
+components\trade-calculator\TradeCalculatorWorkspace.tsx:168
+  marketValue / shares
+components\trade-calculator\TradeCalculatorWorkspace.tsx:212
+  costBasis / shares
+components\trades\TradesClient.tsx:529
+  .longNotional /
+components\trades\TradesClient.tsx:538
+  .shortNotional /
+components\watchlist\WatchlistClient.tsx:1777
+  ? "/portfolio"
+lib\dashboard\position-metrics.ts:129
+  return (unrealizedPnl / Math.abs(costBasis)) * 100;
+lib\dashboard\position-metrics.ts:239
+  (Math.abs(positionMarketValue) / grossMarketValue) *
+lib\dashboard\trade-history-analytics.ts:319
+  return weightedValue / totalShares;
+lib\ingestion\wells-tax-lot.ts:200
+  validShares !== 0 ? Math.abs(validCostBasis / validShares) : 0;
+lib\ingestion\wells-tax-lot.ts:309
+  wap: position.shares !== 0 ? Math.abs(position.costBasis / position.shares) : 0,
+lib\trade-calculator\trade-calculator.ts:360
+  ? (totalRisk /
+lib\trade-calculator\trade-calculator.ts:369
+  ? totalReward / totalRisk
+lib\trade-calculator\trade-calculator.ts:625
+  targetMarketValue /
+
+====================================================================================================
+AGGREGATED MARKET VALUE
+====================================================================================================
+
+app\api\ingestion\wells\manual-upload\route.ts:277
+  marketValue: position.marketValue,
+app\api\ingestion\wells\manual-upload\route.ts:431
+  marketValue: taxLot.marketValue,
+app\api\positions\route.ts:49
+  marketValue: "desc",
+app\api\trades\manual\route.ts:210
+  ? -Math.abs(rawShares)
+app\api\trades\manual\route.ts:211
+  : Math.abs(rawShares);
+app\api\watchlist\[id]\route.ts:65
+  return Math.abs(oldValue - newValue) > 0.000001;
+app\page.tsx:121
+  marketValue: "desc",
+app\trade-calculator\page.tsx:50
+  marketValue: true,
+app\trade-calculator\page.tsx:102
+  marketValue: true,
+app\trade-calculator\page.tsx:119
+  const grossPortfolioMarketValue =
+app\trade-calculator\page.tsx:120
+  activePositionValues.reduce(
+app\trade-calculator\page.tsx:123
+  Math.abs(
+app\trade-calculator\page.tsx:124
+  Number(position.marketValue) || 0
+app\trade-calculator\page.tsx:145
+  grossPortfolioMarketValue={
+app\trade-calculator\page.tsx:146
+  grossPortfolioMarketValue
+app\trades\page.tsx:138
+  marketValue: "desc",
+components\audit-logs\AuditLogsClient.tsx:335
+  initialLogs.reduce((acc, log) => {
+components\dashboard\DashboardClient.tsx:19
+  getDisplayMarketValue,
+components\dashboard\DashboardClient.tsx:279
+  <div>{formatMoney(position.marketValue)}</div>
+components\dashboard\DashboardClient.tsx:753
+  <span>{formatMoney(lot.marketValue)}</span>
+components\dashboard\DashboardClient.tsx:1892
+  totalMarketValue,
+components\dashboard\DashboardClient.tsx:1893
+  netMarketValue,
+components\dashboard\DashboardClient.tsx:2285
+  value={formatMoney(totalMarketValue)}
+components\dashboard\DashboardClient.tsx:2291
+  value={formatMoney(netMarketValue)}
+components\dashboard\ExpandedTradeHistoryModal.tsx:88
+  if (Math.abs(value) < 0.000001) {
+components\dashboard\ExpandedTradeHistoryModal.tsx:92
+  const formattedValue = Math.abs(
+components\dashboard\ExpandedTradeHistoryModal.tsx:132
+  Math.abs(value) < 0.000001
+components\dashboard\ExpandedTradeHistoryModal.tsx:662
+  Math.abs(Number(position.shares) || 0);
+components\dashboard\SummaryModal.tsx:66
+  const marketValue = Number(
+components\dashboard\SummaryModal.tsx:67
+  position.marketValue || 0
+components\dashboard\SummaryModal.tsx:74
+  (marketValue * dayPctChange) /
+components\dashboard\SummaryModal.tsx:244
+  positions.reduce(
+components\dashboard\SummaryModal.tsx:255
+  Math.abs(
+components\dashboard\SummaryModal.tsx:257
+  position.marketValue ||
+components\dashboard\SummaryModal.tsx:281
+  sectorExposure.reduce(
+components\dashboard\SummaryModal.tsx:449
+  position.marketValue
+components\dashboard\SummaryModal.tsx:493
+  position.marketValue
+components\meetings\MeetingsClient.tsx:121
+  meetings.reduce(
+components\past-positions\PastPositionsClient.tsx:101
+  const shares = Math.abs(Number(position.shares ?? 0));
+components\past-positions\PastPositionsClient.tsx:550
+  .reduce((sum, position) => sum + getRealizedPnl(position), 0);
+components\past-positions\PastPositionsClient.tsx:554
+  .reduce((sum, position) => sum + getRealizedPnl(position), 0);
+components\trade-calculator\TradeCalculatorClient.tsx:18
+  grossPortfolioMarketValue: number;
+components\trade-calculator\TradeCalculatorClient.tsx:41
+  grossPortfolioMarketValue,
+components\trade-calculator\TradeCalculatorClient.tsx:45
+  initialSecurities.reduce(
+components\trade-calculator\TradeCalculatorClient.tsx:62
+  initialSecurities.reduce(
+components\trade-calculator\TradeCalculatorClient.tsx:72
+  positions.reduce(
+components\trade-calculator\TradeCalculatorClient.tsx:132
+  grossPortfolioMarketValue={
+components\trade-calculator\TradeCalculatorClient.tsx:133
+  grossPortfolioMarketValue
+components\trade-calculator\TradeCalculatorWorkspace.tsx:26
+  grossPortfolioMarketValue: number;
+components\trade-calculator\TradeCalculatorWorkspace.tsx:106
+  Math.abs(value) < 0.000001
+components\trade-calculator\TradeCalculatorWorkspace.tsx:111
+  const formattedValue = Math.abs(
+components\trade-calculator\TradeCalculatorWorkspace.tsx:138
+  Math.abs(value) < 0.000001
+components\trade-calculator\TradeCalculatorWorkspace.tsx:155
+  const marketValue = toFiniteNumber(
+components\trade-calculator\TradeCalculatorWorkspace.tsx:156
+  position?.marketValue
+components\trade-calculator\TradeCalculatorWorkspace.tsx:161
+  marketValue == null ||
+components\trade-calculator\TradeCalculatorWorkspace.tsx:167
+  return Math.abs(
+components\trade-calculator\TradeCalculatorWorkspace.tsx:168
+  marketValue / shares
+components\trade-calculator\TradeCalculatorWorkspace.tsx:211
+  return Math.abs(
+components\trade-calculator\TradeCalculatorWorkspace.tsx:220
+  const marketValue =
+components\trade-calculator\TradeCalculatorWorkspace.tsx:222
+  position?.marketValue
+components\trade-calculator\TradeCalculatorWorkspace.tsx:226
+  marketValue == null ||
+components\trade-calculator\TradeCalculatorWorkspace.tsx:234
+  (Math.abs(marketValue) /
+components\trade-calculator\TradeCalculatorWorkspace.tsx:277
+  grossPortfolioMarketValue,
+components\trade-calculator\TradeCalculatorWorkspace.tsx:653
+  Math.abs(
+components\trade-calculator\TradeCalculatorWorkspace.tsx:834
+  grossPortfolioMarketValue
+components\trade-calculator\TradeCalculatorWorkspace.tsx:944
+  selectedPosition.marketValue
+components\trade-calculator\TradeCalculatorWorkspace.tsx:1009
+  grossPortfolioMarketValue={
+components\trade-calculator\TradeCalculatorWorkspace.tsx:1010
+  grossPortfolioMarketValue
+components\trade-calculator\TradeScenarioPanel.tsx:33
+  grossPortfolioMarketValue: number;
+components\trade-calculator\TradeScenarioPanel.tsx:167
+  const formattedValue = Math.abs(
+components\trade-calculator\TradeScenarioPanel.tsx:175
+  if (Math.abs(value) < 0.000001) {
+components\trade-calculator\TradeScenarioPanel.tsx:206
+  Math.abs(value) < 0.000001
+components\trade-calculator\TradeScenarioPanel.tsx:276
+  grossPortfolioMarketValue,
+components\trade-calculator\TradeScenarioPanel.tsx:424
+  wellsMarketValue:
+components\trade-calculator\TradeScenarioPanel.tsx:425
+  position.marketValue,
+components\trade-calculator\TradeScenarioPanel.tsx:429
+  grossPortfolioMarketValue,
+components\trade-calculator\TradeScenarioPanel.tsx:468
+  grossPortfolioMarketValue,
+components\trade-calculator\TradeScenarioPanel.tsx:1132
+  result.projectedMarketValue
+components\trades\TradesClient.tsx:321
+  filteredTrades.reduce(
+components\trades\TradesClient.tsx:324
+  Math.abs(
+components\trades\TradesClient.tsx:442
+  trades.reduce(
+components\trades\TradesClient.tsx:448
+  Math.abs(
+components\trades\TradesClient.tsx:461
+  trades.reduce(
+components\trades\TradesClient.tsx:467
+  Math.abs(
+lib\dashboard\position-metrics.ts:11
+  marketValue?: number | string | null;
+lib\dashboard\position-metrics.ts:67
+  export function getDisplayMarketValue(
+lib\dashboard\position-metrics.ts:74
+  return getNumber(position.marketValue);
+lib\dashboard\position-metrics.ts:97
+  const marketValue = getNumber(position.marketValue);
+lib\dashboard\position-metrics.ts:99
+  const price = safeDivide(marketValue, shares);
+lib\dashboard\position-metrics.ts:101
+  return price == null ? null : Math.abs(price);
+lib\dashboard\position-metrics.ts:112
+  return wap == null ? null : Math.abs(wap);
+lib\dashboard\position-metrics.ts:129
+  return (unrealizedPnl / Math.abs(costBasis)) * 100;
+lib\dashboard\position-metrics.ts:201
+  const marketValue = getNumber(position.marketValue);
+lib\dashboard\position-metrics.ts:204
+  if (marketValue != null && dayPctChange != null) {
+lib\dashboard\position-metrics.ts:205
+  return marketValue * (dayPctChange / 100);
+lib\dashboard\position-metrics.ts:215
+  const positionMarketValue = getNumber(
+lib\dashboard\position-metrics.ts:216
+  position.marketValue
+lib\dashboard\position-metrics.ts:219
+  if (positionMarketValue == null) {
+lib\dashboard\position-metrics.ts:223
+  const grossMarketValue = positions.reduce(
+lib\dashboard\position-metrics.ts:225
+  const marketValue = getNumber(
+lib\dashboard\position-metrics.ts:226
+  currentPosition.marketValue
+lib\dashboard\position-metrics.ts:229
+  return sum + Math.abs(marketValue ?? 0);
+lib\dashboard\position-metrics.ts:234
+  if (grossMarketValue === 0) {
+lib\dashboard\position-metrics.ts:239
+  (Math.abs(positionMarketValue) / grossMarketValue) *
+lib\dashboard\position-metrics.ts:245
+  const totalMarketValue = positions.reduce(
+lib\dashboard\position-metrics.ts:246
+  (sum, position) => sum + Math.abs(getNumber(position.marketValue) ?? 0),
+lib\dashboard\position-metrics.ts:250
+  const netMarketValue = positions.reduce(
+lib\dashboard\position-metrics.ts:251
+  (sum, position) => sum + (getNumber(position.marketValue) ?? 0),
+lib\dashboard\position-metrics.ts:255
+  const totalUnrealizedPnl = positions.reduce(
+lib\dashboard\position-metrics.ts:260
+  const dayPnl = positions.reduce(
+lib\dashboard\position-metrics.ts:266
+  totalMarketValue,
+lib\dashboard\position-metrics.ts:267
+  netMarketValue,
+lib\dashboard\trade-history-analytics.ts:147
+  const absoluteShares = Math.abs(storedShares);
+lib\dashboard\trade-history-analytics.ts:294
+  const totalShares = pricedRows.reduce(
+lib\dashboard\trade-history-analytics.ts:304
+  const weightedValue = pricedRows.reduce(
+lib\dashboard\trade-history-analytics.ts:366
+  Math.abs(storedShares);
+lib\dashboard\trade-history-analytics.ts:386
+  ? Math.abs(storedNotional)
+lib\dashboard\trade-history-analytics.ts:426
+  : Math.abs(normalizedCurrentShares);
+lib\dashboard\trade-history-analytics.ts:626
+  const totalSharesTraded = rows.reduce(
+lib\dashboard\trade-history-analytics.ts:632
+  const grossTradeNotional = rows.reduce(
+lib\ingestion\wells-tax-lot.ts:10
+  marketValue: number;
+lib\ingestion\wells-tax-lot.ts:36
+  marketValue: number;
+lib\ingestion\wells-tax-lot.ts:141
+  marketValue: number;
+lib\ingestion\wells-tax-lot.ts:165
+  const marketValue = parseNumber(getValue(row, "ReportingMarketValue"));
+lib\ingestion\wells-tax-lot.ts:185
+  marketValue == null ||
+lib\ingestion\wells-tax-lot.ts:194
+  const validMarketValue: number = marketValue;
+lib\ingestion\wells-tax-lot.ts:200
+  validShares !== 0 ? Math.abs(validCostBasis / validShares) : 0;
+lib\ingestion\wells-tax-lot.ts:223
+  marketValue: validMarketValue,
+lib\ingestion\wells-tax-lot.ts:239
+  marketValue: validMarketValue,
+lib\ingestion\wells-tax-lot.ts:265
+  existing.marketValue += validMarketValue;
+lib\ingestion\wells-tax-lot.ts:287
+  marketValue: validMarketValue,
+lib\ingestion\wells-tax-lot.ts:306
+  marketValue: position.marketValue,
+lib\ingestion\wells-tax-lot.ts:309
+  wap: position.shares !== 0 ? Math.abs(position.costBasis / position.shares) : 0,
+lib\reconciliation\trade-reconciliation.ts:26
+  return Math.abs(a - b);
+lib\reconciliation\trade-reconciliation.ts:71
+  Math.max(10, Math.abs(wellsTrade.shares) * 0.02) ||
+lib\sec.ts:151
+  return last.reduce((s, x) => s + x.val, 0);
+lib\trade-calculator\trade-calculator.ts:42
+  wellsMarketValue: number | null | undefined;
+lib\trade-calculator\trade-calculator.ts:46
+  grossPortfolioMarketValue: number;
+lib\trade-calculator\trade-calculator.ts:86
+  projectedMarketValue: number | null;
+lib\trade-calculator\trade-calculator.ts:91
+  projectedGrossPortfolioMarketValue: number | null;
+lib\trade-calculator\trade-calculator.ts:165
+  return -Math.abs(shares);
+lib\trade-calculator\trade-calculator.ts:169
+  return Math.abs(shares);
+lib\trade-calculator\trade-calculator.ts:193
+  Math.abs(signedShareChange) <=
+lib\trade-calculator\trade-calculator.ts:227
+  wellsMarketValue: number | null,
+lib\trade-calculator\trade-calculator.ts:231
+  wellsMarketValue == null ||
+lib\trade-calculator\trade-calculator.ts:238
+  (Math.abs(wellsMarketValue) /
+lib\trade-calculator\trade-calculator.ts:244
+  function calculateTargetMarketValue(
+lib\trade-calculator\trade-calculator.ts:390
+  const wellsExposure = Math.abs(
+lib\trade-calculator\trade-calculator.ts:433
+  const baselineExposure = Math.abs(
+lib\trade-calculator\trade-calculator.ts:450
+  const grossPortfolioMarketValue =
+lib\trade-calculator\trade-calculator.ts:451
+  Math.abs(
+lib\trade-calculator\trade-calculator.ts:453
+  input.grossPortfolioMarketValue
+lib\trade-calculator\trade-calculator.ts:458
+  Math.abs(
+lib\trade-calculator\trade-calculator.ts:464
+  const wellsMarketValue = toFiniteNumber(
+lib\trade-calculator\trade-calculator.ts:465
+  input.wellsMarketValue
+lib\trade-calculator\trade-calculator.ts:468
+  const currentAbsoluteMarketValue =
+lib\trade-calculator\trade-calculator.ts:469
+  Math.abs(wellsMarketValue ?? 0);
+lib\trade-calculator\trade-calculator.ts:473
+  wellsMarketValue,
+lib\trade-calculator\trade-calculator.ts:612
+  const targetMarketValue =
+lib\trade-calculator\trade-calculator.ts:613
+  calculateTargetMarketValue(
+lib\trade-calculator\trade-calculator.ts:618
+  if (targetMarketValue == null) {
+lib\trade-calculator\trade-calculator.ts:625
+  targetMarketValue /
+lib\trade-calculator\trade-calculator.ts:640
+  proposedShares = Math.abs(
+lib\trade-calculator\trade-calculator.ts:697
+  Math.abs(projectedSignedShares) <=
+lib\trade-calculator\trade-calculator.ts:703
+  projectedExposure = Math.abs(
+lib\trade-calculator\trade-calculator.ts:746
+  Math.abs(pendingManualDelta) >
+lib\trade-calculator\trade-calculator.ts:769
+  const projectedMarketValue =
+lib\trade-calculator\trade-calculator.ts:777
+  const projectedGrossPortfolioMarketValue =
+lib\trade-calculator\trade-calculator.ts:778
+  projectedMarketValue != null
+lib\trade-calculator\trade-calculator.ts:781
+  grossPortfolioMarketValue -
+lib\trade-calculator\trade-calculator.ts:782
+  currentAbsoluteMarketValue +
+lib\trade-calculator\trade-calculator.ts:783
+  Math.abs(
+lib\trade-calculator\trade-calculator.ts:784
+  projectedMarketValue
+lib\trade-calculator\trade-calculator.ts:790
+  projectedMarketValue != null &&
+lib\trade-calculator\trade-calculator.ts:793
+  Math.abs(
+lib\trade-calculator\trade-calculator.ts:794
+  projectedMarketValue
+lib\trade-calculator\trade-calculator.ts:855
+  Math.abs(pendingManualDelta) <=
+lib\trade-calculator\trade-calculator.ts:1033
+  projectedMarketValue,
+lib\trade-calculator\trade-calculator.ts:1038
+  projectedGrossPortfolioMarketValue,
+
+====================================================================================================
+POSITION AND SECTOR SIZING
+====================================================================================================
+
+components\dashboard\DashboardClient.tsx:20
+  getDisplayPortfolioPct,
+components\dashboard\DashboardClient.tsx:235
+  const portfolioPct = getDisplayPortfolioPct(position, portfolioPositions);
+components\dashboard\DashboardClient.tsx:1874
+  (getDisplayPortfolioPct(b, localPositions) ?? 0) -
+components\dashboard\DashboardClient.tsx:1875
+  (getDisplayPortfolioPct(a, localPositions) ?? 0)
+components\dashboard\SummaryModal.tsx:242
+  const sectorExposure =
+components\dashboard\SummaryModal.tsx:280
+  const totalExposure =
+components\dashboard\SummaryModal.tsx:281
+  sectorExposure.reduce(
+components\dashboard\SummaryModal.tsx:296
+  sectorExposure,
+components\dashboard\SummaryModal.tsx:297
+  totalExposure,
+components\dashboard\SummaryModal.tsx:521
+  Position Sizes By Category
+components\dashboard\SummaryModal.tsx:527
+  {analytics.sectorExposure.map(
+components\dashboard\SummaryModal.tsx:537
+  analytics.totalExposure,
+components\trade-calculator\TradeCalculatorWorkspace.tsx:216
+  function getWellsPortfolioWeight(
+components\trade-calculator\TradeCalculatorWorkspace.tsx:467
+  ? getWellsPortfolioWeight(
+lib\dashboard\position-metrics.ts:211
+  export function getDisplayPortfolioPct(
+lib\trade-calculator\trade-calculator.ts:226
+  function calculateCurrentWeight(
+lib\trade-calculator\trade-calculator.ts:244
+  function calculateTargetMarketValue(
+lib\trade-calculator\trade-calculator.ts:472
+  calculateCurrentWeight(
+lib\trade-calculator\trade-calculator.ts:613
+  calculateTargetMarketValue(
+
+====================================================================================================
+RISK AND RETURN
+====================================================================================================
+
+components\dashboard\DashboardClient.tsx:1894
+  totalUnrealizedPnl,
+components\dashboard\DashboardClient.tsx:1895
+  dayPnl,
+components\dashboard\DashboardClient.tsx:2298
+  value={formatMoney(totalUnrealizedPnl)}
+components\dashboard\DashboardClient.tsx:2304
+  value={formatMoney(dayPnl)}
+components\dashboard\SummaryModal.tsx:65
+  function getDayPnl(position: any) {
+components\dashboard\SummaryModal.tsx:176
+  const positionsWithDayPnl =
+components\dashboard\SummaryModal.tsx:179
+  calculatedDayPnl:
+components\dashboard\SummaryModal.tsx:180
+  getDayPnl(position),
+components\dashboard\SummaryModal.tsx:184
+  positionsWithDayPnl
+components\dashboard\SummaryModal.tsx:187
+  position.calculatedDayPnl > 0
+components\dashboard\SummaryModal.tsx:191
+  b.calculatedDayPnl -
+components\dashboard\SummaryModal.tsx:192
+  a.calculatedDayPnl
+components\dashboard\SummaryModal.tsx:197
+  positionsWithDayPnl
+components\dashboard\SummaryModal.tsx:200
+  position.calculatedDayPnl < 0
+components\dashboard\SummaryModal.tsx:204
+  a.calculatedDayPnl -
+components\dashboard\SummaryModal.tsx:205
+  b.calculatedDayPnl
+components\dashboard\SummaryModal.tsx:223
+  positionsWithDayPnl
+components\dashboard\SummaryModal.tsx:233
+  positionsWithDayPnl
+components\dashboard\SummaryModal.tsx:392
+  position.calculatedDayPnl
+components\dashboard\SummaryModal.tsx:422
+  position.calculatedDayPnl
+components\dashboard\SummaryModal.tsx:453
+  position.calculatedDayPnl
+components\dashboard\SummaryModal.tsx:457
+  position.calculatedDayPnl
+components\dashboard\SummaryModal.tsx:497
+  position.calculatedDayPnl
+components\dashboard\SummaryModal.tsx:501
+  position.calculatedDayPnl
+components\trade-calculator\ManualTradeReviewModal.tsx:375
+  result.portfolioRiskPct
+components\trade-calculator\ManualTradeReviewModal.tsx:391
+  result.rewardRiskRatio !=
+components\trade-calculator\ManualTradeReviewModal.tsx:393
+  ? `${result.rewardRiskRatio.toFixed(
+components\trade-calculator\TradeScenarioPanel.tsx:1242
+  result.portfolioRiskPct
+components\trade-calculator\TradeScenarioPanel.tsx:1258
+  result.rewardRiskRatio != null
+components\trade-calculator\TradeScenarioPanel.tsx:1259
+  ? `${result.rewardRiskRatio.toFixed(
+lib\dashboard\position-metrics.ts:183
+  export function getDisplayDayPnl(
+lib\dashboard\position-metrics.ts:255
+  const totalUnrealizedPnl = positions.reduce(
+lib\dashboard\position-metrics.ts:260
+  const dayPnl = positions.reduce(
+lib\dashboard\position-metrics.ts:261
+  (sum, position) => sum + (getDisplayDayPnl(position) ?? 0),
+lib\dashboard\position-metrics.ts:268
+  totalUnrealizedPnl,
+lib\dashboard\position-metrics.ts:269
+  dayPnl,
+lib\trade-calculator\trade-calculator.ts:106
+  portfolioRiskPct: number | null;
+lib\trade-calculator\trade-calculator.ts:109
+  rewardRiskRatio: number | null;
+lib\trade-calculator\trade-calculator.ts:294
+  portfolioRiskPct: null,
+lib\trade-calculator\trade-calculator.ts:297
+  rewardRiskRatio: null,
+lib\trade-calculator\trade-calculator.ts:357
+  const portfolioRiskPct =
+lib\trade-calculator\trade-calculator.ts:365
+  const rewardRiskRatio =
+lib\trade-calculator\trade-calculator.ts:375
+  portfolioRiskPct,
+lib\trade-calculator\trade-calculator.ts:378
+  rewardRiskRatio,
+
