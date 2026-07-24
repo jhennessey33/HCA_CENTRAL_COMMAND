@@ -1,6 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import AppSidebar from "@/components/common/AppSidebar";
 import Badge from "@/components/common/Badge";
@@ -51,9 +56,27 @@ export default function MeetingsClient({
   const [showAddMeeting, setShowAddMeeting] =
     useState(false);
 
-    const [activeMeetingForNote, setActiveMeetingForNote] =
+  const [activeMeetingForNote, setActiveMeetingForNote] =
     useState<any | null>(null);
+  const [
+    securitySearchQuery,
+    setSecuritySearchQuery,
+  ] = useState("");
 
+  const [
+    isSecurityDropdownOpen,
+    setIsSecurityDropdownOpen,
+  ] = useState(false);
+
+  const [
+    highlightedSecurityIndex,
+    setHighlightedSecurityIndex,
+  ] = useState(0);
+
+  const securityComboboxRef =
+    useRef<HTMLDivElement | null>(
+      null
+    );
   const [meetingTitle, setMeetingTitle] =
     useState("");
 
@@ -117,6 +140,140 @@ export default function MeetingsClient({
       );
     }, [meetings, query]);
 
+  const filteredSecurities =
+    useMemo(() => {
+      const normalizedQuery =
+        securitySearchQuery
+          .trim()
+          .toLowerCase();
+
+      return securities
+        .filter((security: any) => {
+          if (!normalizedQuery) {
+            return true;
+          }
+
+          const searchable = [
+            security.ticker,
+            security.name,
+            security.sector,
+            security.industry,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+          return searchable.includes(
+            normalizedQuery
+          );
+        })
+        .slice(0, 50);
+    }, [
+      securities,
+      securitySearchQuery,
+    ]);
+
+const selectedNoteSecurityId =
+  activeMeetingForNote
+    ? selectedSecurityIds[
+        activeMeetingForNote.id
+      ] || ""
+    : "";
+
+const selectedNoteSecurity =
+  securities.find(
+    (security: any) =>
+      security.id ===
+      selectedNoteSecurityId
+  ) ?? null;
+
+
+useEffect(() => {
+  if (!activeMeetingForNote) {
+    setSecuritySearchQuery("");
+    setIsSecurityDropdownOpen(
+      false
+    );
+    setHighlightedSecurityIndex(
+      0
+    );
+    return;
+  }
+
+  const selectedSecurityId =
+    selectedSecurityIds[
+      activeMeetingForNote.id
+    ] || "";
+
+  const selectedSecurity =
+    securities.find(
+      (security: any) =>
+        security.id ===
+        selectedSecurityId
+    );
+
+  setSecuritySearchQuery(
+    selectedSecurity
+      ? `${selectedSecurity.ticker} — ${selectedSecurity.name}`
+      : ""
+  );
+
+  setIsSecurityDropdownOpen(
+    false
+  );
+
+  setHighlightedSecurityIndex(
+    0
+  );
+}, [
+  activeMeetingForNote,
+  securities,
+  selectedSecurityIds,
+]);
+
+
+  useEffect(() => {
+    function handlePointerDown(
+      event: MouseEvent
+    ) {
+      const target =
+        event.target as Node;
+
+      if (
+        securityComboboxRef.current &&
+        !securityComboboxRef.current.contains(
+          target
+        )
+      ) {
+        setIsSecurityDropdownOpen(
+          false
+        );
+
+        setSecuritySearchQuery(
+          selectedNoteSecurity
+            ? `${selectedNoteSecurity.ticker} — ${selectedNoteSecurity.name}`
+            : ""
+        );
+      }
+    }
+
+    document.addEventListener(
+      "mousedown",
+      handlePointerDown
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handlePointerDown
+      );
+    };
+  }, [
+    selectedNoteSecurity,
+  ]);
+  useEffect(() => {
+  setHighlightedSecurityIndex(0);
+}, [securitySearchQuery]);
   const totalNotes =
     meetings.reduce(
       (count: number, meeting: any) =>
@@ -195,6 +352,149 @@ export default function MeetingsClient({
     }
   }
 
+function handleNoteSecurityChange(
+  securityId: string
+) {
+  if (!activeMeetingForNote) {
+    return;
+  }
+
+  setSelectedSecurityIds(
+    (current) => ({
+      ...current,
+      [activeMeetingForNote.id]:
+        securityId,
+    })
+  );
+
+  const selectedSecurity =
+    securities.find(
+      (security: any) =>
+        security.id === securityId
+    );
+
+  setSecuritySearchQuery(
+    selectedSecurity
+      ? `${selectedSecurity.ticker} — ${selectedSecurity.name}`
+      : ""
+  );
+
+  setIsSecurityDropdownOpen(
+    false
+  );
+
+  setHighlightedSecurityIndex(
+    0
+  );
+}
+
+function handleClearNoteSecurity() {
+  if (!activeMeetingForNote) {
+    return;
+  }
+
+  setSelectedSecurityIds(
+    (current) => ({
+      ...current,
+      [activeMeetingForNote.id]:
+        "",
+    })
+  );
+
+  setSecuritySearchQuery("");
+  setIsSecurityDropdownOpen(
+    true
+  );
+  setHighlightedSecurityIndex(
+    0
+  );
+}
+
+function handleNoteSecurityKeyDown(
+  event: React.KeyboardEvent<HTMLInputElement>
+) {
+  const optionCount =
+    filteredSecurities.length + 1;
+
+  if (event.key === "Escape") {
+    setIsSecurityDropdownOpen(
+      false
+    );
+
+    setSecuritySearchQuery(
+      selectedNoteSecurity
+        ? `${selectedNoteSecurity.ticker} — ${selectedNoteSecurity.name}`
+        : ""
+    );
+
+    return;
+  }
+
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+
+    setIsSecurityDropdownOpen(
+      true
+    );
+
+    setHighlightedSecurityIndex(
+      (currentIndex) =>
+        Math.min(
+          currentIndex + 1,
+          Math.max(
+            optionCount - 1,
+            0
+          )
+        )
+    );
+
+    return;
+  }
+
+  if (event.key === "ArrowUp") {
+    event.preventDefault();
+
+    setIsSecurityDropdownOpen(
+      true
+    );
+
+    setHighlightedSecurityIndex(
+      (currentIndex) =>
+        Math.max(
+          currentIndex - 1,
+          0
+        )
+    );
+
+    return;
+  }
+
+  if (
+    event.key === "Enter" &&
+    isSecurityDropdownOpen
+  ) {
+    event.preventDefault();
+
+    if (
+      highlightedSecurityIndex === 0
+    ) {
+      handleNoteSecurityChange("");
+      return;
+    }
+
+    const highlightedSecurity =
+      filteredSecurities[
+        highlightedSecurityIndex - 1
+      ];
+
+    if (highlightedSecurity) {
+      handleNoteSecurityChange(
+        highlightedSecurity.id
+      );
+    }
+  }
+}
+
   async function handleSaveNote(
     meetingId: string
   ) {
@@ -257,6 +557,24 @@ export default function MeetingsClient({
                 }
               : meeting
         )
+      );
+  setNoteDrafts(
+    (current) => ({
+      ...current,
+      [meetingId]: "",
+    })
+  );
+
+  setSelectedSecurityIds(
+    (current) => ({
+      ...current,
+      [meetingId]: "",
+    })
+  );
+
+      setSecuritySearchQuery("");
+      setIsSecurityDropdownOpen(
+        false
       );
 
     } finally {
@@ -546,39 +864,238 @@ export default function MeetingsClient({
                     </button>
                 </div>
 
-                <select
-                    value={
-                    selectedSecurityIds[
-                        activeMeetingForNote.id
-                    ] || ""
-                    }
-                    onChange={(event) =>
-                    setSelectedSecurityIds(
-                        (current) => ({
-                        ...current,
-                        [activeMeetingForNote.id]:
-                            event.target.value,
-                        })
-                    )
-                    }
-                    className="mt-4 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+                <div
+                  ref={securityComboboxRef}
+                  className="relative mt-4"
                 >
-                    <option value="">
-                    No Security
-                    </option>
+                  <label className="text-sm font-medium text-slate-700">
+                    Related Security
+                  </label>
 
-                    {securities.map(
-                    (security: any) => (
-                        <option
-                        key={security.id}
-                        value={security.id}
+                  <p className="mt-1 text-xs text-slate-500">
+                    Optional. Leave blank for a general meeting note.
+                  </p>
+
+                  <div className="relative mt-2">
+                    <input
+                      value={securitySearchQuery}
+                      onFocus={() => {
+                        if (
+                          selectedNoteSecurityId
+                        ) {
+                          setSecuritySearchQuery("");
+                        }
+
+                        setIsSecurityDropdownOpen(
+                          true
+                        );
+                      }}
+                      onChange={(event) => {
+                        setSecuritySearchQuery(
+                          event.target.value
+                        );
+
+                        if (
+                          selectedNoteSecurityId
+                        ) {
+                          setSelectedSecurityIds(
+                            (current) => ({
+                              ...current,
+                              [activeMeetingForNote.id]:
+                                "",
+                            })
+                          );
+                        }
+
+                        setIsSecurityDropdownOpen(
+                          true
+                        );
+                      }}
+                      onKeyDown={
+                        handleNoteSecurityKeyDown
+                      }
+                      placeholder="Search ticker, company, sector, or industry..."
+                      autoComplete="off"
+                      role="combobox"
+                      aria-expanded={
+                        isSecurityDropdownOpen
+                      }
+                      aria-controls="meeting-note-security-options"
+                      className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-4 pr-20 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+                    />
+
+                    <div className="absolute inset-y-0 right-3 flex items-center gap-1">
+                      {selectedNoteSecurityId ||
+                      securitySearchQuery ? (
+                        <button
+                          type="button"
+                          onClick={
+                            handleClearNoteSecurity
+                          }
+                          aria-label="Clear related security"
+                          className="rounded-lg px-2 py-1 text-sm text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                         >
-                        {security.ticker} •{" "}
-                        {security.name}
-                        </option>
-                    )
-                    )}
-                </select>
+                          ✕
+                        </button>
+                      ) : null}
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setIsSecurityDropdownOpen(
+                            (current) => !current
+                          )
+                        }
+                        aria-label="Toggle security options"
+                        className="rounded-lg px-2 py-1 text-xs text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                      >
+                        ▼
+                      </button>
+                    </div>
+                  </div>
+
+                  {isSecurityDropdownOpen ? (
+                    <div
+                      id="meeting-note-security-options"
+                      role="listbox"
+                      className="absolute z-40 mt-2 max-h-80 w-full overflow-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl"
+                    >
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={
+                          !selectedNoteSecurityId
+                        }
+                        onMouseEnter={() =>
+                          setHighlightedSecurityIndex(
+                            0
+                          )
+                        }
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+
+                          handleNoteSecurityChange(
+                            ""
+                          );
+                        }}
+                        className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left ${
+                          highlightedSecurityIndex ===
+                            0 ||
+                          !selectedNoteSecurityId
+                            ? "bg-slate-100"
+                            : "hover:bg-slate-50"
+                        }`}
+                      >
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-200 text-xs font-semibold text-slate-600">
+                          —
+                        </div>
+
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">
+                            No Security
+                          </p>
+
+                          <p className="mt-0.5 text-xs text-slate-500">
+                            Save as a general meeting note
+                          </p>
+                        </div>
+                      </button>
+
+                      <div className="my-1 border-t border-slate-100" />
+
+                      {filteredSecurities.length ? (
+                        filteredSecurities.map(
+                          (
+                            security: any,
+                            index: number
+                          ) => {
+                            const optionIndex =
+                              index + 1;
+
+                            const isHighlighted =
+                              highlightedSecurityIndex ===
+                              optionIndex;
+
+                            const isSelected =
+                              selectedNoteSecurityId ===
+                              security.id;
+
+                            return (
+                              <button
+                                key={security.id}
+                                type="button"
+                                role="option"
+                                aria-selected={
+                                  isSelected
+                                }
+                                onMouseEnter={() =>
+                                  setHighlightedSecurityIndex(
+                                    optionIndex
+                                  )
+                                }
+                                onMouseDown={(
+                                  event
+                                ) => {
+                                  event.preventDefault();
+
+                                  handleNoteSecurityChange(
+                                    security.id
+                                  );
+                                }}
+                                className={`flex w-full items-start justify-between gap-4 rounded-xl px-3 py-2.5 text-left ${
+                                  isHighlighted ||
+                                  isSelected
+                                    ? "bg-slate-100"
+                                    : "hover:bg-slate-50"
+                                }`}
+                              >
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-slate-950">
+                                      {security.ticker}
+                                    </span>
+
+                                    {security.sector ? (
+                                      <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                                        {security.sector}
+                                      </span>
+                                    ) : null}
+                                  </div>
+
+                                  <p className="mt-0.5 truncate text-xs text-slate-600">
+                                    {security.name}
+                                  </p>
+
+                                  {security.industry ? (
+                                    <p className="mt-0.5 truncate text-[11px] text-slate-400">
+                                      {security.industry}
+                                    </p>
+                                  ) : null}
+                                </div>
+
+                                {isSelected ? (
+                                  <span className="shrink-0 text-sm font-semibold text-emerald-600">
+                                    ✓
+                                  </span>
+                                ) : null}
+                              </button>
+                            );
+                          }
+                        )
+                      ) : (
+                        <div className="px-4 py-6 text-center">
+                          <p className="text-sm font-medium text-slate-700">
+                            No securities matched
+                          </p>
+
+                          <p className="mt-1 text-xs text-slate-500">
+                            Select No Security above or try another search.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
 
                 <textarea
                     value={
@@ -611,17 +1128,38 @@ export default function MeetingsClient({
                     </button>
 
                     <button
-                    type="button"
-                    onClick={async () => {
+                      type="button"
+                      onClick={async () => {
+                        const content =
+                          noteDrafts[
+                            activeMeetingForNote.id
+                          ]?.trim();
+
+                        if (!content) {
+                          return;
+                        }
+
                         await handleSaveNote(
-                        activeMeetingForNote.id
+                          activeMeetingForNote.id
                         );
 
-                        setActiveMeetingForNote(null);
-                    }}
-                    className="rounded-2xl bg-slate-900 px-4 py-2 text-white"
+                        setActiveMeetingForNote(
+                          null
+                        );
+                      }}
+                      disabled={
+                        !noteDrafts[
+                          activeMeetingForNote.id
+                        ]?.trim() ||
+                        savingMeetingNoteId ===
+                          activeMeetingForNote.id
+                      }
+                      className="rounded-2xl bg-slate-900 px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                    Add Note
+                      {savingMeetingNoteId ===
+                      activeMeetingForNote.id
+                        ? "Saving..."
+                        : "Add Note"}
                     </button>
                 </div>
                 </div>
