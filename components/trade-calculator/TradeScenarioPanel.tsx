@@ -1030,7 +1030,7 @@ export default function TradeScenarioPanel({
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-slate-700">
-                Stop Price
+                Limit
               </label>
 
               <input
