@@ -312,7 +312,7 @@ export default function ManualTradeReviewModal({
                 value={formatPercent(
                   result.currentPortfolioWeightPct
                 )}
-                detail="Current gross portfolio weight"
+                detail="Wells market value ÷ Net Equity"
               />
 
               <ReviewValue
@@ -320,7 +320,7 @@ export default function ManualTradeReviewModal({
                 value={formatPercent(
                   result.projectedPortfolioWeightPct
                 )}
-                detail="Scenario gross portfolio weight"
+                detail="Projected market value ÷ Net Equity"
               />
 
               <ReviewValue
