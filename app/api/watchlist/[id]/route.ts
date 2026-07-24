@@ -116,6 +116,13 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
+    const meetingId =
+      body.meetingId == null
+        ? null
+        : String(
+            body.meetingId
+          ).trim() || null;
+
     const author = await getCurrentUser();
 
     if (!author) {
@@ -154,6 +161,28 @@ export async function PATCH(
         },
         { status: 404 }
       );
+    }
+
+    if (meetingId) {
+      const meetingExists =
+        await prisma.meeting.findUnique({
+          where: {
+            id: meetingId,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+      if (!meetingExists) {
+        return NextResponse.json(
+          {
+            error:
+              "The selected meeting could not be found.",
+          },
+          { status: 404 }
+        );
+      }
     }
 
     const side = String(body.side || "")
@@ -256,9 +285,15 @@ export async function PATCH(
       );
     }
 
-    await prisma.$transaction(
-      async (tx: Prisma.TransactionClient) => {
-        await tx.watchlistEntry.update({
+      const generatedPtCommentIds =
+        await prisma.$transaction(
+          async (
+            tx: Prisma.TransactionClient
+          ) => {
+            const commentIds: string[] =
+              [];
+
+            await tx.watchlistEntry.update({
           where: {
             id,
           },
@@ -275,38 +310,76 @@ export async function PATCH(
           },
         });
 
-        if (didEntryTargetChange && ptChangeComment) {
-          await tx.comment.create({
-            data: {
-              securityId: existingEntry.securityId,
-              watchlistEntryId: existingEntry.id,
-              authorId: author.id,
-              tag: "PT",
-              content: buildTargetChangeComment({
-                label: getEntryTargetLabel(side),
-                previousValue: existingEntryTargetPrice,
-                nextValue: entryTargetPrice,
-                reason: ptChangeComment,
-              }),
-            },
-          });
+        if (
+          didEntryTargetChange &&
+          ptChangeComment
+        ) {
+          const comment =
+            await tx.comment.create({
+              data: {
+                securityId:
+                  existingEntry.securityId,
+                watchlistEntryId:
+                  existingEntry.id,
+                meetingId,
+                authorId: author.id,
+                tag: "PT",
+                content:
+                  buildTargetChangeComment({
+                    label:
+                      getEntryTargetLabel(
+                        side
+                      ),
+                    previousValue:
+                      existingEntryTargetPrice,
+                    nextValue:
+                      entryTargetPrice,
+                    reason:
+                      ptChangeComment,
+                  }),
+              },
+              select: {
+                id: true,
+              },
+            });
+
+          commentIds.push(comment.id);
         }
 
-        if (didExitTargetChange && ptChangeComment) {
-          await tx.comment.create({
-            data: {
-              securityId: existingEntry.securityId,
-              watchlistEntryId: existingEntry.id,
-              authorId: author.id,
-              tag: "PT",
-              content: buildTargetChangeComment({
-                label: getExitTargetLabel(side),
-                previousValue: existingExitTargetPrice,
-                nextValue: exitTargetPrice,
-                reason: ptChangeComment,
-              }),
-            },
-          });
+        if (
+          didExitTargetChange &&
+          ptChangeComment
+        ) {
+          const comment =
+            await tx.comment.create({
+              data: {
+                securityId:
+                  existingEntry.securityId,
+                watchlistEntryId:
+                  existingEntry.id,
+                meetingId,
+                authorId: author.id,
+                tag: "PT",
+                content:
+                  buildTargetChangeComment({
+                    label:
+                      getExitTargetLabel(
+                        side
+                      ),
+                    previousValue:
+                      existingExitTargetPrice,
+                    nextValue:
+                      exitTargetPrice,
+                    reason:
+                      ptChangeComment,
+                  }),
+              },
+              select: {
+                id: true,
+              },
+            });
+
+          commentIds.push(comment.id);
         }
 
         await tx.auditLog.create({
@@ -336,8 +409,42 @@ export async function PATCH(
             }),
           },
         });
-      }
-    );
+      return commentIds;
+    }
+  );
+
+    const generatedPtComments =
+      generatedPtCommentIds.length > 0
+        ? await prisma.comment.findMany({
+            where: {
+              id: {
+                in: generatedPtCommentIds,
+              },
+            },
+            include: {
+              security: true,
+              author: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  role: true,
+                },
+              },
+              watchlistEntry: {
+                select: {
+                  id: true,
+                  side: true,
+                  entryTargetPrice: true,
+                  exitTargetPrice: true,
+                },
+              },
+            },
+            orderBy: {
+              createdAt: "asc",
+            },
+          })
+        : [];
 
     const updatedEntry =
       await prisma.watchlistEntry.findUniqueOrThrow({
@@ -405,6 +512,7 @@ export async function PATCH(
 
     return NextResponse.json({
       watchlistEntry: updatedEntry,
+      generatedPtComments,
     });
   } catch (error) {
     console.error(

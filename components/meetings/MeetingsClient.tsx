@@ -284,6 +284,36 @@ export default function MeetingsClient({
     setSavingMeetingNoteId,
   ] = useState<string | null>(null);
 
+  const [
+    ptSide,
+    setPtSide,
+  ] = useState("LONG");
+
+  const [
+    ptEntryTargetPrice,
+    setPtEntryTargetPrice,
+  ] = useState("");
+
+  const [
+    ptExitTargetPrice,
+    setPtExitTargetPrice,
+  ] = useState("");
+
+  const [
+    ptChangeReason,
+    setPtChangeReason,
+  ] = useState("");
+
+  const [
+    isSavingPtChange,
+    setIsSavingPtChange,
+  ] = useState(false);
+
+  const [
+    ptChangeError,
+    setPtChangeError,
+  ] = useState("");
+
   const filteredMeetings =
     useMemo(() => {
       const normalized =
@@ -400,6 +430,51 @@ const selectedWatchlistEntry =
     ?.watchlistEntries?.[0] ??
   null;
 
+  const originalPtEntryTargetPrice =
+  selectedWatchlistEntry
+    ?.entryTargetPrice != null
+    ? String(
+        selectedWatchlistEntry
+          .entryTargetPrice
+      )
+    : selectedWatchlistEntry
+          ?.targetPrice != null
+      ? String(
+          selectedWatchlistEntry
+            .targetPrice
+        )
+      : "";
+
+const originalPtExitTargetPrice =
+  selectedWatchlistEntry
+    ?.exitTargetPrice != null
+    ? String(
+        selectedWatchlistEntry
+          .exitTargetPrice
+      )
+    : "";
+
+const ptEntryTargetChanged =
+  ptEntryTargetPrice.trim() !==
+  originalPtEntryTargetPrice;
+
+const ptExitTargetChanged =
+  ptExitTargetPrice.trim() !==
+  originalPtExitTargetPrice;
+
+const ptTargetChanged =
+  ptEntryTargetChanged ||
+  ptExitTargetChanged;
+
+const ptEntryTargetLabel =
+  ptSide === "SHORT"
+    ? "Sell PT"
+    : "Buy PT";
+
+const ptExitTargetLabel =
+  ptSide === "SHORT"
+    ? "Cover PT"
+    : "Sell PT";
 
 useEffect(() => {
   if (!activeMeetingForNote) {
@@ -484,8 +559,56 @@ useEffect(() => {
     selectedNoteSecurity,
   ]);
   useEffect(() => {
-  setHighlightedSecurityIndex(0);
-}, [securitySearchQuery]);
+    setHighlightedSecurityIndex(0);
+    }, [securitySearchQuery]);
+
+    useEffect(() => {
+    if (!selectedWatchlistEntry) {
+      setPtSide("LONG");
+      setPtEntryTargetPrice("");
+      setPtExitTargetPrice("");
+      setPtChangeReason("");
+      setPtChangeError("");
+      return;
+    }
+
+    setPtSide(
+      selectedWatchlistEntry.side ||
+        "LONG"
+    );
+
+    setPtEntryTargetPrice(
+      selectedWatchlistEntry
+        .entryTargetPrice != null
+        ? String(
+            selectedWatchlistEntry
+              .entryTargetPrice
+          )
+        : selectedWatchlistEntry
+              .targetPrice != null
+          ? String(
+              selectedWatchlistEntry
+                .targetPrice
+            )
+          : ""
+    );
+
+    setPtExitTargetPrice(
+      selectedWatchlistEntry
+        .exitTargetPrice != null
+        ? String(
+            selectedWatchlistEntry
+              .exitTargetPrice
+          )
+        : ""
+    );
+
+    setPtChangeReason("");
+    setPtChangeError("");
+  }, [
+    selectedWatchlistEntry,
+  ]);
+
   const totalNotes =
     meetings.reduce(
       (count: number, meeting: any) =>
@@ -803,6 +926,143 @@ function handleNoteSecurityKeyDown(
       );
     }
   }
+  async function handleSavePtChange(
+    meetingId: string
+  ) {
+    setPtChangeError("");
+
+    if (!selectedNoteSecurity) {
+      setPtChangeError(
+        "Select a security before changing price targets."
+      );
+      return;
+    }
+
+    if (!selectedWatchlistEntry) {
+      setPtChangeError(
+        "This security does not have an active Watchlist entry."
+      );
+      return;
+    }
+
+    if (!ptTargetChanged) {
+      setPtChangeError(
+        "Change at least one price target before saving."
+      );
+      return;
+    }
+
+    if (!ptChangeReason.trim()) {
+      setPtChangeError(
+        "Please enter a reason for changing the price targets."
+      );
+      return;
+    }
+
+    setIsSavingPtChange(true);
+
+    try {
+      const response = await fetch(
+        `/api/watchlist/${selectedWatchlistEntry.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            side: ptSide,
+            entryTargetPrice:
+              ptEntryTargetPrice,
+            exitTargetPrice:
+              ptExitTargetPrice,
+            notes:
+              selectedWatchlistEntry
+                .notes || "",
+            ptChangeComment:
+              ptChangeReason.trim(),
+            meetingId,
+          }),
+        }
+      );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            data.detail ||
+            "Failed to update price targets."
+        );
+      }
+
+      const generatedPtComments =
+        Array.isArray(
+          data.generatedPtComments
+        )
+          ? data.generatedPtComments
+          : [];
+
+      setMeetings((current) =>
+        current.map(
+          (meeting: any) =>
+            meeting.id === meetingId
+              ? {
+                  ...meeting,
+                  comments: [
+                    ...generatedPtComments
+                      .slice()
+                      .reverse(),
+                    ...(meeting.comments ||
+                      []),
+                  ],
+                }
+              : meeting
+        )
+      );
+
+      setNoteDrafts(
+        (current) => ({
+          ...current,
+          [meetingId]: "",
+        })
+      );
+
+      setSelectedSecurityIds(
+        (current) => ({
+          ...current,
+          [meetingId]: "",
+        })
+      );
+          setSelectedNoteTags(
+        (current) => ({
+          ...current,
+          [meetingId]: "NOTE",
+        })
+      );
+
+      setSecuritySearchQuery("");
+      setIsSecurityDropdownOpen(false);
+      setPtChangeReason("");
+      setPtChangeError("");
+
+      setActiveMeetingForNote(
+        null
+      );
+    } catch (error) {
+      setPtChangeError(
+        error instanceof Error
+          ? error.message
+          : "Failed to update price targets."
+      );
+    } finally {
+      setIsSavingPtChange(false);
+    }
+  }
+
+  
 
   return (
     <main className="h-screen overflow-hidden bg-slate-100 text-slate-900">
@@ -1463,22 +1723,140 @@ function handleNoteSecurityKeyDown(
                     </p>
 
                     {!selectedNoteSecurity ? (
-                      <p className="mt-1 text-sm leading-6 text-amber-800">
+                      <p className="mt-2 text-sm leading-6 text-amber-800">
                         Select a security to change its
                         price targets.
                       </p>
                     ) : !selectedWatchlistEntry ? (
-                      <p className="mt-1 text-sm leading-6 text-amber-800">
+                      <p className="mt-2 text-sm leading-6 text-amber-800">
                         This security does not have an
                         active Watchlist entry.
                       </p>
                     ) : (
-                      <p className="mt-1 text-sm leading-6 text-amber-800">
-                        The selected security has an active
-                        Watchlist entry. The price-target
-                        editor will appear here in the next
-                        update.
-                      </p>
+                      <div className="mt-4 space-y-4">
+                        <div>
+                          <label className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+                            Watchlist Side
+                          </label>
+
+                          <select
+                            value={ptSide}
+                            onChange={(event) =>
+                              setPtSide(
+                                event.target.value
+                              )
+                            }
+                            disabled={isSavingPtChange}
+                            className="mt-2 w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-50"
+                          >
+                            <option value="LONG">
+                              Long Watchlist
+                            </option>
+
+                            <option value="SHORT">
+                              Short Watchlist
+                            </option>
+                          </select>
+
+                          <p className="mt-1 text-xs text-amber-700">
+                            Changing sides relabels the
+                            entry and exit targets but
+                            preserves their values.
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+                              {ptEntryTargetLabel}
+                            </label>
+
+                            <input
+                              value={
+                                ptEntryTargetPrice
+                              }
+                              onChange={(event) =>
+                                setPtEntryTargetPrice(
+                                  event.target.value
+                                )
+                              }
+                              type="number"
+                              min="0"
+                              step="any"
+                              inputMode="decimal"
+                              disabled={
+                                isSavingPtChange
+                              }
+                              placeholder={`Enter ${ptEntryTargetLabel.toLowerCase()}`}
+                              className="mt-2 w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-50"
+                            />
+
+                            <p className="mt-1 text-xs text-amber-700">
+                              {ptSide === "SHORT"
+                                ? "Price where the short may be initiated or added."
+                                : "Price where the long may be initiated or added."}
+                            </p>
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+                              {ptExitTargetLabel}
+                            </label>
+
+                            <input
+                              value={
+                                ptExitTargetPrice
+                              }
+                              onChange={(event) =>
+                                setPtExitTargetPrice(
+                                  event.target.value
+                                )
+                              }
+                              type="number"
+                              min="0"
+                              step="any"
+                              inputMode="decimal"
+                              disabled={
+                                isSavingPtChange
+                              }
+                              placeholder={`Enter ${ptExitTargetLabel.toLowerCase()}`}
+                              className="mt-2 w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-50"
+                            />
+
+                            <p className="mt-1 text-xs text-amber-700">
+                              {ptSide === "SHORT"
+                                ? "Price where the short may be covered."
+                                : "Price where the long may be sold or exited."}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+                            Reason for PT Change Required
+                          </label>
+
+                          <textarea
+                            value={ptChangeReason}
+                            onChange={(event) =>
+                              setPtChangeReason(
+                                event.target.value
+                              )
+                            }
+                            disabled={
+                              isSavingPtChange
+                            }
+                            placeholder="Explain why one or both price targets are changing..."
+                            className="mt-2 h-24 w-full resize-none rounded-2xl border border-amber-200 bg-white p-4 text-sm outline-none focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-50"
+                          />
+                        </div>
+
+                        {ptChangeError ? (
+                          <p className="text-sm font-medium text-rose-700">
+                            {ptChangeError}
+                          </p>
+                        ) : null}
+                      </div>
                     )}
                   </div>
                 ) : (
@@ -1504,19 +1882,32 @@ function handleNoteSecurityKeyDown(
 
                 <div className="mt-5 flex justify-end gap-2">
                     <button
-                    type="button"
-                    onClick={() =>
-                        setActiveMeetingForNote(null)
-                    }
-                    className="rounded-2xl border border-slate-200 px-4 py-2"
+                      type="button"
+                      onClick={() =>
+                        setActiveMeetingForNote(
+                          null
+                        )
+                      }
+                      disabled={
+                        isSavingPtChange ||
+                        savingMeetingNoteId ===
+                          activeMeetingForNote.id
+                      }
+                      className="rounded-2xl border border-slate-200 px-4 py-2 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                    Cancel
+                      Cancel
                     </button>
 
                     <button
                       type="button"
                       onClick={async () => {
-                        if (selectedNoteTag === "PT") {
+                        if (
+                          selectedNoteTag === "PT"
+                        ) {
+                          await handleSavePtChange(
+                            activeMeetingForNote.id
+                          );
+
                           return;
                         }
 
@@ -1538,20 +1929,31 @@ function handleNoteSecurityKeyDown(
                         );
                       }}
                       disabled={
-                        selectedNoteTag === "PT" ||
-                        !noteDrafts[
-                          activeMeetingForNote.id
-                        ]?.trim() ||
-                        savingMeetingNoteId ===
-                          activeMeetingForNote.id
+                        selectedNoteTag === "PT"
+                          ? !selectedNoteSecurity ||
+                            !selectedWatchlistEntry ||
+                            !ptTargetChanged ||
+                            !ptChangeReason.trim() ||
+                            isSavingPtChange
+                          : !noteDrafts[
+                              activeMeetingForNote.id
+                            ]?.trim() ||
+                            savingMeetingNoteId ===
+                              activeMeetingForNote.id
                       }
-                      className="rounded-2xl bg-slate-900 px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-60"
+                      className={`rounded-2xl px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-60 ${
+                        selectedNoteTag === "PT"
+                          ? "bg-amber-600 hover:bg-amber-700"
+                          : "bg-slate-900 hover:bg-slate-800"
+                      }`}
                     >
-                      {savingMeetingNoteId ===
-                      activeMeetingForNote.id
-                        ? "Saving..."
-                        : selectedNoteTag === "PT"
-                          ? "PT Editor Required"
+                      {selectedNoteTag === "PT"
+                        ? isSavingPtChange
+                          ? "Saving PT Changes..."
+                          : "Save PT Changes"
+                        : savingMeetingNoteId ===
+                              activeMeetingForNote.id
+                          ? "Saving..."
                           : "Add Note"}
                     </button>
                 </div>
