@@ -36,7 +36,37 @@ function isGeneralComment(comment: any) {
   );
 }
 
+function getCommentDateKey(
+  value: string | Date
+) {
+  const date = new Date(value);
 
+  const year =
+    date.getFullYear();
+
+  const month = String(
+    date.getMonth() + 1
+  ).padStart(2, "0");
+
+  const day = String(
+    date.getDate()
+  ).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function formatCommentGroupDate(
+  value: string | Date
+) {
+  return new Intl.DateTimeFormat(
+    "en-US",
+    {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }
+  ).format(new Date(value));
+}
 
 export default function CommentsClient({
   initialComments,
@@ -86,6 +116,88 @@ export default function CommentsClient({
       return searchable.includes(normalizedQuery);
     });
   }, [localComments, query]);
+
+  const groupedComments =
+    useMemo(() => {
+      const sortedComments = [
+        ...filteredComments,
+      ].sort(
+        (a, b) =>
+          new Date(
+            b.createdAt
+          ).getTime() -
+          new Date(
+            a.createdAt
+          ).getTime()
+      );
+
+      const groups = new Map<
+        string,
+        any[]
+      >();
+
+      sortedComments.forEach(
+        (comment) => {
+          const dateKey =
+            getCommentDateKey(
+              comment.createdAt
+            );
+
+          const currentGroup =
+            groups.get(dateKey) ?? [];
+
+          currentGroup.push(comment);
+
+          groups.set(
+            dateKey,
+            currentGroup
+          );
+        }
+      );
+
+      return Array.from(
+        groups.entries()
+      ).map(
+        ([
+          dateKey,
+          comments,
+        ]) => {
+          const securityIds =
+            new Set(
+              comments
+                .map(
+                  (comment) =>
+                    comment.securityId
+                )
+                .filter(Boolean)
+            );
+
+          const generalNoteCount =
+            comments.filter(
+              isGeneralComment
+            ).length;
+
+          return {
+            dateKey,
+            comments,
+            securityCount:
+              securityIds.size,
+            generalNoteCount,
+          };
+        }
+      );
+    }, [filteredComments]);
+
+  const displayedCommentCount =
+    groupedComments.reduce(
+      (
+        total,
+        group
+      ) =>
+        total +
+        group.comments.length,
+      0
+  );
 
   const riskComments = localComments.filter(
     (comment) => comment.tag === "RISK"
@@ -309,127 +421,273 @@ return (
                 placeholder="Search ticker, company, comment text, author, category..."
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-slate-900"
               />
+              <p className="mt-2 px-1 text-xs text-slate-500">
+                Showing{" "}
+                {displayedCommentCount}{" "}
+                {displayedCommentCount === 1
+                  ? "comment"
+                  : "comments"}{" "}
+                across{" "}
+                {groupedComments.length}{" "}
+                {groupedComments.length === 1
+                  ? "day"
+                  : "days"}
+              </p>
+
             </div>
 
-              <div className="space-y-3">
-                {filteredComments.length ? (
-                  filteredComments.map((comment) => (
-                    <div
-                      key={comment.id}
-                      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+            <div className="space-y-5">
+              {groupedComments.length ? (
+                groupedComments.map(
+                  (group) => (
+                    <section
+                      key={group.dateKey}
+                      className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          {isGeneralComment(comment) ? (
-                            <Badge tone="blue">NOTE</Badge>
-                          ) : (
-                            <>
-                              <Badge tone="blue">
-                                {comment.security?.ticker || "N/A"}
-                              </Badge>
+                      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-slate-950">
+                            {formatCommentGroupDate(
+                              group.comments[0]
+                                .createdAt
+                            )}
+                          </h3>
 
-                              <Badge tone={getTagTone(comment.tag) as any}>
-                                {comment.tag}
-                              </Badge>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {group.comments.length}{" "}
+                            {group.comments.length ===
+                            1
+                              ? "Comment"
+                              : "Comments"}
 
-                              <Badge>{getContextLabel(comment)}</Badge>
+                            {group.securityCount >
+                            0 ? (
+                              <>
+                                {" "}
+                                •{" "}
+                                {group.securityCount}{" "}
+                                {group.securityCount ===
+                                1
+                                  ? "Security"
+                                  : "Securities"}
+                              </>
+                            ) : null}
 
-                              {comment.position?.side ? (
-                                <Badge
-                                  tone={
-                                    comment.position.side === "SHORT"
-                                      ? "red"
-                                      : "green"
-                                  }
-                                >
-                                  {comment.position.side}
-                                </Badge>
-                              ) : null}
-                            </>
-                          )}
+                            {group.generalNoteCount >
+                            0 ? (
+                              <>
+                                {" "}
+                                •{" "}
+                                {
+                                  group.generalNoteCount
+                                }{" "}
+                                {group.generalNoteCount ===
+                                1
+                                  ? "General Note"
+                                  : "General Notes"}
+                              </>
+                            ) : null}
+                          </p>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <LocalDateTime
-                            value={comment.createdAt}
-                            className="text-xs text-slate-400"
-                          />
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (confirmDeleteCommentId === comment.id) {
-                                handleDeleteComment(comment);
-                                return;
-                              }
-
-                              setConfirmDeleteCommentId(comment.id);
-                            }}
-                            disabled={deletingCommentId === comment.id}
-                            title={
-                              confirmDeleteCommentId === comment.id
-                                ? "Confirm delete"
-                                : "Delete comment"
-                            }
-                            className={`inline-flex items-center justify-center rounded-xl disabled:cursor-not-allowed disabled:opacity-50 ${
-                              confirmDeleteCommentId === comment.id
-                                ? "bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-700"
-                                : "h-8 w-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                            }`}
-                          >
-                            {deletingCommentId === comment.id ? (
-                              <span className="text-xs font-semibold">...</span>
-                            ) : confirmDeleteCommentId === comment.id ? (
-                              "Confirm Delete"
-                            ) : (
-                              <svg
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                                className="h-5 w-5"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M3 6h18" />
-                                <path d="M8 6V4h8v2" />
-                                <path d="M6 6l1 15h10l1-15" />
-                                <path d="M10 11v6" />
-                                <path d="M14 11v6" />
-                              </svg>
-                            )}
-                          </button>
-</div>
+                        <Badge tone="slate">
+                          {group.comments.length}
+                        </Badge>
                       </div>
 
-                      <p className="mt-3 text-sm leading-6 text-slate-700">
-                        {comment.content}
-                      </p>
+                      <div className="divide-y divide-slate-100">
+                        {group.comments.map(
+                          (comment) => (
+                            <article
+                              key={comment.id}
+                              className="p-5 transition hover:bg-slate-50"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {isGeneralComment(
+                                    comment
+                                  ) ? (
+                                    <>
+                                      <Badge tone="blue">
+                                        NOTE
+                                      </Badge>
 
-                      <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
-                        <span>
-                          by{" "}
-                          {comment.author?.name ||
-                            comment.author?.email ||
-                            "Unknown"}
-                        </span>
+                                      {comment.tag &&
+                                      comment.tag !==
+                                        "NOTE" ? (
+                                        <Badge
+                                          tone={
+                                            getTagTone(
+                                              comment.tag
+                                            ) as any
+                                          }
+                                        >
+                                          {comment.tag}
+                                        </Badge>
+                                      ) : null}
 
-                        <span>
-                          {isGeneralComment(comment)
-                            ? "General note"
-                            : comment.security?.name || "—"}
-                        </span>
+                                      <Badge>
+                                        General Note
+                                      </Badge>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Badge tone="blue">
+                                        {comment.security
+                                          ?.ticker ||
+                                          "N/A"}
+                                      </Badge>
+
+                                      <Badge
+                                        tone={
+                                          getTagTone(
+                                            comment.tag
+                                          ) as any
+                                        }
+                                      >
+                                        {comment.tag}
+                                      </Badge>
+
+                                      <Badge>
+                                        {getContextLabel(
+                                          comment
+                                        )}
+                                      </Badge>
+
+                                      {comment.position
+                                        ?.side ? (
+                                        <Badge
+                                          tone={
+                                            comment
+                                              .position
+                                              .side ===
+                                            "SHORT"
+                                              ? "red"
+                                              : "green"
+                                          }
+                                        >
+                                          {
+                                            comment
+                                              .position
+                                              .side
+                                          }
+                                        </Badge>
+                                      ) : null}
+                                    </>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <LocalDateTime
+                                    value={
+                                      comment.createdAt
+                                    }
+                                    className="text-xs text-slate-400"
+                                  />
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (
+                                        confirmDeleteCommentId ===
+                                        comment.id
+                                      ) {
+                                        handleDeleteComment(
+                                          comment
+                                        );
+
+                                        return;
+                                      }
+
+                                      setConfirmDeleteCommentId(
+                                        comment.id
+                                      );
+                                    }}
+                                    disabled={
+                                      deletingCommentId ===
+                                      comment.id
+                                    }
+                                    title={
+                                      confirmDeleteCommentId ===
+                                      comment.id
+                                        ? "Confirm delete"
+                                        : "Delete comment"
+                                    }
+                                    className={`inline-flex items-center justify-center rounded-xl disabled:cursor-not-allowed disabled:opacity-50 ${
+                                      confirmDeleteCommentId ===
+                                      comment.id
+                                        ? "bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-700"
+                                        : "h-8 w-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                                    }`}
+                                  >
+                                    {deletingCommentId ===
+                                    comment.id ? (
+                                      <span className="text-xs font-semibold">
+                                        ...
+                                      </span>
+                                    ) : confirmDeleteCommentId ===
+                                      comment.id ? (
+                                      "Confirm Delete"
+                                    ) : (
+                                      <svg
+                                        viewBox="0 0 24 24"
+                                        aria-hidden="true"
+                                        className="h-5 w-5"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      >
+                                        <path d="M3 6h18" />
+                                        <path d="M8 6V4h8v2" />
+                                        <path d="M6 6l1 15h10l1-15" />
+                                        <path d="M10 11v6" />
+                                        <path d="M14 11v6" />
+                                      </svg>
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+
+                              <p className="mt-3 text-sm leading-6 text-slate-700">
+                                {comment.content}
+                              </p>
+
+                              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+                                <span>
+                                  by{" "}
+                                  {comment.author
+                                    ?.name ||
+                                    comment.author
+                                      ?.email ||
+                                    "Unknown"}
+                                </span>
+
+                                <span>
+                                  {isGeneralComment(
+                                    comment
+                                  )
+                                    ? "General note"
+                                    : comment.security
+                                        ?.name || "—"}
+                                </span>
+                              </div>
+                            </article>
+                          )
+                        )}
                       </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
-                    No comments matched your search.
-                  </div>
-                )}
-              </div>
-            </div>
+                    </section>
+                  )
+                )
+              ) : (
+                <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
+                  No comments matched your search.
+                </div>
+              )}
+          </div>
+        
+           </div>
           </div>
         </section>
       </div>
