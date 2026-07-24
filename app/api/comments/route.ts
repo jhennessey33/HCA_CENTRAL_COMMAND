@@ -51,45 +51,54 @@ export async function POST(request: Request) {
         );
       }
 
-    const comment = await prisma.comment.create({
+const comment =
+  await prisma.comment.create({
     data: {
-    securityId: securityId || null,
-    positionId: positionId || null,
-    watchlistEntryId: watchlistEntryId || null,
-    meetingId: meetingId || null,
-    authorId: author.id,
-    tag,
-    content: content.trim(),
-  },
+      securityId:
+        securityId || null,
+      positionId:
+        positionId || null,
+      watchlistEntryId:
+        watchlistEntryId || null,
+      meetingId:
+        meetingId || null,
+      authorId: author.id,
+      tag,
+      content: content.trim(),
+    },
 
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
+    include: {
+      security: true,
+
+      author: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
         },
       },
-    });
+    },
+    
+  });
 
     await prisma.auditLog.create({
-      data: {
-        actorId: author.id,
-        action: "COMMENT_CREATED",
-        entityType: "COMMENT",
-        entityId: comment.id,
-        newValueJson: JSON.stringify({
+    data: {
+      actorId: author.id,
+      action: "COMMENT_CREATED",
+      entityType: "COMMENT",
+      entityId: comment.id,
+      newValueJson: JSON.stringify({
         securityId: securityId || null,
         positionId: positionId || null,
-        watchlistEntryId: watchlistEntryId || null,
+        watchlistEntryId:
+          watchlistEntryId || null,
+        meetingId: meetingId || null,
         tag,
         content: content.trim(),
       }),
-      },
-    });
-
+    },
+  });
     return NextResponse.json({ comment }, { status: 201 });
   } catch (error) {
     console.error("POST /api/comments failed", error);
