@@ -481,6 +481,83 @@ export default function TradeScenarioPanel({
       comment,
     ]
   );
+  const scenarioActionLabel =
+  tradeAction === "BUY"
+    ? "Buy"
+    : tradeAction === "SELL"
+      ? "Sell"
+      : tradeAction === "SHORT"
+        ? "Short"
+        : "Cover";
+
+  const scenarioSizingDescription =
+    (() => {
+      if (
+        sizingMode === "AMOUNT_BPS"
+      ) {
+        const basisPoints =
+          toInputNumber(
+            basisPointsInput
+          );
+
+        return basisPoints != null
+          ? `${formatNumber(
+              basisPoints
+            )} bps of ${security.ticker}`
+          : `${security.ticker} using basis-point sizing`;
+      }
+
+      if (sizingMode === "SHARES") {
+        const shares =
+          toInputNumber(
+            sharesInput
+          );
+
+        return shares != null
+          ? `${formatNumber(
+              shares
+            )} shares of ${security.ticker}`
+          : `${security.ticker} using share sizing`;
+      }
+
+      if (
+        sizingMode === "NOTIONAL"
+      ) {
+        const notional =
+          toInputNumber(
+            notionalInput
+          );
+
+        return notional != null
+          ? `${formatMoney(
+              notional
+            )} of ${security.ticker}`
+          : `${security.ticker} using notional sizing`;
+      }
+
+      const targetWeight =
+        toInputNumber(
+          targetWeightPctInput
+        );
+
+      return targetWeight != null
+        ? `${security.ticker} to a ${formatPercent(
+            targetWeight
+          )} target weight`
+        : `${security.ticker} using target-weight sizing`;
+    })();
+
+  const scenarioExecutionPrice =
+    toInputNumber(
+      estimatedPriceInput
+    );
+
+  const scenarioSummary =
+    scenarioExecutionPrice != null
+      ? `${scenarioActionLabel} ${scenarioSizingDescription} at an estimated execution price of ${formatPrice(
+          scenarioExecutionPrice
+        )}.`
+      : `${scenarioActionLabel} ${scenarioSizingDescription}.`;
 
   function handleSizingModeChange(
     nextMode: TradeSizingMode
@@ -1036,13 +1113,9 @@ export default function TradeScenarioPanel({
                   {tradeAction} Scenario
                 </h3>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  Calculated against the{" "}
-                  {baselineMode === "WELLS"
-                    ? "Wells-only"
-                    : "Wells plus pending"}{" "}
-                  baseline.
-                </p>
+              <p className="mt-1 text-sm text-slate-500">
+                {scenarioSummary}
+              </p>
               </div>
 
               <div className="flex flex-wrap gap-2">
