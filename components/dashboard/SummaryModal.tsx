@@ -322,25 +322,22 @@ const shortPositions =
       {} as Record<string, number>
     );
 
-  const netSecuritiesMarketValue =
-    Object.values(
-      signedSectorMarketValues
-    ).reduce(
-      (
-        sum,
-        marketValue
-      ) =>
-        sum +
-        Number(marketValue),
-      0
-    );
+let netSecuritiesMarketValue = 0;
 
+for (
+  const marketValue of Object.values(
+    signedSectorMarketValues
+  ) as number[]
+) {
+  netSecuritiesMarketValue +=
+    marketValue;
+}
   const cashMarketValue =
     hasValidNetEquity
       ? netEquity -
         netSecuritiesMarketValue
       : null;
-
+  
   const categoryEquityRows =
     hasValidNetEquity
       ? [
