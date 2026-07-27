@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "@/lib/scheduler/market-data-scheduler";
+import "@/lib/scheduler/pt-monitor-scheduler";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import PinkThemeInitializer from "@/components/theme/PinkThemeInitializer";
