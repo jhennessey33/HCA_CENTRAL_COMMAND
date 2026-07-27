@@ -27,6 +27,14 @@ type MarketDataRefreshResult = {
 declare global {
   // eslint-disable-next-line no-var
   var hcaMarketDataRefreshRunning: boolean | undefined;
+
+  // Prevents another full refresh or a new PT refresh from starting
+  // while the full refresh waits for an active PT cycle to finish.
+  // eslint-disable-next-line no-var
+  var hcaMarketDataRefreshPending: boolean | undefined;
+
+  // eslint-disable-next-line no-var
+  var hcaPtMonitorRunning: boolean | undefined;
 }
 
 function sleep(ms: number) {
@@ -38,13 +46,16 @@ export async function refreshMarketData({
 }: {
   trigger: MarketDataRefreshTrigger;
 }): Promise<MarketDataRefreshResult> {
-  if (globalThis.hcaMarketDataRefreshRunning) {
+  if (
+    globalThis.hcaMarketDataRefreshRunning ||
+    globalThis.hcaMarketDataRefreshPending
+  ) {
     return {
       source: "FINNHUB",
       trigger,
       skipped: true,
       reason:
-        "Market data refresh already running.",
+        "Full market data refresh already running or pending.",
       updatedCount: 0,
       failedCount: 0,
       ptAlertsEvaluated: 0,
@@ -55,7 +66,17 @@ export async function refreshMarketData({
     };
   }
 
-  globalThis.hcaMarketDataRefreshRunning = true;
+  globalThis.hcaMarketDataRefreshPending = true;
+
+  try {
+    while (globalThis.hcaPtMonitorRunning) {
+      await sleep(100);
+    }
+
+    globalThis.hcaMarketDataRefreshRunning = true;
+  } finally {
+    globalThis.hcaMarketDataRefreshPending = false;
+  }
 
   const ingestionRun = await prisma.ingestionRun.create({
     data: {
