@@ -55,19 +55,16 @@ export default async function TradeCalculatorPage() {
 
               trades: {
                 where: {
-                  source: "MANUAL",
+                  source: {
+                    in: [
+                      "MANUAL",
+                      "SYSTEM",
+                    ],
+                  },
                   reconciliationStatus:
                     "MANUAL_PENDING",
                   isHidden: false,
                 },
-                orderBy: [
-                  {
-                    dateTraded: "asc",
-                  },
-                  {
-                    createdAt: "asc",
-                  },
-                ],
                 select: {
                   id: true,
                   securityId: true,

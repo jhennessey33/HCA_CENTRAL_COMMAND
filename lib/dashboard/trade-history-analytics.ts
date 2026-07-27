@@ -103,8 +103,16 @@ function normalizeSource(value: unknown) {
 function isPendingManualTrade(
   trade: TradeHistorySource
 ) {
+  const source =
+    normalizeSource(
+      trade.source
+    );
+
   return (
-    normalizeSource(trade.source) === "MANUAL" &&
+    (
+      source === "MANUAL" ||
+      source === "SYSTEM"
+    ) &&
     normalizeStatus(
       trade.reconciliationStatus
     ) === "MANUAL_PENDING"
