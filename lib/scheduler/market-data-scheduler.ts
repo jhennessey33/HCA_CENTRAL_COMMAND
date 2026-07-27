@@ -27,10 +27,24 @@ if (!globalThis.hcaMarketDataSchedulerStarted) {
         return;
       }
 
-      console.log("[market-data-scheduler] Refresh complete:", {
-        updatedCount: result.updatedCount,
-        failedCount: result.failedCount,
-      });
+      console.log(
+        "[market-data-scheduler] Refresh complete:",
+        {
+          updatedCount:
+            result.updatedCount,
+          failedCount:
+            result.failedCount,
+          ptAlertsEvaluated:
+            result.ptAlertsEvaluated,
+          ptAlertsCreated:
+            result.ptAlertsCreated,
+          ptAlertsSkippedDuplicate:
+            result
+              .ptAlertsSkippedDuplicate,
+          ptAlertFailures:
+            result.ptAlertFailures,
+        }
+      );
     } catch (error) {
       console.error("[market-data-scheduler] Scheduled refresh failed:", error);
     }

@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { fetchFinnhubQuote } from "@/lib/market-data/finnhub";
+import {
+  evaluateSecurityPtAlerts,
+} from "@/lib/alerts/pt-proximity-alert-service";
 
 type MarketDataRefreshTrigger = "MANUAL" | "SCHEDULED";
 
@@ -10,13 +13,17 @@ type MarketDataRefreshResult = {
   reason?: string;
   updatedCount: number;
   failedCount: number;
+  ptAlertsEvaluated: number;
+  ptAlertsCreated: number;
+  ptAlertsSkippedDuplicate: number;
+  ptAlertFailures: number;
   results: Array<{
     ticker: string;
     status: "UPDATED" | "FAILED";
     message?: string;
+    ptAlertsCreated?: number;
   }>;
 };
-
 declare global {
   // eslint-disable-next-line no-var
   var hcaMarketDataRefreshRunning: boolean | undefined;
@@ -36,9 +43,14 @@ export async function refreshMarketData({
       source: "FINNHUB",
       trigger,
       skipped: true,
-      reason: "Market data refresh already running.",
+      reason:
+        "Market data refresh already running.",
       updatedCount: 0,
       failedCount: 0,
+      ptAlertsEvaluated: 0,
+      ptAlertsCreated: 0,
+      ptAlertsSkippedDuplicate: 0,
+      ptAlertFailures: 0,
       results: [],
     };
   }
@@ -108,6 +120,10 @@ export async function refreshMarketData({
     }
 
     const results: MarketDataRefreshResult["results"] = [];
+    let ptAlertsEvaluated = 0;
+    let ptAlertsCreated = 0;
+    let ptAlertsSkippedDuplicate = 0;
+    let ptAlertFailures = 0;
 
     for (const security of securities) {
       try {
@@ -126,6 +142,9 @@ export async function refreshMarketData({
           continue;
         }
 
+        const marketDataAsOf =
+          new Date();
+
         const data = {
           currentPrice: quote.currentPrice,
           dayChange: quote.dayChange,
@@ -133,7 +152,8 @@ export async function refreshMarketData({
           source: "FINNHUB",
           marketDataSource: "FINNHUB",
           dataQuality: "REAL",
-          lastMarketDataRefreshAt: new Date(),
+          lastMarketDataRefreshAt:
+            marketDataAsOf,
         };
 
         if (existingMarketData) {
@@ -152,9 +172,57 @@ export async function refreshMarketData({
           });
         }
 
+        let securityPtAlertsCreated = 0;
+
+        try {
+          const ptAlertResult =
+            await evaluateSecurityPtAlerts({
+              securityId:
+                security.id,
+              ticker:
+                security.ticker,
+              currentPrice:
+                quote.currentPrice,
+              marketDataSource:
+                "FINNHUB",
+              marketDataAsOf,
+            });
+
+          ptAlertsEvaluated +=
+            ptAlertResult.evaluatedCount;
+
+          ptAlertsCreated +=
+            ptAlertResult.createdCount;
+
+          ptAlertsSkippedDuplicate +=
+            ptAlertResult
+              .skippedDuplicateCount;
+
+          securityPtAlertsCreated =
+            ptAlertResult.createdCount;
+
+          if (
+            ptAlertResult.skippedNoUserCount >
+            0
+          ) {
+            console.warn(
+              `[pt-alerts] Could not create ${ptAlertResult.skippedNoUserCount} alert(s) for ${security.ticker}: no system user was available.`
+            );
+          }
+        } catch (error) {
+          ptAlertFailures += 1;
+
+          console.error(
+            `Failed to evaluate PT alerts for ${security.ticker}:`,
+            error
+          );
+        }
+
         results.push({
           ticker: security.ticker,
           status: "UPDATED",
+          ptAlertsCreated:
+            securityPtAlertsCreated,
         });
 
         // Finnhub free tier is 60 calls/minute, so stay under that.
@@ -186,11 +254,18 @@ export async function refreshMarketData({
         status: failedCount > 0 ? "COMPLETED_WITH_WARNINGS" : "COMPLETED",
         message:
           trigger === "SCHEDULED"
-            ? `Scheduled Finnhub current price refresh complete. Updated: ${updatedCount}. Failed: ${failedCount}.`
-            : `Manual Finnhub current price refresh complete. Updated: ${updatedCount}. Failed: ${failedCount}.`,
+            ? `Scheduled Finnhub current price refresh complete. Updated: ${updatedCount}. Failed: ${failedCount}. PT alerts created: ${ptAlertsCreated}. PT alert failures: ${ptAlertFailures}.`
+            : `Manual Finnhub current price refresh complete. Updated: ${updatedCount}. Failed: ${failedCount}. PT alerts created: ${ptAlertsCreated}. PT alert failures: ${ptAlertFailures}.`,
         endedAt: new Date(),
         rowsProcessed: results.length,
         rowsFailed: failedCount,
+        detailsJson:
+          JSON.stringify({
+            ptAlertsEvaluated,
+            ptAlertsCreated,
+            ptAlertsSkippedDuplicate,
+            ptAlertFailures,
+          }),
       },
     });
 
@@ -199,6 +274,10 @@ export async function refreshMarketData({
       trigger,
       updatedCount,
       failedCount,
+      ptAlertsEvaluated,
+      ptAlertsCreated,
+      ptAlertsSkippedDuplicate,
+      ptAlertFailures,
       results,
     };
   } catch (error) {
