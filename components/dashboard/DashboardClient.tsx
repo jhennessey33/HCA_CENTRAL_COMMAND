@@ -612,21 +612,47 @@ function TickerDetailPanel({
 
                   <span>{formatPrice(trade.avgPrice)}</span>
 
-                  <span className="flex flex-col items-start gap-1">
+                 <span className="flex flex-col items-start gap-1">
                     {trade.source === "MANUAL" ? (
-                      <Badge tone="amber">Manual</Badge>
-                    ) : trade.source === "WELLS_FARGO" ? (
-                      <Badge tone="green">Wells</Badge>
+                      <Badge tone="amber">
+                        Manual
+                      </Badge>
+                    ) : trade.source ===
+                      "WELLS_FARGO" ? (
+                      <Badge tone="green">
+                        Wells
+                      </Badge>
+                    ) : trade.source === "SYSTEM" ? (
+                      <Badge tone="blue">
+                        System Generated
+                      </Badge>
                     ) : (
-                      <Badge tone="slate">{trade.source || "Unknown"}</Badge>
+                      <Badge tone="slate">
+                        {trade.source || "Unknown"}
+                      </Badge>
                     )}
 
-                    {trade.reconciliationStatus === "REVIEW_REQUIRED" ? (
-                      <Badge tone="red">Review</Badge>
-                    ) : trade.reconciliationStatus === "MANUAL_PENDING" ? (
-                      <Badge tone="amber">Pending</Badge>
-                    ) : trade.reconciliationStatus === "MATCHED" ? (
-                      <Badge tone="blue">Matched</Badge>
+                    {trade.source === "SYSTEM" &&
+                    trade.reconciliationStatus ===
+                      "MANUAL_PENDING" ? (
+                      <Badge tone="blue">
+                        Pending Completion
+                      </Badge>
+                    ) : trade.reconciliationStatus ===
+                      "REVIEW_REQUIRED" ? (
+                      <Badge tone="red">
+                        Review
+                      </Badge>
+                    ) : trade.reconciliationStatus ===
+                      "MANUAL_PENDING" ? (
+                      <Badge tone="amber">
+                        Pending
+                      </Badge>
+                    ) : trade.reconciliationStatus ===
+                      "MATCHED" ? (
+                      <Badge tone="blue">
+                        Matched
+                      </Badge>
                     ) : null}
                   </span>
 
