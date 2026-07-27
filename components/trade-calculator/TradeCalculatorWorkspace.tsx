@@ -906,10 +906,62 @@ function handleSecurityKeyDown(
               {selectedSecurity.name}
             </p>
 
-            <p className="mt-1 text-xs text-slate-500">
-              {selectedSecurity.industry ||
-                "Industry not available"}
-            </p>
+            <div className="mt-3 grid grid-cols-3 gap-3">
+              <div className="rounded-xl border border-slate-200 bg-white p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Current Price
+                </p>
+
+                <p className="mt-1 font-semibold tabular-nums text-slate-950">
+                  {formatPrice(currentPrice)}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  WAP
+                </p>
+
+                <p className="mt-1 font-semibold tabular-nums text-slate-950">
+                  {formatPrice(wellsWap)}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Current Position
+                </p>
+
+                <p className="mt-1 font-semibold tabular-nums text-slate-950">
+                  {selectedPosition ? (
+                    <>
+                      {formatNumber(
+                        Math.abs(
+                          Number(
+                            selectedPosition.shares
+                          ) || 0
+                        )
+                      )}{" "}
+                      <span
+                        className={
+                          selectedPosition.side ===
+                          "SHORT"
+                            ? "text-rose-600"
+                            : "text-emerald-600"
+                        }
+                      >
+                        {selectedPosition.side ===
+                        "SHORT"
+                          ? "Short"
+                          : "Long"}
+                      </span>
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </p>
+              </div>
+            </div>
           </div>
         ) : null}
 

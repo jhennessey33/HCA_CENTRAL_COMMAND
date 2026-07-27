@@ -1184,22 +1184,83 @@ export default function TradeScenarioPanel({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-           <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
-                Proposed Shares
-              </p>
+          <div
+            className={`overflow-hidden rounded-2xl border shadow-sm ${
+              tradeAction === "SELL" ||
+              tradeAction === "SHORT"
+                ? "border-rose-300 bg-rose-50"
+                : "border-emerald-300 bg-emerald-50"
+            }`}
+          >
+            <div
+              className={`px-5 py-2 text-xs font-bold uppercase tracking-widest ${
+                tradeAction === "SELL" ||
+                tradeAction === "SHORT"
+                  ? "bg-rose-600 text-white"
+                  : "bg-emerald-700 text-white"
+              }`}
+            >
+              Proposed Shares
+            </div>
 
-              <div className="mt-1 text-lg font-semibold text-amber-900">
-                {formatNumber(
-                  result.proposedShares
-                )}
+            <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-5">
+              <div>
+                <p
+                  className={`text-3xl font-bold tabular-nums tracking-tight ${
+                    tradeAction === "SELL" ||
+                    tradeAction === "SHORT"
+                      ? "text-rose-900"
+                      : "text-emerald-900"
+                  }`}
+                >
+                  {formatNumber(
+                    result.proposedShares
+                  )}
+                </p>
+
+                <p
+                  className={`mt-1 text-sm font-semibold ${
+                    tradeAction === "SELL" ||
+                    tradeAction === "SHORT"
+                      ? "text-rose-700"
+                      : "text-emerald-700"
+                  }`}
+                >
+                  {tradeAction}{" "}
+                  {security.ticker} shares
+                </p>
               </div>
 
-              <p className="mt-1 text-xs leading-5 text-amber-700">
-                {tradeAction} quantity
-              </p>
+              <div className="text-left sm:text-right">
+                <p
+                  className={`text-xs font-semibold uppercase tracking-wide ${
+                    tradeAction === "SELL" ||
+                    tradeAction === "SHORT"
+                      ? "text-rose-700"
+                      : "text-emerald-700"
+                  }`}
+                >
+                  Estimated Trade Notional
+                </p>
+
+                <p
+                  className={`mt-1 text-xl font-bold tabular-nums ${
+                    tradeAction === "SELL" ||
+                    tradeAction === "SHORT"
+                      ? "text-rose-900"
+                      : "text-emerald-900"
+                  }`}
+                >
+                  {formatMoney(
+                    result.proposedNotional
+                  )}
+                </p>
+              </div>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
+
 
             <ResultCard
               label="Trade Notional"
