@@ -1,6 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import AppSidebar from "@/components/common/AppSidebar";
 import Badge from "@/components/common/Badge";
@@ -237,27 +241,84 @@ export default function TradesClient({
   positions,
   fundEquitySnapshots,
 }: TradesClientProps) {
+  const [
+    localPositions,
+    setLocalPositions,
+  ] = useState<any[]>(positions);
+
   const [query, setQuery] =
     useState("");
 
   const [tradeFilter, setTradeFilter] =
     useState("ALL");
 
-  const allTrades = useMemo(() => {
-    return positions.flatMap(
-      (position) =>
-        (position.trades || []).map(
-          (trade: any) => ({
+  const [
+    editingTrade,
+    setEditingTrade,
+  ] = useState<any | null>(null);
+
+  const [
+    tradeNote,
+    setTradeNote,
+  ] = useState("");
+
+  const [
+    isSavingNote,
+    setIsSavingNote,
+  ] = useState(false);
+
+  const [
+    noteError,
+    setNoteError,
+  ] = useState("");
+
+  const [
+    confirmDeleteTradeId,
+    setConfirmDeleteTradeId,
+  ] = useState<string | null>(
+    null
+  );
+
+  const [
+    deletingTradeId,
+    setDeletingTradeId,
+  ] = useState<string | null>(
+    null
+  );
+  useEffect(() => {
+    if (!confirmDeleteTradeId) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setConfirmDeleteTradeId(
+        null
+      );
+    }, 5000);
+
+    return () =>
+      clearTimeout(timeout);
+  }, [confirmDeleteTradeId]);
+
+ const allTrades = useMemo<any[]>(
+    () => {
+      return localPositions.flatMap(
+        (position) =>
+          (
+            position.trades || []
+          ).map((trade: any) => ({
             ...trade,
             ticker:
               position.security.ticker,
             company:
               position.security.name,
-            side: position.side,
-          })
-        )
-    );
-  }, [positions]);
+            side:
+              position.side,
+          }))
+      );
+    },
+    [localPositions]
+  );
 
   const filteredTrades = useMemo(() => {
     return allTrades.filter(
@@ -372,6 +433,169 @@ export default function TradesClient({
         trade.reconciliationStatus ===
         "MANUAL_PENDING"
     ).length;
+
+    function updateLocalTrade(
+      tradeId: string,
+      updates: Record<
+        string,
+        unknown
+      >
+    ) {
+      setLocalPositions(
+        (currentPositions) =>
+          currentPositions.map(
+            (position) => ({
+              ...position,
+              trades: (
+                position.trades || []
+              ).map((trade: any) =>
+                trade.id === tradeId
+                  ? {
+                      ...trade,
+                      ...updates,
+                    }
+                  : trade
+              ),
+            })
+          )
+      );
+    }
+
+    function removeLocalTrade(
+      tradeId: string
+    ) {
+      setLocalPositions(
+        (currentPositions) =>
+          currentPositions.map(
+            (position) => ({
+              ...position,
+              trades: (
+                position.trades || []
+              ).filter(
+                (trade: any) =>
+                  trade.id !== tradeId
+              ),
+            })
+          )
+      );
+    }
+
+    async function handleDeleteTrade(
+      tradeId: string
+    ) {
+      try {
+        setDeletingTradeId(
+          tradeId
+        );
+
+        const response = await fetch(
+          `/api/trades/manual/${tradeId}`,
+          {
+            method: "DELETE",
+            credentials: "include",
+          }
+        );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+              "Failed to delete trade."
+          );
+        }
+
+        removeLocalTrade(
+          tradeId
+        );
+
+        setConfirmDeleteTradeId(
+          null
+        );
+      } catch (error) {
+        window.alert(
+          error instanceof Error
+            ? error.message
+            : "Failed to delete trade."
+        );
+      } finally {
+        setDeletingTradeId(
+          null
+        );
+      }
+    }
+
+    function handleOpenTradeNote(
+      trade: any
+    ) {
+      setEditingTrade(trade);
+
+      setTradeNote(
+        trade.comment || ""
+      );
+
+      setNoteError("");
+    }
+
+    async function handleSaveTradeNote() {
+      if (!editingTrade) {
+        return;
+      }
+
+      try {
+        setIsSavingNote(true);
+        setNoteError("");
+
+        const response = await fetch(
+          `/api/trades/manual/${editingTrade.id}/note`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              comment: tradeNote,
+            }),
+          }
+        );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+              "Failed to save trade note."
+          );
+        }
+
+        const updatedComment =
+          tradeNote.trim() || null;
+
+        updateLocalTrade(
+          editingTrade.id,
+          {
+            comment:
+              updatedComment,
+          }
+        );
+
+        setEditingTrade(null);
+        setTradeNote("");
+      } catch (error) {
+        setNoteError(
+          error instanceof Error
+            ? error.message
+            : "Failed to save trade note."
+        );
+      } finally {
+        setIsSavingNote(false);
+      }
+    }
+
 
   return (
     <main className="h-screen overflow-hidden bg-slate-100 text-slate-900">
@@ -665,7 +889,7 @@ export default function TradesClient({
                       </div>
 
                       <div className="overflow-x-auto">
-                        <div className="grid grid-cols-[0.8fr_2fr_1.4fr_0.9fr_1fr_1fr_1.2fr_1fr_1.4fr_2.2fr] border-b bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        <div className="grid grid-cols-[0.8fr_2fr_1.4fr_0.9fr_1fr_1fr_1.2fr_1fr_1.4fr_2.2fr_1.6fr] border-b bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                           <div>
                             Ticker
                           </div>
@@ -697,13 +921,16 @@ export default function TradesClient({
                           <div>
                             Note
                           </div>
+                          <div>
+                            Actions
+                          </div>
                         </div>
 
                         {trades.map(
                           (trade) => (
                             <div
                                 key={trade.id}
-                                className="grid grid-cols-[0.8fr_2fr_1.4fr_0.9fr_1fr_1fr_1.2fr_1fr_1.4fr_2.2fr] items-center border-b border-slate-100 px-3 py-2 text-xs hover:bg-slate-50"
+                                className="grid grid-cols-[0.8fr_2fr_1.4fr_0.9fr_1fr_1fr_1.2fr_1fr_1.4fr_2.2fr_1.6fr] items-center border-b border-slate-100 px-3 py-2 text-xs hover:bg-slate-50"
                                 >
                               <div className="font-semibold text-slate-950">
                                 {
@@ -801,15 +1028,78 @@ export default function TradesClient({
                                 </Badge>
                               </div>
 
-                              <div
+                             <div
                                 title={
-                                  trade.comment ||
-                                  ""
+                                  trade.comment || ""
                                 }
                                 className="truncate text-slate-500"
                               >
-                                {trade.comment ||
-                                  "—"}
+                                {trade.comment || "—"}
+                              </div>
+
+                              <div className="flex items-center gap-1">
+                                {trade.source ===
+                                  "MANUAL" &&
+                                trade.reconciliationStatus ===
+                                  "MANUAL_PENDING" ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleOpenTradeNote(
+                                          trade
+                                        )
+                                      }
+                                      className="rounded-xl bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700 hover:bg-blue-100"
+                                    >
+                                      {trade.comment
+                                        ? "Edit Note"
+                                        : "Add Note"}
+                                    </button>
+
+                                    {deletingTradeId ===
+                                    trade.id ? (
+                                      <span className="text-[11px] font-semibold text-slate-500">
+                                        Deleting...
+                                      </span>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (
+                                            confirmDeleteTradeId ===
+                                            trade.id
+                                          ) {
+                                            handleDeleteTrade(
+                                              trade.id
+                                            );
+
+                                            return;
+                                          }
+
+                                          setConfirmDeleteTradeId(
+                                            trade.id
+                                          );
+                                        }}
+                                        className={`inline-flex min-h-7 items-center justify-center rounded-xl px-2 py-1 text-[11px] font-medium ${
+                                          confirmDeleteTradeId ===
+                                          trade.id
+                                            ? "bg-rose-600 text-white hover:bg-rose-700"
+                                            : "text-rose-600 hover:bg-rose-50"
+                                        }`}
+                                      >
+                                        {confirmDeleteTradeId ===
+                                        trade.id
+                                          ? "Confirm"
+                                          : "Delete"}
+                                      </button>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className="text-slate-400">
+                                    —
+                                  </span>
+                                )}
                               </div>
                             </div>
                           )
@@ -821,8 +1111,114 @@ export default function TradesClient({
               )}
             </div>
           </div>
-        </section>
+                </section>
       </div>
+
+      {editingTrade ? (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/30 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-950">
+                  {editingTrade.comment
+                    ? "Edit Trade Note"
+                    : "Add Trade Note"}
+                </h3>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  {editingTrade.ticker}{" "}
+                  •{" "}
+                  {editingTrade.tradeType}{" "}
+                  •{" "}
+                  {Math.abs(
+                    Number(
+                      editingTrade.shares
+                    ) || 0
+                  ).toLocaleString(
+                    "en-US"
+                  )}{" "}
+                  shares
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    isSavingNote
+                  ) {
+                    return;
+                  }
+
+                  setEditingTrade(
+                    null
+                  );
+
+                  setNoteError("");
+                }}
+                disabled={
+                  isSavingNote
+                }
+                className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                ✕
+              </button>
+            </div>
+
+            <textarea
+              value={tradeNote}
+              onChange={(event) =>
+                setTradeNote(
+                  event.target.value
+                )
+              }
+              disabled={isSavingNote}
+              className="mt-4 h-32 w-full resize-none rounded-2xl border border-slate-200 p-4 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
+              placeholder="Enter trade note..."
+            />
+
+            {noteError ? (
+              <div className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                {noteError}
+              </div>
+            ) : null}
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingTrade(
+                    null
+                  );
+
+                  setNoteError("");
+                }}
+                disabled={
+                  isSavingNote
+                }
+                className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={
+                  handleSaveTradeNote
+                }
+                disabled={
+                  isSavingNote
+                }
+                className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSavingNote
+                  ? "Saving..."
+                  : "Save Note"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
