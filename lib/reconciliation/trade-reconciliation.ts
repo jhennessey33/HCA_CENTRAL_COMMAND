@@ -203,17 +203,42 @@ export function matchManualTrade(params: {
       differences: {
         partialCandidateCount:
           partialCandidates.length,
+
+        // The reconciliation flag is anchored to this
+        // candidate for the existing review workflow.
+        manualShares:
+          firstCandidate.shares,
+        manualAvgPrice:
+          firstCandidate.avgPrice,
+
         candidateTradeIds:
           partialCandidates.map(
             (candidate) =>
               candidate.id
           ),
+
+        partialCandidates:
+          partialCandidates.map(
+            (candidate) => ({
+              id: candidate.id,
+              shares:
+                candidate.shares,
+              avgPrice:
+                candidate.avgPrice,
+              dateTraded:
+                candidate.dateTraded,
+              source:
+                candidate.source,
+            })
+          ),
+
         wellsShares:
           wellsTrade.shares,
         wellsAvgPrice:
           wellsTrade.avgPrice,
       },
     };
+
   }
 
 

@@ -375,9 +375,22 @@ function TradeReconciliationAlertCard({
       <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
         <div className="rounded-2xl bg-white p-4 ring-1 ring-amber-100">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Manual Trade
+            {Number(
+              differences.partialCandidateCount
+            ) > 1
+              ? "Selected Manual Candidate"
+              : "Manual Trade"}
           </p>
-
+          {Number(
+            differences.partialCandidateCount
+          ) > 1 ? (
+            <p className="mt-1 text-xs font-medium text-amber-700">
+              {
+                differences.partialCandidateCount
+              }{" "}
+              manual trades qualify for review
+            </p>
+          ) : null}
           <div className="mt-3 space-y-2 text-slate-700">
             <div className="flex justify-between gap-4">
               <span>Trade ID</span>
