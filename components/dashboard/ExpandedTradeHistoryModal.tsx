@@ -147,6 +147,10 @@ function sourceTone(source?: string | null) {
     return "amber";
   }
 
+  if (source === "SYSTEM") {
+    return "blue";
+  }
+
   return "slate";
 }
 
@@ -159,12 +163,24 @@ function formatSource(source?: string | null) {
     return "Manual";
   }
 
+  if (source === "SYSTEM") {
+    return "System Generated";
+  }
+
   return source || "Unknown";
 }
 
 function reconciliationTone(
-  status?: string | null
+  status?: string | null,
+  source?: string | null
 ) {
+ if (
+    source === "SYSTEM" &&
+    status === "MANUAL_PENDING"
+  ) {
+    return "blue";
+  }
+
   if (status === "MATCHED") {
     return "blue";
   }
@@ -181,8 +197,16 @@ function reconciliationTone(
 }
 
 function formatReconciliationStatus(
-  status?: string | null
+  status?: string | null,
+  source?: string | null
 ) {
+  if (
+    source === "SYSTEM" &&
+    status === "MANUAL_PENDING"
+  ) {
+    return "Pending Completion";
+  }
+
   if (!status) {
     return "—";
   }
@@ -265,17 +289,21 @@ function TradeHistoryTableRow({
           {row.tradeType}
         </Badge>
 
-        <span
-          className={`text-[10px] font-semibold uppercase tracking-wide ${
-            row.isPendingManual
-              ? "text-violet-600"
-              : "text-slate-400"
-          }`}
-        >
-          {row.isPendingManual
+       <span
+        className={`text-[10px] font-semibold uppercase tracking-wide ${
+          row.isPendingManual
+            ? "text-violet-600"
+            : "text-slate-400"
+        }`}
+      >
+        {row.trade.source === "SYSTEM" &&
+        row.trade.reconciliationStatus ===
+          "MANUAL_PENDING"
+          ? "Completion Remaining"
+          : row.isPendingManual
             ? "Projected"
             : "History"}
-        </span>
+      </span>
       </div>
 
       <div className="font-medium text-slate-950">
@@ -323,38 +351,42 @@ function TradeHistoryTableRow({
           tone={
             sourceTone(
               row.trade.source
-            ) as "green" | "amber" | "slate"
+            ) as
+              | "green"
+              | "amber"
+              | "blue"
+              | "slate"
           }
         >
           {formatSource(row.trade.source)}
         </Badge>
       </div>
 
-      <div>
-        {row.trade.reconciliationStatus ? (
-          <Badge
-            tone={
-              reconciliationTone(
-                row.trade
-                  .reconciliationStatus
-              ) as
-                | "blue"
-                | "red"
-                | "amber"
-                | "slate"
-            }
-          >
-            {formatReconciliationStatus(
-              row.trade
-                .reconciliationStatus
-            )}
-          </Badge>
-        ) : (
-          <span className="text-slate-400">
-            —
-          </span>
-        )}
-      </div>
+     <div>
+      {row.trade.reconciliationStatus ? (
+        <Badge
+          tone={
+            reconciliationTone(
+              row.trade.reconciliationStatus,
+              row.trade.source
+            ) as
+              | "blue"
+              | "red"
+              | "amber"
+              | "slate"
+          }
+        >
+          {formatReconciliationStatus(
+            row.trade.reconciliationStatus,
+            row.trade.source
+          )}
+        </Badge>
+      ) : (
+        <span className="text-slate-400">
+          —
+        </span>
+      )}
+    </div>
 
       <div
         title={row.trade.comment || ""}

@@ -63,6 +63,10 @@ function sourceTone(source?: string | null) {
     return "amber";
   }
 
+  if (source === "SYSTEM") {
+    return "blue";
+  }
+
   return "slate";
 }
 
@@ -77,12 +81,24 @@ function formatSource(
     return "Manual";
   }
 
+  if (source === "SYSTEM") {
+    return "System Generated";
+  }
+
   return source || "Unknown";
 }
 
 function reconciliationTone(
-  status?: string | null
+  status?: string | null,
+  source?: string | null
 ) {
+  if (
+    source === "SYSTEM" &&
+    status === "MANUAL_PENDING"
+  ) {
+    return "blue";
+  }
+
   if (status === "MATCHED") {
     return "blue";
   }
@@ -99,8 +115,16 @@ function reconciliationTone(
 }
 
 function formatReconciliationStatus(
-  status?: string | null
+  status?: string | null,
+  source?: string | null
 ) {
+  if (
+    source === "SYSTEM" &&
+    status === "MANUAL_PENDING"
+  ) {
+    return "Pending Completion";
+  }
+
   if (!status) {
     return "—";
   }
@@ -108,13 +132,14 @@ function formatReconciliationStatus(
   return status
     .split("_")
     .map(
-      word =>
+      (word) =>
         `${word.charAt(0)}${word
           .slice(1)
           .toLowerCase()}`
     )
     .join(" ");
 }
+
 function getLocalDateKey(
   value: string | Date
 ) {
@@ -243,6 +268,15 @@ export default function TradesClient({
             trade.company,
             trade.tradeType,
             trade.comment,
+            trade.source,
+            trade.reconciliationStatus,
+            formatSource(
+              trade.source
+            ),
+            formatReconciliationStatus(
+              trade.reconciliationStatus,
+              trade.source
+            ),
           ]
             .filter(Boolean)
             .join(" ")
@@ -755,12 +789,14 @@ export default function TradesClient({
                                 <Badge
                                   tone={
                                     reconciliationTone(
-                                      trade.reconciliationStatus
+                                      trade.reconciliationStatus,
+                                      trade.source
                                     ) as any
                                   }
                                 >
                                   {formatReconciliationStatus(
-                                    trade.reconciliationStatus
+                                    trade.reconciliationStatus,
+                                    trade.source
                                   )}
                                 </Badge>
                               </div>
