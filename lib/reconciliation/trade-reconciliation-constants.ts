@@ -1,5 +1,6 @@
 export const TRADE_SOURCES = {
   MANUAL: "MANUAL",
+  SYSTEM: "SYSTEM",
   WELLS_FARGO: "WELLS_FARGO",
 } as const;
 

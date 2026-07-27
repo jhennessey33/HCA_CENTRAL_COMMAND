@@ -595,6 +595,43 @@ export async function POST(request: Request) {
               })
             : null;
 
+          if (
+            existingWellsTrade &&
+            (
+              existingWellsTrade.matchedTradeId ||
+              existingWellsTrade.reconciliationStatus ===
+                RECONCILIATION_STATUS.MATCHED ||
+              existingWellsTrade.reconciliationStatus ===
+                RECONCILIATION_STATUS.REVIEW_REQUIRED
+            )
+          ) {
+            await prisma.trade.update({
+              where: {
+                id: existingWellsTrade.id,
+              },
+              data: {
+                ...tradeData,
+
+                // Preserve completed reconciliation state when
+                // the same Wells source row is uploaded again.
+                reconciliationStatus:
+                  existingWellsTrade.reconciliationStatus,
+                reconciliationGroupId:
+                  existingWellsTrade.reconciliationGroupId,
+                matchedTradeId:
+                  existingWellsTrade.matchedTradeId,
+                reconciledAt:
+                  existingWellsTrade.reconciledAt,
+                reconciliationNotes:
+                  existingWellsTrade.reconciliationNotes,
+                isHidden:
+                  existingWellsTrade.isHidden,
+              },
+            });
+
+            tradesUpdated += 1;
+            continue;
+          }
           const pendingManualTrades = await prisma.trade.findMany({
             where: {
               securityId: security.id,
@@ -669,6 +706,109 @@ export async function POST(request: Request) {
 
             continue;
           }
+          
+
+          if (
+            matchResult.status === "PARTIAL"
+          ) {
+            const officialTrade =
+              existingWellsTrade
+                ? await prisma.trade.update({
+                    where: {
+                      id:
+                        existingWellsTrade.id,
+                    },
+                    data: {
+                      ...tradeData,
+                      source:
+                        TRADE_SOURCES
+                          .WELLS_FARGO,
+                      reconciliationStatus:
+                        RECONCILIATION_STATUS
+                          .REVIEW_REQUIRED,
+                      matchedTradeId:
+                        matchResult.trade.id,
+                      reconciliationNotes:
+                        "Possible partial completion detected. Automatic split is not yet enabled.",
+                      isHidden: false,
+                    },
+                  })
+                : await prisma.trade.create({
+                    data: {
+                      ...tradeData,
+                      source:
+                        TRADE_SOURCES
+                          .WELLS_FARGO,
+                      reconciliationStatus:
+                        RECONCILIATION_STATUS
+                          .REVIEW_REQUIRED,
+                      matchedTradeId:
+                        matchResult.trade.id,
+                      reconciliationNotes:
+                        "Possible partial completion detected. Automatic split is not yet enabled.",
+                      isHidden: false,
+                    },
+                  });
+
+            await prisma.trade.update({
+              where: {
+                id: matchResult.trade.id,
+              },
+              data: {
+                reconciliationStatus:
+                  RECONCILIATION_STATUS
+                    .REVIEW_REQUIRED,
+                matchedTradeId:
+                  officialTrade.id,
+                reconciliationNotes:
+                  "Possible partial completion detected. Automatic split is not yet enabled.",
+              },
+            });
+
+            const flagUserId =
+              await getSystemFlagUserId();
+
+            if (flagUserId) {
+              await createTradeReconciliationFlag({
+                securityId: security.id,
+                positionId:
+                  matchingPosition?.id,
+                createdById: flagUserId,
+                manualTradeId:
+                  matchResult.trade.id,
+                wellsTradeId:
+                  officialTrade.id,
+                wellsTransactionId:
+                  trade.transactionId,
+                ticker:
+                  trade.ticker,
+                tradeType:
+                  trade.tradeType,
+                reason:
+                  matchResult.reason,
+                differences:
+                  matchResult.differences,
+              });
+            } else {
+              failures.push(
+                `Could not create reconciliation flag for ${
+                  trade.ticker ||
+                  trade.securityName
+                }: no user found.`
+              );
+            }
+
+            if (existingWellsTrade) {
+              tradesUpdated += 2;
+            } else {
+              tradesCreated += 1;
+              tradesUpdated += 1;
+            }
+
+            continue;
+          }
+
+
 
           if (matchResult.status === "SIMILAR") {
             const officialTrade = existingWellsTrade

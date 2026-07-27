@@ -5,10 +5,24 @@ export type TradeMatchResult =
       reason: string;
     }
   | {
+      status: "PARTIAL";
+      trade: any;
+      reason: string;
+      completedShares: number;
+      remainingShares: number;
+      differences: Record<
+        string,
+        unknown
+      >;
+    }
+  | {
       status: "SIMILAR";
       trade: any;
       reason: string;
-      differences: Record<string, unknown>;
+      differences: Record<
+        string,
+        unknown
+      >;
     }
   | {
       status: "NONE";
@@ -25,7 +39,22 @@ function sameUtcDate(a: Date, b: Date) {
 function absDiff(a: number, b: number) {
   return Math.abs(a - b);
 }
+function haveSameDirection(
+  firstShares: number,
+  secondShares: number
+) {
+  if (
+    Math.abs(firstShares) <= 0.001 ||
+    Math.abs(secondShares) <= 0.001
+  ) {
+    return false;
+  }
 
+  return (
+    Math.sign(firstShares) ===
+    Math.sign(secondShares)
+  );
+}
 export function matchManualTrade(params: {
   manualTrades: any[];
   wellsTrade: {
@@ -64,6 +93,129 @@ export function matchManualTrade(params: {
       reason: "Manual trade matched Wells transaction by ticker, type, date, shares, and price.",
     };
   }
+  const partialCandidates =
+    sameTypeAndDate.filter(
+      (manualTrade) => {
+        const manualShares = Number(
+          manualTrade.shares
+        );
+
+        const wellsShares = Number(
+          wellsTrade.shares
+        );
+
+        const manualPrice = Number(
+          manualTrade.avgPrice
+        );
+
+        const wellsPrice = Number(
+          wellsTrade.avgPrice
+        );
+
+        if (
+          !Number.isFinite(
+            manualShares
+          ) ||
+          !Number.isFinite(
+            wellsShares
+          ) ||
+          !Number.isFinite(
+            manualPrice
+          ) ||
+          !Number.isFinite(
+            wellsPrice
+          )
+        ) {
+          return false;
+        }
+
+        const manualAbsoluteShares =
+          Math.abs(manualShares);
+
+        const wellsAbsoluteShares =
+          Math.abs(wellsShares);
+
+        return (
+          haveSameDirection(
+            manualShares,
+            wellsShares
+          ) &&
+          absDiff(
+            manualPrice,
+            wellsPrice
+          ) <= 0.02 &&
+          wellsAbsoluteShares <
+            manualAbsoluteShares -
+              0.001
+        );
+      }
+    );
+
+  if (
+    partialCandidates.length === 1
+  ) {
+    const partialTrade =
+      partialCandidates[0];
+
+    const manualShares = Number(
+      partialTrade.shares
+    );
+
+    const completedShares =
+      Number(wellsTrade.shares);
+
+    const remainingShares =
+      manualShares -
+      completedShares;
+
+    return {
+      status: "PARTIAL",
+      trade: partialTrade,
+      reason:
+        "Wells transaction partially completed a matching manual trade at the same price.",
+      completedShares,
+      remainingShares,
+      differences: {
+        originalManualShares:
+          manualShares,
+        wellsCompletedShares:
+          completedShares,
+        remainingShares,
+        manualAvgPrice:
+          partialTrade.avgPrice,
+        wellsAvgPrice:
+          wellsTrade.avgPrice,
+      },
+    };
+  }
+
+  if (
+    partialCandidates.length > 1
+  ) {
+    const firstCandidate =
+      partialCandidates[0];
+
+    return {
+      status: "SIMILAR",
+      trade: firstCandidate,
+      reason:
+        "Multiple manual trades qualify as possible partial completions. Review is required.",
+      differences: {
+        partialCandidateCount:
+          partialCandidates.length,
+        candidateTradeIds:
+          partialCandidates.map(
+            (candidate) =>
+              candidate.id
+          ),
+        wellsShares:
+          wellsTrade.shares,
+        wellsAvgPrice:
+          wellsTrade.avgPrice,
+      },
+    };
+  }
+
 
   const similar = sameTypeAndDate.find((manualTrade) => {
     return (

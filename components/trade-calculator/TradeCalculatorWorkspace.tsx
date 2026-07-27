@@ -1206,6 +1206,39 @@ function handleSecurityKeyDown(
               />
 
               <BaselineCard
+                label="Current Price"
+                value={formatPrice(
+                  currentPrice
+                )}
+                detail={
+                  selectedSecurity
+                    .marketData?.[0]
+                    ?.marketDataSource ===
+                  "FINNHUB"
+                    ? "Finnhub market price"
+                    : "Wells implied price"
+                }
+              />
+
+              <BaselineCard
+                label="Wells WAP"
+                value={formatPrice(
+                  wellsWap
+                )}
+                detail="Wells cost basis ÷ shares"
+              />
+
+              <BaselineCard
+                label="Wells Portfolio Weight"
+                value={formatPercent(
+                  wellsPortfolioWeight
+                )}
+                detail="Absolute Wells market value ÷ Net Equity"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+              <BaselineCard
                 label="Pending Manual Delta"
                 value={
                   <span
@@ -1252,39 +1285,6 @@ function handleSecurityKeyDown(
               />
 
               <BaselineCard
-                label="Wells Portfolio Weight"
-                value={formatPercent(
-                  wellsPortfolioWeight
-                )}
-                detail="Absolute Wells market value ÷ Net Equity"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-              <BaselineCard
-                label="Current Price"
-                value={formatPrice(
-                  currentPrice
-                )}
-                detail={
-                  selectedSecurity
-                    .marketData?.[0]
-                    ?.marketDataSource ===
-                  "FINNHUB"
-                    ? "Finnhub market price"
-                    : "Wells implied price"
-                }
-              />
-
-              <BaselineCard
-                label="Wells WAP"
-                value={formatPrice(
-                  wellsWap
-                )}
-                detail="Wells cost basis ÷ shares"
-              />
-
-              <BaselineCard
                 label="Wells Market Value"
                 value={formatMoney(
                   toFiniteNumber(
@@ -1311,6 +1311,8 @@ function handleSecurityKeyDown(
                 tone="violet"
               />
             </div>
+
+            
 
             {analytics &&
             !analytics.pendingProjectionIsValid ? (
