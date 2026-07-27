@@ -606,29 +606,31 @@ export async function POST(request: Request) {
                 RECONCILIATION_STATUS.REVIEW_REQUIRED
             )
           ) {
-            await prisma.trade.update({
-              where: {
-                id: existingWellsTrade.id,
-              },
-              data: {
-                ...tradeData,
+           await prisma.trade.update({
+            where: {
+              id: existingWellsTrade.id,
+            },
+            data: {
+              ...tradeData,
+              dateTraded:
+                existingWellsTrade.dateTraded,
 
-                // Preserve completed reconciliation state when
-                // the same Wells source row is uploaded again.
-                reconciliationStatus:
-                  existingWellsTrade.reconciliationStatus,
-                reconciliationGroupId:
-                  existingWellsTrade.reconciliationGroupId,
-                matchedTradeId:
-                  existingWellsTrade.matchedTradeId,
-                reconciledAt:
-                  existingWellsTrade.reconciledAt,
-                reconciliationNotes:
-                  existingWellsTrade.reconciliationNotes,
-                isHidden:
-                  existingWellsTrade.isHidden,
-              },
-            });
+              // Preserve completed reconciliation state when
+              // the same Wells source row is uploaded again.
+              reconciliationStatus:
+                existingWellsTrade.reconciliationStatus,
+              reconciliationGroupId:
+                existingWellsTrade.reconciliationGroupId,
+              matchedTradeId:
+                existingWellsTrade.matchedTradeId,
+              reconciledAt:
+                existingWellsTrade.reconciledAt,
+              reconciliationNotes:
+                existingWellsTrade.reconciliationNotes,
+              isHidden:
+                existingWellsTrade.isHidden,
+            },
+          });
 
             tradesUpdated += 1;
             continue;
@@ -670,6 +672,9 @@ export async function POST(request: Request) {
                   },
                   data: {
                     ...tradeData,
+                    dateTraded: new Date(
+                      matchResult.trade.dateTraded
+                    ),
                     source: "WELLS_FARGO",
                     reconciliationStatus: "MATCHED",
                     reconciledAt: new Date(),
@@ -681,6 +686,9 @@ export async function POST(request: Request) {
               : await prisma.trade.create({
                   data: {
                     ...tradeData,
+                    dateTraded: new Date(
+                      matchResult.trade.dateTraded
+                    ),
                     source: "WELLS_FARGO",
                     reconciliationStatus: "MATCHED",
                     reconciledAt: new Date(),
@@ -795,6 +803,9 @@ export async function POST(request: Request) {
                               },
                               data: {
                                 ...tradeData,
+                                dateTraded: new Date(
+                                  originalManualTrade.dateTraded
+                                ),
                                 source:
                                   TRADE_SOURCES
                                     .WELLS_FARGO,
@@ -813,6 +824,9 @@ export async function POST(request: Request) {
                           : await tx.trade.create({
                               data: {
                                 ...tradeData,
+                                dateTraded: new Date(
+                                  originalManualTrade.dateTraded
+                                ),
                                 source:
                                   TRADE_SOURCES
                                     .WELLS_FARGO,
