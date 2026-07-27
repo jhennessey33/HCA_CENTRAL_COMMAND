@@ -614,6 +614,8 @@ export async function POST(request: Request) {
               ...tradeData,
               dateTraded:
                 existingWellsTrade.dateTraded,
+              comment:
+                existingWellsTrade.comment,
 
               // Preserve completed reconciliation state when
               // the same Wells source row is uploaded again.
@@ -675,6 +677,8 @@ export async function POST(request: Request) {
                     dateTraded: new Date(
                       matchResult.trade.dateTraded
                     ),
+                    comment:
+                      matchResult.trade.comment,
                     source: "WELLS_FARGO",
                     reconciliationStatus: "MATCHED",
                     reconciledAt: new Date(),
@@ -689,6 +693,8 @@ export async function POST(request: Request) {
                     dateTraded: new Date(
                       matchResult.trade.dateTraded
                     ),
+                    comment:
+                      matchResult.trade.comment,
                     source: "WELLS_FARGO",
                     reconciliationStatus: "MATCHED",
                     reconciledAt: new Date(),
@@ -806,6 +812,8 @@ export async function POST(request: Request) {
                                 dateTraded: new Date(
                                   originalManualTrade.dateTraded
                                 ),
+                                comment:
+                                  originalManualTrade.comment,
                                 source:
                                   TRADE_SOURCES
                                     .WELLS_FARGO,
@@ -822,11 +830,13 @@ export async function POST(request: Request) {
                               },
                             })
                           : await tx.trade.create({
-                              data: {
+                             data: {
                                 ...tradeData,
                                 dateTraded: new Date(
                                   originalManualTrade.dateTraded
                                 ),
+                                comment:
+                                  originalManualTrade.comment,
                                 source:
                                   TRADE_SOURCES
                                     .WELLS_FARGO,

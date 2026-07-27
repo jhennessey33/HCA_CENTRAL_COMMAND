@@ -110,6 +110,23 @@ export async function acceptWellsTradeForFlag(params: {
     throw new Error("Trade reconciliation metadata is incomplete.");
   }
 
+  const originalManualTrade =
+    await prisma.trade.findUnique({
+      where: {
+        id: manualTradeId,
+      },
+      select: {
+        id: true,
+        comment: true,
+      },
+    });
+
+  if (!originalManualTrade) {
+    throw new Error(
+      "Manual trade not found."
+    );
+  }
+
   const now = new Date();
 
   const [manualTrade, wellsTrade, resolvedFlag] = await prisma.$transaction([
@@ -126,16 +143,23 @@ export async function acceptWellsTradeForFlag(params: {
     }),
 
     prisma.trade.update({
-      where: { id: wellsTradeId },
+      where: {
+        id: wellsTradeId,
+      },
       data: {
-        reconciliationStatus: RECONCILIATION_STATUS.MATCHED,
-        matchedTradeId: manualTradeId,
+        comment:
+          originalManualTrade.comment,
+        reconciliationStatus:
+          RECONCILIATION_STATUS.MATCHED,
+        matchedTradeId:
+          manualTradeId,
         reconciledAt: now,
         isHidden: false,
         reconciliationNotes:
           "Trader accepted Wells trade during reconciliation review.",
       },
     }),
+
 
     prisma.flag.update({
       where: { id: params.flagId },
@@ -174,10 +198,12 @@ export async function acceptWellsTradeForFlag(params: {
       entityType: "FLAG",
       entityId: params.flagId,
       previousValueJson: JSON.stringify({
-        flagStatus: flag.status,
-        manualTradeId,
-        wellsTradeId,
-      }),
+      flagStatus: flag.status,
+      manualTradeId,
+      wellsTradeId,
+      manualTradeComment:
+        originalManualTrade.comment,
+    }),
       newValueJson: JSON.stringify({
         flagStatus: resolvedFlag.status,
         manualTrade: {
@@ -300,11 +326,15 @@ export async function keepManualTradeForFlag(params: {
           reconciliationStatus: manualTrade.reconciliationStatus,
           isHidden: manualTrade.isHidden,
         },
-        wellsTrade: {
-          id: wellsTrade.id,
-          reconciliationStatus: wellsTrade.reconciliationStatus,
-          isHidden: wellsTrade.isHidden,
-        },
+       wellsTrade: {
+        id: wellsTrade.id,
+        reconciliationStatus:
+          wellsTrade.reconciliationStatus,
+        isHidden:
+          wellsTrade.isHidden,
+        comment:
+          wellsTrade.comment,
+      },
       }),
     },
   });
