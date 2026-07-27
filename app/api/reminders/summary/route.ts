@@ -23,11 +23,11 @@ function parseThroughDate(request: Request) {
 
   const maximumAllowedDate = new Date(
     now.getTime() +
-      MAXIMUM_WINDOW_DAYS *
-        24 *
-        60 *
-        60 *
-        1000
+    MAXIMUM_WINDOW_DAYS *
+    24 *
+    60 *
+    60 *
+    1000
   );
 
   if (throughDate <= now) {
@@ -102,21 +102,25 @@ export async function GET(request: Request) {
       );
     }
 
-   const reminders = await prisma.flag.findMany({
-    where: {
-      status: "OPEN",
-      OR: [
-        {
-          reminderAt: {
-            not: null,
-            lte: throughDate,
+    const reminders = await prisma.flag.findMany({
+      where: {
+        status: "OPEN",
+        OR: [
+          {
+            reminderAt: {
+              not: null,
+              lte: throughDate,
+            },
           },
-        },
-        {
-          flagType: "Agenda",
-        },
-      ],
-    },
+          {
+            flagType: "Agenda",
+          },
+          {
+            flagType:
+              "PT Proximity Alert",
+          },
+        ],
+      },
       select: {
         id: true,
         flagType: true,
@@ -124,6 +128,8 @@ export async function GET(request: Request) {
         priority: true,
         status: true,
         reminderAt: true,
+        metadataJson: true,
+        createdAt: true,
         securityId: true,
         positionId: true,
         watchlistEntryId: true,
@@ -146,47 +152,49 @@ export async function GET(request: Request) {
     });
     const now = new Date();
 
-  const startOfToday = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate()
-  );
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
 
-  const wellsUploadToday =
-    await prisma.ingestionRun.findFirst({
-      where: {
-        source: "WELLS_FARGO",
-        startedAt: {
-          gte: startOfToday,
+    const wellsUploadToday =
+      await prisma.ingestionRun.findFirst({
+        where: {
+          source: "WELLS_FARGO",
+          startedAt: {
+            gte: startOfToday,
+          },
+          status: "COMPLETED",
         },
-        status: "COMPLETED",
-      },
-      orderBy: {
-        startedAt: "desc",
-      },
-    });
+        orderBy: {
+          startedAt: "desc",
+        },
+      });
     const allReminders = [...reminders];
 
-  if (!wellsUploadToday) {
-    allReminders.unshift({
-      id: "UPLOAD_WELLS_FILES",
-      flagType: "Operations",
-      description:
-        "Upload today's Wells Fargo files. Portfolio data will not refresh until a Wells file has been successfully ingested.",
-      priority: "HIGH",
-      status: "OPEN",
-      reminderAt: startOfToday,
-      securityId: null,
-      positionId: null,
-      watchlistEntryId: null,
-      security: null,
-    });
-  }
+    if (!wellsUploadToday) {
+      allReminders.unshift({
+        id: "UPLOAD_WELLS_FILES",
+        flagType: "Operations",
+        description:
+          "Upload today's Wells Fargo files. Portfolio data will not refresh until a Wells file has been successfully ingested.",
+        priority: "HIGH",
+        status: "OPEN",
+        reminderAt: startOfToday,
+        securityId: null,
+        positionId: null,
+        watchlistEntryId: null,
+        security: null,
+        metadataJson: null,
+        createdAt: startOfToday,
+      });
+    }
 
-  return NextResponse.json({
-    reminders: allReminders,
-    through: throughDate.toISOString(),
-  });
+    return NextResponse.json({
+      reminders: allReminders,
+      through: throughDate.toISOString(),
+    });
   } catch (error) {
     console.error(
       "GET /api/reminders/summary failed",
