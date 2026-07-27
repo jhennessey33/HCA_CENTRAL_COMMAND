@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { parseWellsTransactionActivityCsv } from "@/lib/ingestion/wells-transaction-activity";
 import { prisma } from "@/lib/prisma";
@@ -635,7 +636,12 @@ export async function POST(request: Request) {
           const pendingManualTrades = await prisma.trade.findMany({
             where: {
               securityId: security.id,
-              source: "MANUAL",
+              source: {
+                in: [
+                  TRADE_SOURCES.MANUAL,
+                  TRADE_SOURCES.SYSTEM,
+                ],
+              },
               reconciliationStatus: "MANUAL_PENDING",
               isHidden: false,
               ...(matchingPosition?.id
@@ -708,105 +714,290 @@ export async function POST(request: Request) {
           }
           
 
-          if (
+         if (
             matchResult.status === "PARTIAL"
-          ) {
-            const officialTrade =
-              existingWellsTrade
-                ? await prisma.trade.update({
-                    where: {
-                      id:
-                        existingWellsTrade.id,
-                    },
-                    data: {
-                      ...tradeData,
-                      source:
-                        TRADE_SOURCES
-                          .WELLS_FARGO,
-                      reconciliationStatus:
-                        RECONCILIATION_STATUS
-                          .REVIEW_REQUIRED,
-                      matchedTradeId:
-                        matchResult.trade.id,
-                      reconciliationNotes:
-                        "Possible partial completion detected. Automatic split is not yet enabled.",
-                      isHidden: false,
-                    },
-                  })
-                : await prisma.trade.create({
-                    data: {
-                      ...tradeData,
-                      source:
-                        TRADE_SOURCES
-                          .WELLS_FARGO,
-                      reconciliationStatus:
-                        RECONCILIATION_STATUS
-                          .REVIEW_REQUIRED,
-                      matchedTradeId:
-                        matchResult.trade.id,
-                      reconciliationNotes:
-                        "Possible partial completion detected. Automatic split is not yet enabled.",
-                      isHidden: false,
-                    },
-                  });
+              ) {
+                const originalManualTrade =
+                  matchResult.trade;
 
-            await prisma.trade.update({
-              where: {
-                id: matchResult.trade.id,
-              },
-              data: {
-                reconciliationStatus:
-                  RECONCILIATION_STATUS
-                    .REVIEW_REQUIRED,
-                matchedTradeId:
-                  officialTrade.id,
-                reconciliationNotes:
-                  "Possible partial completion detected. Automatic split is not yet enabled.",
-              },
-            });
+                const originalShares =
+                  Number(
+                    originalManualTrade.shares
+                  );
 
-            const flagUserId =
-              await getSystemFlagUserId();
+                const completedShares =
+                  Number(
+                    matchResult.completedShares
+                  );
 
-            if (flagUserId) {
-              await createTradeReconciliationFlag({
-                securityId: security.id,
-                positionId:
-                  matchingPosition?.id,
-                createdById: flagUserId,
-                manualTradeId:
-                  matchResult.trade.id,
-                wellsTradeId:
-                  officialTrade.id,
-                wellsTransactionId:
-                  trade.transactionId,
-                ticker:
-                  trade.ticker,
-                tradeType:
-                  trade.tradeType,
-                reason:
-                  matchResult.reason,
-                differences:
-                  matchResult.differences,
-              });
-            } else {
-              failures.push(
-                `Could not create reconciliation flag for ${
-                  trade.ticker ||
-                  trade.securityName
-                }: no user found.`
-              );
-            }
+                const remainingShares =
+                  Number(
+                    matchResult.remainingShares
+                  );
 
-            if (existingWellsTrade) {
-              tradesUpdated += 2;
-            } else {
-              tradesCreated += 1;
-              tradesUpdated += 1;
-            }
+                if (
+                  !Number.isFinite(
+                    originalShares
+                  ) ||
+                  !Number.isFinite(
+                    completedShares
+                  ) ||
+                  !Number.isFinite(
+                    remainingShares
+                  ) ||
+                  Math.abs(remainingShares) <=
+                    0.001
+                ) {
+                  throw new Error(
+                    "Partial trade reconciliation produced an invalid residual quantity."
+                  );
+                }
 
-            continue;
-          }
+                const reconciliationGroupId =
+                  originalManualTrade
+                    .reconciliationGroupId ||
+                  `partial-${randomUUID()}`;
+
+                const now = new Date();
+
+                const originalAbsoluteShares =
+                  Math.abs(originalShares);
+
+                const completedAbsoluteShares =
+                  Math.abs(completedShares);
+
+                const remainingAbsoluteShares =
+                  Math.abs(remainingShares);
+
+                const reconciliationSummary =
+                  `Partial Wells completion. Original requested shares: ${originalAbsoluteShares}. Wells completed shares: ${completedAbsoluteShares}. Remaining shares: ${remainingAbsoluteShares}.`;
+
+                const auditActorId =
+                  originalManualTrade
+                    .manualEnteredById ||
+                  (await getSystemFlagUserId());
+
+                if (!auditActorId) {
+                  throw new Error(
+                    "Partial reconciliation requires a system audit user, but no user is available."
+                  );
+                }
+
+                const partialResult =
+                  await prisma.$transaction(
+                    async (tx) => {
+                      const officialTrade =
+                        existingWellsTrade
+                          ? await tx.trade.update({
+                              where: {
+                                id:
+                                  existingWellsTrade.id,
+                              },
+                              data: {
+                                ...tradeData,
+                                source:
+                                  TRADE_SOURCES
+                                    .WELLS_FARGO,
+                                reconciliationStatus:
+                                  RECONCILIATION_STATUS
+                                    .MATCHED,
+                                reconciliationGroupId,
+                                matchedTradeId:
+                                  originalManualTrade.id,
+                                reconciledAt: now,
+                                reconciliationNotes:
+                                  reconciliationSummary,
+                                isHidden: false,
+                              },
+                            })
+                          : await tx.trade.create({
+                              data: {
+                                ...tradeData,
+                                source:
+                                  TRADE_SOURCES
+                                    .WELLS_FARGO,
+                                reconciliationStatus:
+                                  RECONCILIATION_STATUS
+                                    .MATCHED,
+                                reconciliationGroupId,
+                                matchedTradeId:
+                                  originalManualTrade.id,
+                                reconciledAt: now,
+                                reconciliationNotes:
+                                  reconciliationSummary,
+                                isHidden: false,
+                              },
+                            });
+
+                      const completedManualTrade =
+                        await tx.trade.update({
+                          where: {
+                            id:
+                              originalManualTrade.id,
+                          },
+                          data: {
+                            shares: completedShares,
+                            notional:
+                              completedShares *
+                              Number(
+                                originalManualTrade
+                                  .avgPrice
+                              ),
+                            reconciliationStatus:
+                              RECONCILIATION_STATUS
+                                .SUPERSEDED_BY_WELLS,
+                            reconciliationGroupId,
+                            matchedTradeId:
+                              officialTrade.id,
+                            reconciledAt: now,
+                            reconciliationNotes:
+                              reconciliationSummary,
+                            isHidden: true,
+                          },
+                        });
+
+                      const residualTrade =
+                        await tx.trade.create({
+                          data: {
+                            securityId:
+                              originalManualTrade
+                                .securityId,
+                            positionId:
+                              originalManualTrade
+                                .positionId,
+                            dateTraded:
+                              originalManualTrade
+                                .dateTraded,
+                            shares:
+                              remainingShares,
+                            avgPrice:
+                              originalManualTrade
+                                .avgPrice,
+                            tradeType:
+                              originalManualTrade
+                                .tradeType,
+                            notional:
+                              remainingShares *
+                              Number(
+                                originalManualTrade
+                                  .avgPrice
+                              ),
+                            comment:
+                              originalManualTrade
+                                .comment,
+                            source:
+                              TRADE_SOURCES.SYSTEM,
+                            reconciliationStatus:
+                              RECONCILIATION_STATUS
+                                .MANUAL_PENDING,
+                            reconciliationGroupId,
+                            matchedTradeId: null,
+                            reconciledAt: null,
+                            reconciliationNotes:
+                              `Pending completion. ${reconciliationSummary}`,
+                            manualEnteredById:
+                              originalManualTrade
+                                .manualEnteredById,
+                            isHidden: false,
+                          },
+                        });
+
+                      await tx.auditLog.create({
+                        data: {
+                          actorId:
+                            auditActorId,
+                          action:
+                            "TRADE_PARTIAL_COMPLETION_CREATED",
+                          entityType:
+                            "TRADE",
+                          entityId:
+                            residualTrade.id,
+                          previousValueJson:
+                            JSON.stringify({
+                              originalManualTradeId:
+                                originalManualTrade.id,
+                              originalShares,
+                              originalAvgPrice:
+                                originalManualTrade
+                                  .avgPrice,
+                              originalSource:
+                                originalManualTrade
+                                  .source,
+                              originalStatus:
+                                originalManualTrade
+                                  .reconciliationStatus,
+                              wellsSourceRowHash:
+                                trade.sourceRowHash,
+                              wellsTransactionId:
+                                trade.transactionId,
+                            }),
+                          newValueJson:
+                            JSON.stringify({
+                              reconciliationGroupId,
+                              completedManualTrade: {
+                                id:
+                                  completedManualTrade.id,
+                                shares:
+                                  completedManualTrade
+                                    .shares,
+                                reconciliationStatus:
+                                  completedManualTrade
+                                    .reconciliationStatus,
+                                matchedTradeId:
+                                  completedManualTrade
+                                    .matchedTradeId,
+                                isHidden:
+                                  completedManualTrade
+                                    .isHidden,
+                              },
+                              wellsTrade: {
+                                id:
+                                  officialTrade.id,
+                                shares:
+                                  officialTrade.shares,
+                                reconciliationStatus:
+                                  officialTrade
+                                    .reconciliationStatus,
+                                matchedTradeId:
+                                  officialTrade
+                                    .matchedTradeId,
+                              },
+                              residualTrade: {
+                                id:
+                                  residualTrade.id,
+                                shares:
+                                  residualTrade.shares,
+                                source:
+                                  residualTrade.source,
+                                reconciliationStatus:
+                                  residualTrade
+                                    .reconciliationStatus,
+                                isHidden:
+                                  residualTrade
+                                    .isHidden,
+                              },
+                            }),
+                        },
+                      });
+
+                      return {
+                        officialTrade,
+                        completedManualTrade,
+                        residualTrade,
+                      };
+                    }
+                  );
+
+                if (existingWellsTrade) {
+                  tradesUpdated += 2;
+                  tradesCreated += 1;
+                } else {
+                  tradesCreated += 2;
+                  tradesUpdated += 1;
+                }
+
+                continue;
+              }
 
 
 
