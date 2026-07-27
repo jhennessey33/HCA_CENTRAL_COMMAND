@@ -69,6 +69,24 @@ function formatNumber(
   });
 }
 
+function formatWholeShares(
+  value: number | null | undefined
+) {
+  if (
+    value == null ||
+    !Number.isFinite(value)
+  ) {
+    return "—";
+  }
+
+  return Math.round(value).toLocaleString(
+    "en-US",
+    {
+      maximumFractionDigits: 0,
+    }
+  );
+}
+
 function formatPercent(
   value: number | null | undefined,
   includeSign = false
@@ -208,7 +226,7 @@ export default function ManualTradeReviewModal({
 
               <ReviewValue
                 label="Shares"
-                value={formatNumber(
+                value={formatWholeShares(
                   draft.shares
                 )}
                 detail="Positive submitted quantity"

@@ -154,6 +154,24 @@ function formatNumber(
   });
 }
 
+function formatWholeShares(
+  value: number | null | undefined
+) {
+  if (
+    value == null ||
+    !Number.isFinite(value)
+  ) {
+    return "—";
+  }
+
+  return Math.round(value).toLocaleString(
+    "en-US",
+    {
+      maximumFractionDigits: 0,
+    }
+  );
+}
+
 function formatSignedMoney(
   value: number | null | undefined
 ) {
@@ -1213,7 +1231,7 @@ export default function TradeScenarioPanel({
                       : "text-emerald-900"
                   }`}
                 >
-                  {formatNumber(
+                  {formatWholeShares(
                     result.proposedShares
                   )}
                 </p>
