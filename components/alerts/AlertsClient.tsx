@@ -30,6 +30,15 @@ function getContextLabel(flag: any) {
   return "General";
 }
 
+function isPtProximityAlert(
+  flag: any
+) {
+  return (
+    flag.flagType ===
+    "PT Proximity Alert"
+  );
+}
+
 function parseFlagMetadata(flag: any) {
   if (!flag.metadataJson) return null;
 
@@ -52,6 +61,78 @@ function formatDateTime(value: string | Date | null | undefined) {
   }).format(new Date(value));
 }
 
+function formatPtPrice(
+  value: unknown
+) {
+  const numericValue =
+    Number(value);
+
+  if (
+    !Number.isFinite(
+      numericValue
+    )
+  ) {
+    return "—";
+  }
+
+  return numericValue.toLocaleString(
+    "en-US",
+    {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }
+  );
+}
+
+function formatPtDistance(
+  value: unknown
+) {
+  const numericValue =
+    Number(value);
+
+  if (
+    !Number.isFinite(
+      numericValue
+    )
+  ) {
+    return "—";
+  }
+
+  return `${numericValue.toFixed(
+    2
+  )}%`;
+}
+
+function getPtContextLabel(
+  flag: any,
+  metadata: any
+) {
+  if (
+    metadata?.context ===
+    "WATCHLIST" ||
+    flag.watchlistEntryId
+  ) {
+    return metadata?.side ===
+      "SHORT"
+      ? "Short Watchlist"
+      : "Long Watchlist";
+  }
+
+  if (
+    metadata?.context ===
+    "POSITION" ||
+    flag.positionId
+  ) {
+    return metadata?.side ===
+      "SHORT"
+      ? "Short Position"
+      : "Long Position";
+  }
+
+  return "Security";
+}
 
 function AlertCard({
   flag,
@@ -70,10 +151,10 @@ function AlertCard({
     flag.priority === "HIGH"
       ? "bg-rose-50 text-rose-600"
       : flag.priority === "MEDIUM"
-      ? "bg-amber-50 text-amber-600"
-      : "bg-slate-50 text-slate-500";
-    
-      useEffect(() => {
+        ? "bg-amber-50 text-amber-600"
+        : "bg-slate-50 text-slate-500";
+
+  useEffect(() => {
     if (!confirming) {
       return;
     }
@@ -85,7 +166,7 @@ function AlertCard({
     return () => clearTimeout(timeout);
   }, [confirming]);
 
-    async function handleConfirmResolve() {
+  async function handleConfirmResolve() {
     try {
       setIsResolving(true);
       await onResolve(flag.id);
@@ -124,8 +205,7 @@ function AlertCard({
 
           <p className="mt-1 text-sm text-slate-600">
             {flag.description ||
-              `${flag.flagType} alert for ${
-                flag.security?.ticker || "General"
+              `${flag.flagType} alert for ${flag.security?.ticker || "General"
               }.`}
           </p>
           {flag.reminderAt ? (
@@ -150,54 +230,54 @@ function AlertCard({
       </div>
 
       {flag.status === "RESOLVED" ? (
-          <button
-            disabled
-            className="ml-4 shrink-0 cursor-not-allowed rounded-2xl border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-medium text-slate-400"
-          >
-            Resolved
-          </button>
-        ) : canResolve ? (
-          <div className="ml-4 shrink-0">
-            {isResolving ? (
+        <button
+          disabled
+          className="ml-4 shrink-0 cursor-not-allowed rounded-2xl border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-medium text-slate-400"
+        >
+          Resolved
+        </button>
+      ) : canResolve ? (
+        <div className="ml-4 shrink-0">
+          {isResolving ? (
+            <button
+              disabled
+              className="cursor-not-allowed rounded-2xl bg-slate-400 px-4 py-2 text-sm font-medium text-white"
+            >
+              Resolving...
+            </button>
+          ) : confirming ? (
+            <div className="flex gap-2">
               <button
-                disabled
-                className="cursor-not-allowed rounded-2xl bg-slate-400 px-4 py-2 text-sm font-medium text-white"
+                onClick={handleConfirmResolve}
+                className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
               >
-                Resolving...
+                Confirm Resolve
               </button>
-            ) : confirming ? (
-              <div className="flex gap-2">
-                <button
-                  onClick={handleConfirmResolve}
-                  className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-                >
-                  Confirm Resolve
-                </button>
 
-                <button
-                  onClick={() => setConfirming(false)}
-                  className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
               <button
-                onClick={() => setConfirming(true)}
-                className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                onClick={() => setConfirming(false)}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
               >
-                Resolve
+                Cancel
               </button>
-            )}
-          </div>
-        ) : (
-          <button
-            disabled
-            className="ml-4 shrink-0 cursor-not-allowed rounded-2xl border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-medium text-slate-400"
-          >
-            Read Only
-          </button>
-        )}
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirming(true)}
+              className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              Resolve
+            </button>
+          )}
+        </div>
+      ) : (
+        <button
+          disabled
+          className="ml-4 shrink-0 cursor-not-allowed rounded-2xl border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-medium text-slate-400"
+        >
+          Read Only
+        </button>
+      )}
     </div>
   );
 }
@@ -318,49 +398,49 @@ function TradeReconciliationAlertCard({
               Keep Manual
             </button>
 
-          {isResolving ? (
-            <button
-              type="button"
-              disabled
-              className="cursor-not-allowed rounded-2xl bg-slate-400 px-4 py-2 text-sm font-medium text-white"
-            >
-              Resolving...
-            </button>
-          ) : confirmingResolve ? (
-            <div className="flex gap-2">
+            {isResolving ? (
               <button
                 type="button"
-                onClick={
-                  handleConfirmResolve
-                }
-                className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700"
+                disabled
+                className="cursor-not-allowed rounded-2xl bg-slate-400 px-4 py-2 text-sm font-medium text-white"
               >
-                Confirm Resolve Only
+                Resolving...
               </button>
+            ) : confirmingResolve ? (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={
+                    handleConfirmResolve
+                  }
+                  className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700"
+                >
+                  Confirm Resolve Only
+                </button>
 
+                <button
+                  type="button"
+                  onClick={() =>
+                    setConfirmingResolve(
+                      false
+                    )
+                  }
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
               <button
                 type="button"
                 onClick={() =>
-                  setConfirmingResolve(
-                    false
-                  )
+                  setConfirmingResolve(true)
                 }
                 className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
               >
-                Cancel
+                Resolve Only
               </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() =>
-                setConfirmingResolve(true)
-              }
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-            >
-              Resolve Only
-            </button>
-          )}
+            )}
           </div>
         ) : (
           <button
@@ -454,6 +534,299 @@ function TradeReconciliationAlertCard({
     </div>
   );
 }
+
+function PtProximityAlertCard({
+  flag,
+  onResolve,
+  canResolve,
+}: {
+  flag: any;
+  onResolve: (
+    flagId: string
+  ) => Promise<void>;
+  canResolve: boolean;
+}) {
+  const metadata =
+    parseFlagMetadata(flag);
+
+  const [
+    confirmingResolve,
+    setConfirmingResolve,
+  ] = useState(false);
+
+  const [
+    isResolving,
+    setIsResolving,
+  ] = useState(false);
+
+  const [
+    resolveError,
+    setResolveError,
+  ] = useState("");
+
+  useEffect(() => {
+    if (!confirmingResolve) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setConfirmingResolve(false);
+    }, 5000);
+
+    return () =>
+      clearTimeout(timeout);
+  }, [confirmingResolve]);
+
+  async function handleConfirmResolve() {
+    try {
+      setIsResolving(true);
+      setResolveError("");
+
+      await onResolve(
+        flag.id
+      );
+    } catch (error) {
+      setResolveError(
+        error instanceof Error
+          ? error.message
+          : "Failed to resolve PT alert."
+      );
+    } finally {
+      setIsResolving(false);
+      setConfirmingResolve(false);
+    }
+  }
+
+  return (
+    <div className="rounded-3xl border border-violet-200 bg-violet-50 p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone="blue">
+              PT Alert
+            </Badge>
+
+            <Badge tone="amber">
+              {metadata?.targetLabel ||
+                "Price Target"}
+            </Badge>
+
+            <Badge>
+              {getPtContextLabel(
+                flag,
+                metadata
+              )}
+            </Badge>
+
+            <Badge
+              tone={
+                priorityTone(
+                  flag.priority
+                ) as any
+              }
+            >
+              {flag.priority}
+            </Badge>
+          </div>
+
+          <h3 className="mt-3 text-lg font-semibold text-slate-950">
+            {flag.security?.ticker ||
+              metadata?.ticker ||
+              "Unknown Security"}{" "}
+            is approaching its{" "}
+            {metadata?.targetLabel ||
+              "price target"}
+          </h3>
+
+          <p className="mt-1 text-sm leading-6 text-slate-700">
+            {flag.description ||
+              "A monitored Security is within the configured PT proximity range."}
+          </p>
+
+          <p className="mt-2 text-xs text-slate-500">
+            Alert created{" "}
+            <LocalDateTime
+              value={
+                flag.createdAt
+              }
+              className="text-xs text-slate-500"
+            />
+          </p>
+        </div>
+
+        {canResolve ? (
+          <div className="shrink-0">
+            {isResolving ? (
+              <button
+                type="button"
+                disabled
+                className="cursor-not-allowed rounded-2xl bg-slate-400 px-4 py-2 text-sm font-medium text-white"
+              >
+                Resolving...
+              </button>
+            ) : confirmingResolve ? (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={
+                    handleConfirmResolve
+                  }
+                  className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                >
+                  Confirm Resolve
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setConfirmingResolve(
+                      false
+                    )
+                  }
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() =>
+                  setConfirmingResolve(
+                    true
+                  )
+                }
+                className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              >
+                Resolve
+              </button>
+            )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled
+            className="shrink-0 cursor-not-allowed rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-400"
+          >
+            Read Only
+          </button>
+        )}
+      </div>
+
+      <div className="mt-5 grid grid-cols-4 gap-3 text-sm">
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-violet-100">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Current Price
+          </p>
+
+          <p className="mt-2 text-lg font-semibold text-slate-950 tabular-nums">
+            {formatPtPrice(
+              metadata?.currentPrice
+            )}
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-violet-100">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {metadata?.targetLabel ||
+              "Target Price"}
+          </p>
+
+          <p className="mt-2 text-lg font-semibold text-slate-950 tabular-nums">
+            {formatPtPrice(
+              metadata?.targetPrice
+            )}
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-violet-100">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Distance
+          </p>
+
+          <p className="mt-2 text-lg font-semibold text-violet-700 tabular-nums">
+            {formatPtDistance(
+              metadata?.distancePercent
+            )}
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-violet-100">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Trigger Range
+          </p>
+
+          <p className="mt-2 text-lg font-semibold text-slate-950 tabular-nums">
+            Within{" "}
+            {formatPtDistance(
+              metadata?.triggerPercent
+            )}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-violet-100">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Market Data
+          </p>
+
+          <div className="mt-2 space-y-1 text-slate-700">
+            <p>
+              Source:{" "}
+              <span className="font-semibold text-slate-950">
+                {metadata?.marketDataSource ||
+                  "Unknown"}
+              </span>
+            </p>
+
+            <p>
+              Price As Of:{" "}
+              <span className="font-semibold text-slate-950">
+                {metadata?.marketDataAsOf
+                  ? formatDateTime(
+                    metadata.marketDataAsOf
+                  )
+                  : "—"}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-violet-100">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Monitoring Context
+          </p>
+
+          <div className="mt-2 space-y-1 text-slate-700">
+            <p>
+              Side:{" "}
+              <span className="font-semibold text-slate-950">
+                {metadata?.side ||
+                  "—"}
+              </span>
+            </p>
+
+            <p>
+              Target Kind:{" "}
+              <span className="font-semibold text-slate-950">
+                {metadata?.targetKind ||
+                  "—"}
+              </span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {resolveError ? (
+        <div className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 ring-1 ring-rose-100">
+          {resolveError}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function AlertGroup({
   title,
   description,
@@ -714,11 +1087,10 @@ function CreateFlagModal({
                   setError("");
                 }}
                 disabled={isSaving}
-                className={`rounded-2xl px-4 py-3 text-sm font-medium transition ${
-                  associationType === "GENERAL"
+                className={`rounded-2xl px-4 py-3 text-sm font-medium transition ${associationType === "GENERAL"
                     ? "bg-slate-900 text-white"
                     : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                }`}
+                  }`}
               >
                 General
               </button>
@@ -730,11 +1102,10 @@ function CreateFlagModal({
                   setError("");
                 }}
                 disabled={isSaving}
-                className={`rounded-2xl px-4 py-3 text-sm font-medium transition ${
-                  associationType === "SECURITY"
+                className={`rounded-2xl px-4 py-3 text-sm font-medium transition ${associationType === "SECURITY"
                     ? "bg-slate-900 text-white"
                     : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                }`}
+                  }`}
               >
                 Security
               </button>
@@ -789,7 +1160,7 @@ function CreateFlagModal({
               </select>
 
               {normalizedSecurityQuery &&
-              !filteredSecurities.length ? (
+                !filteredSecurities.length ? (
                 <p className="mt-2 text-xs font-medium text-amber-700">
                   No Securities matched the search.
                 </p>
@@ -954,7 +1325,7 @@ export default function AlertsClient({
 
     loadCurrentUser();
   }, []);
-    async function handleCreateFlag(payload: {
+  async function handleCreateFlag(payload: {
     securityId: string | null;
     flagType: string;
     priority: string;
@@ -1008,6 +1379,9 @@ export default function AlertsClient({
         flag.security?.name,
         flag.security ? null : "General",
         flag.metadataJson,
+        isPtProximityAlert(flag)
+          ? "PT Alert Price Target Proximity"
+          : null,
         flag.flagType,
         flag.description,
         flag.priority,
@@ -1110,17 +1484,29 @@ export default function AlertsClient({
     }
   );
 
+  const ptAlertFlags =
+    filteredFlags.filter(
+      (flag) =>
+        flag.status === "OPEN" &&
+        isPtProximityAlert(flag)
+    );
+
   const agendaFlags = filteredFlags.filter(
     (flag) =>
       flag.status === "OPEN" &&
       flag.flagType === "Agenda"
   );
 
-  const undatedFlags = filteredFlags.filter(
-    (flag) =>
-      !flag.reminderAt &&
-      flag.flagType !== "Agenda"
-  );
+  const undatedFlags =
+    filteredFlags.filter(
+      (flag) =>
+        !flag.reminderAt &&
+        flag.flagType !==
+        "Agenda" &&
+        !isPtProximityAlert(
+          flag
+        )
+    );
 
   const datedFlagCount =
     overdueFlags.length +
@@ -1182,25 +1568,42 @@ export default function AlertsClient({
 
 
   async function handleResolveFlag(flagId: string) {
-  const response = await fetch(`/api/flags/${flagId}/resolve`, {
-    method: "POST",
-  });
+    const response = await fetch(`/api/flags/${flagId}/resolve`, {
+      method: "POST",
+    });
 
-  if (!response.ok) {
-    throw new Error("Failed to resolve flag.");
-  }
+    if (!response.ok) {
+      throw new Error("Failed to resolve flag.");
+    }
 
-  const data = await response.json();
-  const resolvedFlag = data.flag;
+    const data = await response.json();
+    const resolvedFlag = data.flag;
 
-  setFlags((currentFlags) =>
-    currentFlags.map((flag) =>
-      flag.id === resolvedFlag.id ? resolvedFlag : flag
+    setFlags((currentFlags) =>
+      currentFlags.map((flag) =>
+        flag.id === resolvedFlag.id ? resolvedFlag : flag
       )
     );
   }
 
-    function renderFlag(flag: any) {
+  function renderFlag(flag: any) {
+    if (
+      isPtProximityAlert(flag)
+    ) {
+      return (
+        <PtProximityAlertCard
+          key={flag.id}
+          flag={flag}
+          onResolve={
+            handleResolveFlag
+          }
+          canResolve={
+            userCanResolveFlags
+          }
+        />
+      );
+    }
+
     if (
       flag.flagType ===
       "Trade Reconciliation Review"
@@ -1239,7 +1642,7 @@ export default function AlertsClient({
             </div>
 
             <div className="ml-4 flex items-center gap-3">
-         
+
 
               <CurrentUserPill />
             </div>
@@ -1247,7 +1650,7 @@ export default function AlertsClient({
 
           <div className="min-w-0 flex-1 overflow-auto p-6">
             <div className="space-y-5">
-                            <div className="flex items-end justify-between gap-4">
+              <div className="flex items-end justify-between gap-4">
                 <div>
                   <h2 className="text-3xl font-semibold tracking-tight">
                     Alert Center
@@ -1341,82 +1744,96 @@ export default function AlertsClient({
               </div>
               <div className="space-y-3">
                 {filteredFlags.length ? (
-                <div className="space-y-6">
-                  {overdueFlags.length ? (
-                    <AlertGroup
-                      title="Overdue"
-                      description="Open items dated before today"
-                      count={overdueFlags.length}
-                      tone="red"
-                    >
-                      {overdueFlags.map(renderFlag)}
-                    </AlertGroup>
-                  ) : null}
+                  <div className="space-y-6">
+                    {overdueFlags.length ? (
+                      <AlertGroup
+                        title="Overdue"
+                        description="Open items dated before today"
+                        count={overdueFlags.length}
+                        tone="red"
+                      >
+                        {overdueFlags.map(renderFlag)}
+                      </AlertGroup>
+                    ) : null}
 
-                  {todayFlags.length ? (
-                    <AlertGroup
-                      title="Today"
-                      description="Open items due today"
-                      count={todayFlags.length}
-                      tone="amber"
-                    >
-                      {todayFlags.map(renderFlag)}
-                    </AlertGroup>
-                  ) : null}
+                    {todayFlags.length ? (
+                      <AlertGroup
+                        title="Today"
+                        description="Open items due today"
+                        count={todayFlags.length}
+                        tone="amber"
+                      >
+                        {todayFlags.map(renderFlag)}
+                      </AlertGroup>
+                    ) : null}
 
-                  {upcomingFlags.length ? (
-                    <AlertGroup
-                      title="Next 7 Days"
-                      description="Open items due during the next seven calendar days"
-                      count={upcomingFlags.length}
-                      tone="blue"
-                    >
-                      {upcomingFlags.map(renderFlag)}
-                    </AlertGroup>
-                  ) : null}
+                    {upcomingFlags.length ? (
+                      <AlertGroup
+                        title="Next 7 Days"
+                        description="Open items due during the next seven calendar days"
+                        count={upcomingFlags.length}
+                        tone="blue"
+                      >
+                        {upcomingFlags.map(renderFlag)}
+                      </AlertGroup>
+                    ) : null}
 
-                  {laterFlags.length ? (
-                    <AlertGroup
-                      title="Later"
-                      description="Dated items beyond the upcoming seven-day window"
-                      count={laterFlags.length}
-                      tone="slate"
-                    >
-                      {laterFlags.map(renderFlag)}
-                    </AlertGroup>
-                  ) : null}
-                  {agendaFlags.length ? (
-                    <AlertGroup
-                      title="Agenda"
-                      description="Open operational items and ongoing work"
-                      count={agendaFlags.length}
-                      tone="green"
-                    >
-                      {agendaFlags.map(renderFlag)}
-                    </AlertGroup>
-                  ) : null}
-                  {undatedFlags.length ? (
-                    <AlertGroup
-                      title="No Date"
-                      description="Open flags without a scheduled date or time"
-                      count={undatedFlags.length}
-                      tone="slate"
-                    >
-                      {undatedFlags.map(renderFlag)}
-                    </AlertGroup>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
-                  No alerts matched your search.
-                </div>
-              )}
+                    {laterFlags.length ? (
+                      <AlertGroup
+                        title="Later"
+                        description="Dated items beyond the upcoming seven-day window"
+                        count={laterFlags.length}
+                        tone="slate"
+                      >
+                        {laterFlags.map(renderFlag)}
+                      </AlertGroup>
+                    ) : null}
+                    {ptAlertFlags.length ? (
+                      <AlertGroup
+                        title="PT Alerts"
+                        description="Securities within 2% of a monitored entry or exit price target"
+                        count={
+                          ptAlertFlags.length
+                        }
+                        tone="blue"
+                      >
+                        {ptAlertFlags.map(
+                          renderFlag
+                        )}
+                      </AlertGroup>
+                    ) : null}
+                    {agendaFlags.length ? (
+                      <AlertGroup
+                        title="Agenda"
+                        description="Open operational items and ongoing work"
+                        count={agendaFlags.length}
+                        tone="green"
+                      >
+                        {agendaFlags.map(renderFlag)}
+                      </AlertGroup>
+                    ) : null}
+                    {undatedFlags.length ? (
+                      <AlertGroup
+                        title="No Date"
+                        description="Open flags without a scheduled date or time"
+                        count={undatedFlags.length}
+                        tone="slate"
+                      >
+                        {undatedFlags.map(renderFlag)}
+                      </AlertGroup>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
+                    No alerts matched your search.
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </section>
       </div>
-            <CreateFlagModal
+      <CreateFlagModal
         open={isCreateFlagOpen}
         onClose={() =>
           setIsCreateFlagOpen(false)
