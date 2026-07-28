@@ -1,4 +1,5 @@
 import HcaLogo from "@/components/common/HcaLogo";
+import PinkThemeSnake from "@/components/easter-eggs/PinkThemeSnake";
 
 function NavItem({
   href,
@@ -58,6 +59,7 @@ export default function AppSidebar({ activePage }: { activePage: string }) {
           />
         ))}
       </nav>
+      <PinkThemeSnake />
     </aside>
   );
 }
