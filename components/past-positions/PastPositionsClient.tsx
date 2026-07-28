@@ -295,11 +295,10 @@ function CommentModal({
             <button
               key={value}
               onClick={() => setTag(value)}
-              className={`rounded-2xl px-3 py-2 text-sm ${
-                tag === value
-                  ? "bg-slate-900 text-white"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-              }`}
+              className={`rounded-2xl px-3 py-2 text-sm ${tag === value
+                ? "bg-slate-900 text-white"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
             >
               {label}
             </button>
@@ -520,9 +519,33 @@ export default function PastPositionsClient({
   initialPositions,
 }: PastPositionsClientProps) {
   const [positions, setPositions] = useState<any[]>(initialPositions);
+  const [isPinkThemeActive, setIsPinkThemeActive] = useState(false);
   const [commentPosition, setCommentPosition] = useState<any | null>(null);
   const [query, setQuery] = useState("");
   const [currentUser, setCurrentUser] = useState<any | null>(null);
+
+  useEffect(() => {
+    const rootElement = document.documentElement;
+
+    function syncPinkThemeState() {
+      setIsPinkThemeActive(
+        rootElement.classList.contains("hca-pink-theme"),
+      );
+    }
+
+    syncPinkThemeState();
+
+    const observer = new MutationObserver(syncPinkThemeState);
+
+    observer.observe(rootElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     async function loadCurrentUser() {
@@ -608,9 +631,28 @@ export default function PastPositionsClient({
   }
 
   return (
-    <main className="h-screen overflow-hidden bg-slate-100 text-slate-900">
-      <div className="flex h-full">
+    <main className="relative h-screen overflow-hidden bg-slate-100 text-slate-900">
+      {isPinkThemeActive ? (
+        <>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage:
+                "url('/assets/malkomstache.png')",
+            }}
+          />
+
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-slate-100/35"
+          />
+        </>
+      ) : null}
+
+      <div className="relative z-10 flex h-full">
         <AppSidebar activePage="/past-positions" />
+        
 
         <section className="flex min-w-0 flex-1 flex-col">
           <header className="flex h-20 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
