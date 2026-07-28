@@ -10,19 +10,13 @@ export type TradeMatchResult =
       reason: string;
       completedShares: number;
       remainingShares: number;
-      differences: Record<
-        string,
-        unknown
-      >;
+      differences: Record<string, unknown>;
     }
   | {
       status: "SIMILAR";
       trade: any;
       reason: string;
-      differences: Record<
-        string,
-        unknown
-      >;
+      differences: Record<string, unknown>;
     }
   | {
       status: "NONE";
@@ -39,21 +33,12 @@ function sameUtcDate(a: Date, b: Date) {
 function absDiff(a: number, b: number) {
   return Math.abs(a - b);
 }
-function haveSameDirection(
-  firstShares: number,
-  secondShares: number
-) {
-  if (
-    Math.abs(firstShares) <= 0.001 ||
-    Math.abs(secondShares) <= 0.001
-  ) {
+function haveSameDirection(firstShares: number, secondShares: number) {
+  if (Math.abs(firstShares) <= 0.001 || Math.abs(secondShares) <= 0.001) {
     return false;
   }
 
-  return (
-    Math.sign(firstShares) ===
-    Math.sign(secondShares)
-  );
+  return Math.sign(firstShares) === Math.sign(secondShares);
 }
 export function matchManualTrade(params: {
   manualTrades: any[];
@@ -90,83 +75,47 @@ export function matchManualTrade(params: {
     return {
       status: "EXACT",
       trade: exact,
-      reason: "Manual trade matched Wells transaction by ticker, type, date, shares, and price.",
+      reason:
+        "Manual trade matched Wells transaction by ticker, type, date, shares, and price.",
     };
   }
-  const partialCandidates =
-    sameTypeAndDate.filter(
-      (manualTrade) => {
-        const manualShares = Number(
-          manualTrade.shares
-        );
+  const partialCandidates = sameTypeAndDate.filter((manualTrade) => {
+    const manualShares = Number(manualTrade.shares);
 
-        const wellsShares = Number(
-          wellsTrade.shares
-        );
+    const wellsShares = Number(wellsTrade.shares);
 
-        const manualPrice = Number(
-          manualTrade.avgPrice
-        );
+    const manualPrice = Number(manualTrade.avgPrice);
 
-        const wellsPrice = Number(
-          wellsTrade.avgPrice
-        );
+    const wellsPrice = Number(wellsTrade.avgPrice);
 
-        if (
-          !Number.isFinite(
-            manualShares
-          ) ||
-          !Number.isFinite(
-            wellsShares
-          ) ||
-          !Number.isFinite(
-            manualPrice
-          ) ||
-          !Number.isFinite(
-            wellsPrice
-          )
-        ) {
-          return false;
-        }
+    if (
+      !Number.isFinite(manualShares) ||
+      !Number.isFinite(wellsShares) ||
+      !Number.isFinite(manualPrice) ||
+      !Number.isFinite(wellsPrice)
+    ) {
+      return false;
+    }
 
-        const manualAbsoluteShares =
-          Math.abs(manualShares);
+    const manualAbsoluteShares = Math.abs(manualShares);
 
-        const wellsAbsoluteShares =
-          Math.abs(wellsShares);
+    const wellsAbsoluteShares = Math.abs(wellsShares);
 
-        return (
-          haveSameDirection(
-            manualShares,
-            wellsShares
-          ) &&
-          absDiff(
-            manualPrice,
-            wellsPrice
-          ) <= 0.02 &&
-          wellsAbsoluteShares <
-            manualAbsoluteShares -
-              0.001
-        );
-      }
+    return (
+      haveSameDirection(manualShares, wellsShares) &&
+      absDiff(manualPrice, wellsPrice) <= 0.02 &&
+      wellsAbsoluteShares < manualAbsoluteShares - 0.001
     );
+  });
 
-  if (
-    partialCandidates.length === 1
-  ) {
-    const partialTrade =
-      partialCandidates[0];
+  if (partialCandidates.length === 1) {
+    const partialTrade = partialCandidates[0];
 
-    const manualShares = Number(
-      partialTrade.shares
-    );
+    const manualShares = Number(partialTrade.shares);
 
-    const completedShares =
-      Number(wellsTrade.shares);
+    const completedShares = Number(wellsTrade.shares);
 
-    const remainingShares =
-      manualShares -
-      completedShares;
+    const remainingShares = manualShares - completedShares;
 
     return {
       status: "PARTIAL",
@@ -176,24 +125,17 @@ export function matchManualTrade(params: {
       completedShares,
       remainingShares,
       differences: {
-        originalManualShares:
-          manualShares,
-        wellsCompletedShares:
-          completedShares,
+        originalManualShares: manualShares,
+        wellsCompletedShares: completedShares,
         remainingShares,
-        manualAvgPrice:
-          partialTrade.avgPrice,
-        wellsAvgPrice:
-          wellsTrade.avgPrice,
+        manualAvgPrice: partialTrade.avgPrice,
+        wellsAvgPrice: wellsTrade.avgPrice,
       },
     };
   }
 
-  if (
-    partialCandidates.length > 1
-  ) {
-    const firstCandidate =
-      partialCandidates[0];
+  if (partialCandidates.length > 1) {
+    const firstCandidate = partialCandidates[0];
 
     return {
       status: "SIMILAR",
@@ -201,46 +143,28 @@ export function matchManualTrade(params: {
       reason:
         "Multiple manual trades qualify as possible partial completions. Review is required.",
       differences: {
-        partialCandidateCount:
-          partialCandidates.length,
+        partialCandidateCount: partialCandidates.length,
 
         // The reconciliation flag is anchored to this
         // candidate for the existing review workflow.
-        manualShares:
-          firstCandidate.shares,
-        manualAvgPrice:
-          firstCandidate.avgPrice,
+        manualShares: firstCandidate.shares,
+        manualAvgPrice: firstCandidate.avgPrice,
 
-        candidateTradeIds:
-          partialCandidates.map(
-            (candidate) =>
-              candidate.id
-          ),
+        candidateTradeIds: partialCandidates.map((candidate) => candidate.id),
 
-        partialCandidates:
-          partialCandidates.map(
-            (candidate) => ({
-              id: candidate.id,
-              shares:
-                candidate.shares,
-              avgPrice:
-                candidate.avgPrice,
-              dateTraded:
-                candidate.dateTraded,
-              source:
-                candidate.source,
-            })
-          ),
+        partialCandidates: partialCandidates.map((candidate) => ({
+          id: candidate.id,
+          shares: candidate.shares,
+          avgPrice: candidate.avgPrice,
+          dateTraded: candidate.dateTraded,
+          source: candidate.source,
+        })),
 
-        wellsShares:
-          wellsTrade.shares,
-        wellsAvgPrice:
-          wellsTrade.avgPrice,
+        wellsShares: wellsTrade.shares,
+        wellsAvgPrice: wellsTrade.avgPrice,
       },
     };
-
   }
-
 
   const similar = sameTypeAndDate.find((manualTrade) => {
     return (
@@ -254,7 +178,8 @@ export function matchManualTrade(params: {
     return {
       status: "SIMILAR",
       trade: similar,
-      reason: "Manual trade is similar to Wells transaction but differs in shares or price.",
+      reason:
+        "Manual trade is similar to Wells transaction but differs in shares or price.",
       differences: {
         manualShares: similar.shares,
         wellsShares: wellsTrade.shares,

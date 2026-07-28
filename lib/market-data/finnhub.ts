@@ -30,7 +30,7 @@ function toNumber(value: unknown) {
 }
 
 export async function fetchFinnhubQuote(
-  ticker: string
+  ticker: string,
 ): Promise<FinnhubQuote | null> {
   const apiKey = process.env.FINNHUB_API_KEY;
 
@@ -54,7 +54,7 @@ export async function fetchFinnhubQuote(
 
   if (!response.ok) {
     throw new Error(
-      `Finnhub quote request failed for ${normalizedTicker}: ${response.status}`
+      `Finnhub quote request failed for ${normalizedTicker}: ${response.status}`,
     );
   }
 

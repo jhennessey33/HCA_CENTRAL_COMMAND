@@ -14,7 +14,6 @@ import {
   TRADE_SOURCES,
 } from "@/lib/reconciliation/trade-reconciliation-constants";
 
-
 function normalizeFilename(filename: string): string {
   return filename.replace(/\s+/g, "_").trim();
 }
@@ -22,10 +21,6 @@ function normalizeFilename(filename: string): string {
 function isRawPdfContent(content: string): boolean {
   return content.trimStart().startsWith("%PDF-");
 }
-
-
-
-
 
 async function completeIngestionRun(params: {
   id: string;
@@ -110,7 +105,7 @@ export async function POST(request: Request) {
           message:
             "Raw PDF upload is not supported yet. Run pdftotext -layout and upload the extracted .txt file.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -130,25 +125,24 @@ export async function POST(request: Request) {
 
       return NextResponse.json(
         { error: "Unrecognized Wells report type.", reportType },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (
-    reportType === "CHANGE_IN_EQUITY_PERFORMANCE" ||
-    reportType === "PORTFOLIO_RISK_EXPOSURE"
-  ) {
+      reportType === "CHANGE_IN_EQUITY_PERFORMANCE" ||
+      reportType === "PORTFOLIO_RISK_EXPOSURE"
+    ) {
       await completeIngestionRun({
         id: ingestionRun.id,
         status: "COMPLETED",
         message: `Detected report type ${reportType}, ingestion not implemented for this milestone.`,
         rowsProcessed: 0,
         rowsFailed: 0,
-        
+
         details: {
           reason: "Report type detected but intentionally deferred.",
         },
-
       });
 
       return NextResponse.json(
@@ -157,7 +151,7 @@ export async function POST(request: Request) {
           reportType,
           message: "NOT_IMPLEMENTED_FOR_THIS_REPORT_TYPE",
         },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -180,13 +174,11 @@ export async function POST(request: Request) {
     let taxLotsCreated = 0;
     let taxLotsUpdated = 0;
 
-    let resolvedSourceReportDate =
-      new Date();
+    let resolvedSourceReportDate = new Date();
 
     const failures: string[] = [];
 
     if (reportType === "TAX_LOT_POSITION_PNL") {
-      
       const {
         rows,
         positions,
@@ -194,8 +186,6 @@ export async function POST(request: Request) {
         failures: parseFailures,
       } = parseWellsTaxLotCsv(rawContent, fileName);
 
-
-      
       rowsProcessed += rows.length;
       rowsFailed += parseFailures.length;
       failures.push(...parseFailures);
@@ -205,11 +195,10 @@ export async function POST(request: Request) {
       const positionSnapshotDates: Date[] = [];
 
       for (const position of positions) {
-
         if (!position.accountNumber) {
           rowsFailed += 1;
           failures.push(
-            `Missing accountNumber for aggregated position ${position.securityName}`
+            `Missing accountNumber for aggregated position ${position.securityName}`,
           );
           continue;
         }
@@ -217,7 +206,7 @@ export async function POST(request: Request) {
         if (!position.ticker) {
           rowsFailed += 1;
           failures.push(
-            `Missing ticker for aggregated position ${position.securityName}`
+            `Missing ticker for aggregated position ${position.securityName}`,
           );
           continue;
         }
@@ -259,7 +248,6 @@ export async function POST(request: Request) {
         activeWellsPositionKeys.add(`${security.id}:${position.accountNumber}`);
         accountsInPositionSnapshot.add(position.accountNumber);
         positionSnapshotDates.push(sourceReportDate);
-
 
         const positionData = {
           securityId: security.id,
@@ -307,13 +295,15 @@ export async function POST(request: Request) {
       const latestSnapshotDate =
         positionSnapshotDates.length > 0
           ? new Date(
-              Math.max(...positionSnapshotDates.map((date) => date.getTime()))
+              Math.max(...positionSnapshotDates.map((date) => date.getTime())),
             )
           : new Date();
-      resolvedSourceReportDate =
-        latestSnapshotDate;
+      resolvedSourceReportDate = latestSnapshotDate;
 
-      if (activeWellsPositionKeys.size > 0 && accountsInPositionSnapshot.size > 0) {
+      if (
+        activeWellsPositionKeys.size > 0 &&
+        accountsInPositionSnapshot.size > 0
+      ) {
         const previouslyActivePositions = await prisma.position.findMany({
           where: {
             source: "WELLS_FARGO",
@@ -359,7 +349,9 @@ export async function POST(request: Request) {
       for (const taxLot of taxLots) {
         if (!taxLot.accountNumber) {
           rowsFailed += 1;
-          failures.push(`Missing accountNumber for tax lot ${taxLot.securityName}`);
+          failures.push(
+            `Missing accountNumber for tax lot ${taxLot.securityName}`,
+          );
           continue;
         }
 
@@ -377,7 +369,6 @@ export async function POST(request: Request) {
 
         if (!security) {
           security = await prisma.security.create({
-            
             data: {
               ticker: taxLot.ticker,
               name: taxLot.securityName,
@@ -460,685 +451,539 @@ export async function POST(request: Request) {
           taxLotsCreated += 1;
         }
       }
-
     }
 
     if (reportType === "TRANSACTION_ACTIVITY") {
-        const {
-          rows,
-          failures: parseFailures,
-        } = parseWellsTransactionActivityCsv(rawContent, fileName);
+      const { rows, failures: parseFailures } =
+        parseWellsTransactionActivityCsv(rawContent, fileName);
 
-        rowsProcessed += rows.length;
-        rowsFailed += parseFailures.length;
-        failures.push(...parseFailures);
+      rowsProcessed += rows.length;
+      rowsFailed += parseFailures.length;
+      failures.push(...parseFailures);
 
-        const supportedTradeTypes = new Set(["BUY", "SELL", "SHORT", "COVER"]);
+      const supportedTradeTypes = new Set(["BUY", "SELL", "SHORT", "COVER"]);
 
-        for (const trade of rows) {
-          if (!supportedTradeTypes.has(trade.tradeType || "")) {
-            continue;
-          }
+      for (const trade of rows) {
+        if (!supportedTradeTypes.has(trade.tradeType || "")) {
+          continue;
+        }
 
-          if (!trade.accountNumber) {
-            rowsFailed += 1;
-            failures.push(`Missing accountNumber for trade ${trade.transactionId}`);
-            continue;
-          }
+        if (!trade.accountNumber) {
+          rowsFailed += 1;
+          failures.push(
+            `Missing accountNumber for trade ${trade.transactionId}`,
+          );
+          continue;
+        }
 
-          if (!trade.ticker) {
-            rowsFailed += 1;
-            failures.push(
-              `Missing ticker for trade ${trade.transactionId || trade.securityName}`
-            );
-            continue;
-          }
+        if (!trade.ticker) {
+          rowsFailed += 1;
+          failures.push(
+            `Missing ticker for trade ${trade.transactionId || trade.securityName}`,
+          );
+          continue;
+        }
 
-          if (!trade.tradeDate) {
-            rowsFailed += 1;
-            failures.push(`Missing tradeDate for trade ${trade.transactionId}`);
-            continue;
-          }
+        if (!trade.tradeDate) {
+          rowsFailed += 1;
+          failures.push(`Missing tradeDate for trade ${trade.transactionId}`);
+          continue;
+        }
 
-          if (trade.quantity == null) {
-            rowsFailed += 1;
-            failures.push(`Missing quantity for trade ${trade.transactionId}`);
-            continue;
-          }
+        if (trade.quantity == null) {
+          rowsFailed += 1;
+          failures.push(`Missing quantity for trade ${trade.transactionId}`);
+          continue;
+        }
 
-          let security = await prisma.security.findUnique({
-            where: {
+        let security = await prisma.security.findUnique({
+          where: {
+            ticker: trade.ticker,
+          },
+        });
+
+        if (!security) {
+          security = await prisma.security.create({
+            data: {
               ticker: trade.ticker,
+              name: trade.securityName || trade.ticker,
+              wellsSecurityId: trade.wfSecId,
+              cusip: trade.cusip,
+              isin: trade.isin,
+              sedol: trade.sedol,
             },
           });
+          newlyCreatedSecurities.push({
+            id: security.id,
+            ticker: security.ticker,
+            name: security.name,
+          });
 
-          if (!security) {
-            security = await prisma.security.create({
-              data: {
-                ticker: trade.ticker,
-                name: trade.securityName || trade.ticker,
-                wellsSecurityId: trade.wfSecId,
-                cusip: trade.cusip,
-                isin: trade.isin,
-                sedol: trade.sedol,
-              },
-            });
-            newlyCreatedSecurities.push({
-              id: security.id,
-              ticker: security.ticker,
-              name: security.name,
-            });
-
-            securitiesCreated += 1;
-          } else {
-            await prisma.security.update({
-              where: {
-                id: security.id,
-              },
-              data: {
-                name: security.name || trade.securityName || trade.ticker,
-                wellsSecurityId: security.wellsSecurityId || trade.wfSecId,
-                cusip: security.cusip || trade.cusip,
-                isin: security.isin || trade.isin,
-                sedol: security.sedol || trade.sedol,
-              },
-            });
-
-            securitiesUpdated += 1;
-          }
-
-          const matchingPosition = await prisma.position.findFirst({
+          securitiesCreated += 1;
+        } else {
+          await prisma.security.update({
             where: {
-              securityId: security.id,
-              accountNumber: trade.accountNumber,
-              source: "WELLS_FARGO",
-              status: "ACTIVE",
+              id: security.id,
+            },
+            data: {
+              name: security.name || trade.securityName || trade.ticker,
+              wellsSecurityId: security.wellsSecurityId || trade.wfSecId,
+              cusip: security.cusip || trade.cusip,
+              isin: security.isin || trade.isin,
+              sedol: security.sedol || trade.sedol,
             },
           });
 
-          const tradeData = {
+          securitiesUpdated += 1;
+        }
+
+        const matchingPosition = await prisma.position.findFirst({
+          where: {
             securityId: security.id,
-            positionId: matchingPosition?.id,
-            dateTraded: new Date(trade.tradeDate),
-            shares: trade.quantity,
-            avgPrice: trade.price ?? 0,
-            tradeType: trade.tradeType,
-            settlementDate: trade.settlementDate
-              ? new Date(trade.settlementDate)
-              : undefined,
-            postDate: trade.postDate ? new Date(trade.postDate) : undefined,
-            notional:
-              trade.price != null && trade.quantity != null
-                ? trade.price * trade.quantity
-                : undefined,
-            commission: trade.commission,
-            fees: trade.fees,
-            accruedInterest: trade.accruedInterest,
-            netAmount: trade.netAmount,
-            currency: trade.currency,
-            transactionId: trade.transactionId,
-            clientReferenceId: trade.clientReferenceId,
+            accountNumber: trade.accountNumber,
             source: "WELLS_FARGO",
-            sourceFileName: trade.sourceFileName,
-            sourceRowHash: trade.sourceRowHash,
-            sourceReportDate: trade.sourceReportDate
-              ? new Date(trade.sourceReportDate)
+            status: "ACTIVE",
+          },
+        });
+
+        const tradeData = {
+          securityId: security.id,
+          positionId: matchingPosition?.id,
+          dateTraded: new Date(trade.tradeDate),
+          shares: trade.quantity,
+          avgPrice: trade.price ?? 0,
+          tradeType: trade.tradeType,
+          settlementDate: trade.settlementDate
+            ? new Date(trade.settlementDate)
+            : undefined,
+          postDate: trade.postDate ? new Date(trade.postDate) : undefined,
+          notional:
+            trade.price != null && trade.quantity != null
+              ? trade.price * trade.quantity
               : undefined,
-            ingestionRunId: ingestionRun.id,
-          };
+          commission: trade.commission,
+          fees: trade.fees,
+          accruedInterest: trade.accruedInterest,
+          netAmount: trade.netAmount,
+          currency: trade.currency,
+          transactionId: trade.transactionId,
+          clientReferenceId: trade.clientReferenceId,
+          source: "WELLS_FARGO",
+          sourceFileName: trade.sourceFileName,
+          sourceRowHash: trade.sourceRowHash,
+          sourceReportDate: trade.sourceReportDate
+            ? new Date(trade.sourceReportDate)
+            : undefined,
+          ingestionRunId: ingestionRun.id,
+        };
 
-          const existingWellsTrade = trade.sourceRowHash
-            ? await prisma.trade.findFirst({
-                where: {
-                  sourceRowHash: trade.sourceRowHash,
-                  source: "WELLS_FARGO",
-                },
-              })
-            : null;
+        const existingWellsTrade = trade.sourceRowHash
+          ? await prisma.trade.findFirst({
+              where: {
+                sourceRowHash: trade.sourceRowHash,
+                source: "WELLS_FARGO",
+              },
+            })
+          : null;
 
-          if (
-            existingWellsTrade &&
-            (
-              existingWellsTrade.matchedTradeId ||
-              existingWellsTrade.reconciliationStatus ===
-                RECONCILIATION_STATUS.MATCHED ||
-              existingWellsTrade.reconciliationStatus ===
-                RECONCILIATION_STATUS.REVIEW_REQUIRED
-            )
-          ) {
-           await prisma.trade.update({
+        if (
+          existingWellsTrade &&
+          (existingWellsTrade.matchedTradeId ||
+            existingWellsTrade.reconciliationStatus ===
+              RECONCILIATION_STATUS.MATCHED ||
+            existingWellsTrade.reconciliationStatus ===
+              RECONCILIATION_STATUS.REVIEW_REQUIRED)
+        ) {
+          await prisma.trade.update({
             where: {
               id: existingWellsTrade.id,
             },
             data: {
               ...tradeData,
-              dateTraded:
-                existingWellsTrade.dateTraded,
-              comment:
-                existingWellsTrade.comment,
+              dateTraded: existingWellsTrade.dateTraded,
+              comment: existingWellsTrade.comment,
 
               // Preserve completed reconciliation state when
               // the same Wells source row is uploaded again.
-              reconciliationStatus:
-                existingWellsTrade.reconciliationStatus,
-              reconciliationGroupId:
-                existingWellsTrade.reconciliationGroupId,
-              matchedTradeId:
-                existingWellsTrade.matchedTradeId,
-              reconciledAt:
-                existingWellsTrade.reconciledAt,
-              reconciliationNotes:
-                existingWellsTrade.reconciliationNotes,
-              isHidden:
-                existingWellsTrade.isHidden,
+              reconciliationStatus: existingWellsTrade.reconciliationStatus,
+              reconciliationGroupId: existingWellsTrade.reconciliationGroupId,
+              matchedTradeId: existingWellsTrade.matchedTradeId,
+              reconciledAt: existingWellsTrade.reconciledAt,
+              reconciliationNotes: existingWellsTrade.reconciliationNotes,
+              isHidden: existingWellsTrade.isHidden,
             },
           });
 
-            tradesUpdated += 1;
-            continue;
-          }
-          const pendingManualTrades = await prisma.trade.findMany({
+          tradesUpdated += 1;
+          continue;
+        }
+        const pendingManualTrades = await prisma.trade.findMany({
+          where: {
+            securityId: security.id,
+            source: {
+              in: [TRADE_SOURCES.MANUAL, TRADE_SOURCES.SYSTEM],
+            },
+            reconciliationStatus: "MANUAL_PENDING",
+            isHidden: false,
+            ...(matchingPosition?.id
+              ? {
+                  positionId: matchingPosition.id,
+                }
+              : {}),
+          },
+        });
+
+        const matchResult = matchManualTrade({
+          manualTrades: pendingManualTrades,
+          wellsTrade: {
+            tradeType: trade.tradeType,
+            dateTraded: new Date(trade.tradeDate),
+            shares: trade.quantity,
+            avgPrice: trade.price ?? 0,
+          },
+        });
+
+        if (matchResult.status === "EXACT") {
+          const officialTrade = existingWellsTrade
+            ? await prisma.trade.update({
+                where: {
+                  id: existingWellsTrade.id,
+                },
+                data: {
+                  ...tradeData,
+                  dateTraded: new Date(matchResult.trade.dateTraded),
+                  comment: matchResult.trade.comment,
+                  source: "WELLS_FARGO",
+                  reconciliationStatus: "MATCHED",
+                  reconciledAt: new Date(),
+                  matchedTradeId: matchResult.trade.id,
+                  reconciliationNotes: matchResult.reason,
+                  isHidden: false,
+                },
+              })
+            : await prisma.trade.create({
+                data: {
+                  ...tradeData,
+                  dateTraded: new Date(matchResult.trade.dateTraded),
+                  comment: matchResult.trade.comment,
+                  source: "WELLS_FARGO",
+                  reconciliationStatus: "MATCHED",
+                  reconciledAt: new Date(),
+                  matchedTradeId: matchResult.trade.id,
+                  reconciliationNotes: matchResult.reason,
+                  isHidden: false,
+                },
+              });
+
+          await prisma.trade.update({
             where: {
-              securityId: security.id,
-              source: {
-                in: [
-                  TRADE_SOURCES.MANUAL,
-                  TRADE_SOURCES.SYSTEM,
-                ],
-              },
-              reconciliationStatus: "MANUAL_PENDING",
-              isHidden: false,
-              ...(matchingPosition?.id
-                ? {
-                    positionId: matchingPosition.id,
-                  }
-                : {}),
+              id: matchResult.trade.id,
+            },
+            data: {
+              reconciliationStatus: "SUPERSEDED_BY_WELLS",
+              matchedTradeId: officialTrade.id,
+              reconciledAt: new Date(),
+              isHidden: true,
+              reconciliationNotes: matchResult.reason,
             },
           });
 
-          const matchResult = matchManualTrade({
-            manualTrades: pendingManualTrades,
-            wellsTrade: {
-              tradeType: trade.tradeType,
-              dateTraded: new Date(trade.tradeDate),
-              shares: trade.quantity,
-              avgPrice: trade.price ?? 0,
-            },
-          });
-
-          if (matchResult.status === "EXACT") {
-            const officialTrade = existingWellsTrade
-              ? await prisma.trade.update({
-                  where: {
-                    id: existingWellsTrade.id,
-                  },
-                  data: {
-                    ...tradeData,
-                    dateTraded: new Date(
-                      matchResult.trade.dateTraded
-                    ),
-                    comment:
-                      matchResult.trade.comment,
-                    source: "WELLS_FARGO",
-                    reconciliationStatus: "MATCHED",
-                    reconciledAt: new Date(),
-                    matchedTradeId: matchResult.trade.id,
-                    reconciliationNotes: matchResult.reason,
-                    isHidden: false,
-                  },
-                })
-              : await prisma.trade.create({
-                  data: {
-                    ...tradeData,
-                    dateTraded: new Date(
-                      matchResult.trade.dateTraded
-                    ),
-                    comment:
-                      matchResult.trade.comment,
-                    source: "WELLS_FARGO",
-                    reconciliationStatus: "MATCHED",
-                    reconciledAt: new Date(),
-                    matchedTradeId: matchResult.trade.id,
-                    reconciliationNotes: matchResult.reason,
-                    isHidden: false,
-                  },
-                });
-
-            await prisma.trade.update({
-              where: {
-                id: matchResult.trade.id,
-              },
-              data: {
-                reconciliationStatus: "SUPERSEDED_BY_WELLS",
-                matchedTradeId: officialTrade.id,
-                reconciledAt: new Date(),
-                isHidden: true,
-                reconciliationNotes: matchResult.reason,
-              },
-            });
-
-            if (existingWellsTrade) {
-              tradesUpdated += 2;
-            } else {
-              tradesCreated += 1;
-              tradesUpdated += 1;
-            }
-
-            continue;
+          if (existingWellsTrade) {
+            tradesUpdated += 2;
+          } else {
+            tradesCreated += 1;
+            tradesUpdated += 1;
           }
-          
 
-         if (
-            matchResult.status === "PARTIAL"
-              ) {
-                const originalManualTrade =
-                  matchResult.trade;
+          continue;
+        }
 
-                const originalShares =
-                  Number(
-                    originalManualTrade.shares
-                  );
+        if (matchResult.status === "PARTIAL") {
+          const originalManualTrade = matchResult.trade;
 
-                const completedShares =
-                  Number(
-                    matchResult.completedShares
-                  );
+          const originalShares = Number(originalManualTrade.shares);
 
-                const remainingShares =
-                  Number(
-                    matchResult.remainingShares
-                  );
+          const completedShares = Number(matchResult.completedShares);
 
-                if (
-                  !Number.isFinite(
-                    originalShares
-                  ) ||
-                  !Number.isFinite(
-                    completedShares
-                  ) ||
-                  !Number.isFinite(
-                    remainingShares
-                  ) ||
-                  Math.abs(remainingShares) <=
-                    0.001
-                ) {
-                  throw new Error(
-                    "Partial trade reconciliation produced an invalid residual quantity."
-                  );
-                }
+          const remainingShares = Number(matchResult.remainingShares);
 
-                const reconciliationGroupId =
-                  originalManualTrade
-                    .reconciliationGroupId ||
-                  `partial-${randomUUID()}`;
+          if (
+            !Number.isFinite(originalShares) ||
+            !Number.isFinite(completedShares) ||
+            !Number.isFinite(remainingShares) ||
+            Math.abs(remainingShares) <= 0.001
+          ) {
+            throw new Error(
+              "Partial trade reconciliation produced an invalid residual quantity.",
+            );
+          }
 
-                const now = new Date();
+          const reconciliationGroupId =
+            originalManualTrade.reconciliationGroupId ||
+            `partial-${randomUUID()}`;
 
-                const originalAbsoluteShares =
-                  Math.abs(originalShares);
+          const now = new Date();
 
-                const completedAbsoluteShares =
-                  Math.abs(completedShares);
+          const originalAbsoluteShares = Math.abs(originalShares);
 
-                const remainingAbsoluteShares =
-                  Math.abs(remainingShares);
+          const completedAbsoluteShares = Math.abs(completedShares);
 
-                const reconciliationSummary =
-                  `Partial Wells completion. Original requested shares: ${originalAbsoluteShares}. Wells completed shares: ${completedAbsoluteShares}. Remaining shares: ${remainingAbsoluteShares}.`;
+          const remainingAbsoluteShares = Math.abs(remainingShares);
 
-                const auditActorId =
-                  originalManualTrade
-                    .manualEnteredById ||
-                  (await getSystemFlagUserId());
+          const reconciliationSummary = `Partial Wells completion. Original requested shares: ${originalAbsoluteShares}. Wells completed shares: ${completedAbsoluteShares}. Remaining shares: ${remainingAbsoluteShares}.`;
 
-                if (!auditActorId) {
-                  throw new Error(
-                    "Partial reconciliation requires a system audit user, but no user is available."
-                  );
-                }
+          const auditActorId =
+            originalManualTrade.manualEnteredById ||
+            (await getSystemFlagUserId());
 
-                const partialResult =
-                  await prisma.$transaction(
-                    async (tx) => {
-                      const officialTrade =
-                        existingWellsTrade
-                          ? await tx.trade.update({
-                              where: {
-                                id:
-                                  existingWellsTrade.id,
-                              },
-                              data: {
-                                ...tradeData,
-                                dateTraded: new Date(
-                                  originalManualTrade.dateTraded
-                                ),
-                                comment:
-                                  originalManualTrade.comment,
-                                source:
-                                  TRADE_SOURCES
-                                    .WELLS_FARGO,
-                                reconciliationStatus:
-                                  RECONCILIATION_STATUS
-                                    .MATCHED,
-                                reconciliationGroupId,
-                                matchedTradeId:
-                                  originalManualTrade.id,
-                                reconciledAt: now,
-                                reconciliationNotes:
-                                  reconciliationSummary,
-                                isHidden: false,
-                              },
-                            })
-                          : await tx.trade.create({
-                             data: {
-                                ...tradeData,
-                                dateTraded: new Date(
-                                  originalManualTrade.dateTraded
-                                ),
-                                comment:
-                                  originalManualTrade.comment,
-                                source:
-                                  TRADE_SOURCES
-                                    .WELLS_FARGO,
-                                reconciliationStatus:
-                                  RECONCILIATION_STATUS
-                                    .MATCHED,
-                                reconciliationGroupId,
-                                matchedTradeId:
-                                  originalManualTrade.id,
-                                reconciledAt: now,
-                                reconciliationNotes:
-                                  reconciliationSummary,
-                                isHidden: false,
-                              },
-                            });
+          if (!auditActorId) {
+            throw new Error(
+              "Partial reconciliation requires a system audit user, but no user is available.",
+            );
+          }
 
-                      const completedManualTrade =
-                        await tx.trade.update({
-                          where: {
-                            id:
-                              originalManualTrade.id,
-                          },
-                          data: {
-                            shares: completedShares,
-                            notional:
-                              completedShares *
-                              Number(
-                                originalManualTrade
-                                  .avgPrice
-                              ),
-                            reconciliationStatus:
-                              RECONCILIATION_STATUS
-                                .SUPERSEDED_BY_WELLS,
-                            reconciliationGroupId,
-                            matchedTradeId:
-                              officialTrade.id,
-                            reconciledAt: now,
-                            reconciliationNotes:
-                              reconciliationSummary,
-                            isHidden: true,
-                          },
-                        });
-
-                      const residualTrade =
-                        await tx.trade.create({
-                          data: {
-                            securityId:
-                              originalManualTrade
-                                .securityId,
-                            positionId:
-                              originalManualTrade
-                                .positionId,
-                            dateTraded:
-                              originalManualTrade
-                                .dateTraded,
-                            shares:
-                              remainingShares,
-                            avgPrice:
-                              originalManualTrade
-                                .avgPrice,
-                            tradeType:
-                              originalManualTrade
-                                .tradeType,
-                            notional:
-                              remainingShares *
-                              Number(
-                                originalManualTrade
-                                  .avgPrice
-                              ),
-                            comment:
-                              originalManualTrade
-                                .comment,
-                            source:
-                              TRADE_SOURCES.SYSTEM,
-                            reconciliationStatus:
-                              RECONCILIATION_STATUS
-                                .MANUAL_PENDING,
-                            reconciliationGroupId,
-                            matchedTradeId: null,
-                            reconciledAt: null,
-                            reconciliationNotes:
-                              `Pending completion. ${reconciliationSummary}`,
-                            manualEnteredById:
-                              originalManualTrade
-                                .manualEnteredById,
-                            isHidden: false,
-                          },
-                        });
-
-                      await tx.auditLog.create({
-                        data: {
-                          actorId:
-                            auditActorId,
-                          action:
-                            "TRADE_PARTIAL_COMPLETION_CREATED",
-                          entityType:
-                            "TRADE",
-                          entityId:
-                            residualTrade.id,
-                          previousValueJson:
-                            JSON.stringify({
-                              originalManualTradeId:
-                                originalManualTrade.id,
-                              originalShares,
-                              originalAvgPrice:
-                                originalManualTrade
-                                  .avgPrice,
-                              originalSource:
-                                originalManualTrade
-                                  .source,
-                              originalStatus:
-                                originalManualTrade
-                                  .reconciliationStatus,
-                              wellsSourceRowHash:
-                                trade.sourceRowHash,
-                              wellsTransactionId:
-                                trade.transactionId,
-                            }),
-                          newValueJson:
-                            JSON.stringify({
-                              reconciliationGroupId,
-                              completedManualTrade: {
-                                id:
-                                  completedManualTrade.id,
-                                shares:
-                                  completedManualTrade
-                                    .shares,
-                                reconciliationStatus:
-                                  completedManualTrade
-                                    .reconciliationStatus,
-                                matchedTradeId:
-                                  completedManualTrade
-                                    .matchedTradeId,
-                                isHidden:
-                                  completedManualTrade
-                                    .isHidden,
-                              },
-                              wellsTrade: {
-                                id:
-                                  officialTrade.id,
-                                shares:
-                                  officialTrade.shares,
-                                reconciliationStatus:
-                                  officialTrade
-                                    .reconciliationStatus,
-                                matchedTradeId:
-                                  officialTrade
-                                    .matchedTradeId,
-                              },
-                              residualTrade: {
-                                id:
-                                  residualTrade.id,
-                                shares:
-                                  residualTrade.shares,
-                                source:
-                                  residualTrade.source,
-                                reconciliationStatus:
-                                  residualTrade
-                                    .reconciliationStatus,
-                                isHidden:
-                                  residualTrade
-                                    .isHidden,
-                              },
-                            }),
-                        },
-                      });
-
-                      return {
-                        officialTrade,
-                        completedManualTrade,
-                        residualTrade,
-                      };
-                    }
-                  );
-
-                if (existingWellsTrade) {
-                  tradesUpdated += 2;
-                  tradesCreated += 1;
-                } else {
-                  tradesCreated += 2;
-                  tradesUpdated += 1;
-                }
-
-                continue;
-              }
-
-
-
-          if (matchResult.status === "SIMILAR") {
+          const partialResult = await prisma.$transaction(async (tx) => {
             const officialTrade = existingWellsTrade
-              ? await prisma.trade.update({
+              ? await tx.trade.update({
                   where: {
                     id: existingWellsTrade.id,
                   },
                   data: {
                     ...tradeData,
-                    source: "WELLS_FARGO",
-                    reconciliationStatus: "REVIEW_REQUIRED",
-                    matchedTradeId: matchResult.trade.id,
-                    reconciliationNotes: matchResult.reason,
+                    dateTraded: new Date(originalManualTrade.dateTraded),
+                    comment: originalManualTrade.comment,
+                    source: TRADE_SOURCES.WELLS_FARGO,
+                    reconciliationStatus: RECONCILIATION_STATUS.MATCHED,
+                    reconciliationGroupId,
+                    matchedTradeId: originalManualTrade.id,
+                    reconciledAt: now,
+                    reconciliationNotes: reconciliationSummary,
                     isHidden: false,
                   },
                 })
-              : await prisma.trade.create({
+              : await tx.trade.create({
                   data: {
                     ...tradeData,
-                    source: "WELLS_FARGO",
-                    reconciliationStatus: "REVIEW_REQUIRED",
-                    matchedTradeId: matchResult.trade.id,
-                    reconciliationNotes: matchResult.reason,
+                    dateTraded: new Date(originalManualTrade.dateTraded),
+                    comment: originalManualTrade.comment,
+                    source: TRADE_SOURCES.WELLS_FARGO,
+                    reconciliationStatus: RECONCILIATION_STATUS.MATCHED,
+                    reconciliationGroupId,
+                    matchedTradeId: originalManualTrade.id,
+                    reconciledAt: now,
+                    reconciliationNotes: reconciliationSummary,
                     isHidden: false,
                   },
                 });
 
-            await prisma.trade.update({
+            const completedManualTrade = await tx.trade.update({
               where: {
-                id: matchResult.trade.id,
+                id: originalManualTrade.id,
               },
               data: {
-                reconciliationStatus: "REVIEW_REQUIRED",
+                shares: completedShares,
+                notional:
+                  completedShares * Number(originalManualTrade.avgPrice),
+                reconciliationStatus: RECONCILIATION_STATUS.SUPERSEDED_BY_WELLS,
+                reconciliationGroupId,
                 matchedTradeId: officialTrade.id,
-                reconciliationNotes: matchResult.reason,
+                reconciledAt: now,
+                reconciliationNotes: reconciliationSummary,
+                isHidden: true,
               },
             });
 
-            const flagUserId = await getSystemFlagUserId();
+            const residualTrade = await tx.trade.create({
+              data: {
+                securityId: originalManualTrade.securityId,
+                positionId: originalManualTrade.positionId,
+                dateTraded: originalManualTrade.dateTraded,
+                shares: remainingShares,
+                avgPrice: originalManualTrade.avgPrice,
+                tradeType: originalManualTrade.tradeType,
+                notional:
+                  remainingShares * Number(originalManualTrade.avgPrice),
+                comment: originalManualTrade.comment,
+                source: TRADE_SOURCES.SYSTEM,
+                reconciliationStatus: RECONCILIATION_STATUS.MANUAL_PENDING,
+                reconciliationGroupId,
+                matchedTradeId: null,
+                reconciledAt: null,
+                reconciliationNotes: `Pending completion. ${reconciliationSummary}`,
+                manualEnteredById: originalManualTrade.manualEnteredById,
+                isHidden: false,
+              },
+            });
 
-              if (flagUserId) {
-                await createTradeReconciliationFlag({
-                  securityId: security.id,
-                  positionId: matchingPosition?.id,
-                  createdById: flagUserId,
-                  manualTradeId: matchResult.trade.id,
-                  wellsTradeId: officialTrade.id,
+            await tx.auditLog.create({
+              data: {
+                actorId: auditActorId,
+                action: "TRADE_PARTIAL_COMPLETION_CREATED",
+                entityType: "TRADE",
+                entityId: residualTrade.id,
+                previousValueJson: JSON.stringify({
+                  originalManualTradeId: originalManualTrade.id,
+                  originalShares,
+                  originalAvgPrice: originalManualTrade.avgPrice,
+                  originalSource: originalManualTrade.source,
+                  originalStatus: originalManualTrade.reconciliationStatus,
+                  wellsSourceRowHash: trade.sourceRowHash,
                   wellsTransactionId: trade.transactionId,
-                  ticker: trade.ticker,
-                  tradeType: trade.tradeType,
-                  reason: matchResult.reason,
-                  differences: matchResult.differences,
-                });
-              } else {
-                failures.push(
-                  `Could not create reconciliation flag for ${
-                    trade.ticker || trade.securityName
-                  }: no user found.`
-                );
-              }
+                }),
+                newValueJson: JSON.stringify({
+                  reconciliationGroupId,
+                  completedManualTrade: {
+                    id: completedManualTrade.id,
+                    shares: completedManualTrade.shares,
+                    reconciliationStatus:
+                      completedManualTrade.reconciliationStatus,
+                    matchedTradeId: completedManualTrade.matchedTradeId,
+                    isHidden: completedManualTrade.isHidden,
+                  },
+                  wellsTrade: {
+                    id: officialTrade.id,
+                    shares: officialTrade.shares,
+                    reconciliationStatus: officialTrade.reconciliationStatus,
+                    matchedTradeId: officialTrade.matchedTradeId,
+                  },
+                  residualTrade: {
+                    id: residualTrade.id,
+                    shares: residualTrade.shares,
+                    source: residualTrade.source,
+                    reconciliationStatus: residualTrade.reconciliationStatus,
+                    isHidden: residualTrade.isHidden,
+                  },
+                }),
+              },
+            });
 
-            if (existingWellsTrade) {
-              tradesUpdated += 2;
-            } else {
-              tradesCreated += 1;
-              tradesUpdated += 1;
-            }
+            return {
+              officialTrade,
+              completedManualTrade,
+              residualTrade,
+            };
+          });
 
-            continue;
+          if (existingWellsTrade) {
+            tradesUpdated += 2;
+            tradesCreated += 1;
+          } else {
+            tradesCreated += 2;
+            tradesUpdated += 1;
+          }
+
+          continue;
+        }
+
+        if (matchResult.status === "SIMILAR") {
+          const officialTrade = existingWellsTrade
+            ? await prisma.trade.update({
+                where: {
+                  id: existingWellsTrade.id,
+                },
+                data: {
+                  ...tradeData,
+                  source: "WELLS_FARGO",
+                  reconciliationStatus: "REVIEW_REQUIRED",
+                  matchedTradeId: matchResult.trade.id,
+                  reconciliationNotes: matchResult.reason,
+                  isHidden: false,
+                },
+              })
+            : await prisma.trade.create({
+                data: {
+                  ...tradeData,
+                  source: "WELLS_FARGO",
+                  reconciliationStatus: "REVIEW_REQUIRED",
+                  matchedTradeId: matchResult.trade.id,
+                  reconciliationNotes: matchResult.reason,
+                  isHidden: false,
+                },
+              });
+
+          await prisma.trade.update({
+            where: {
+              id: matchResult.trade.id,
+            },
+            data: {
+              reconciliationStatus: "REVIEW_REQUIRED",
+              matchedTradeId: officialTrade.id,
+              reconciliationNotes: matchResult.reason,
+            },
+          });
+
+          const flagUserId = await getSystemFlagUserId();
+
+          if (flagUserId) {
+            await createTradeReconciliationFlag({
+              securityId: security.id,
+              positionId: matchingPosition?.id,
+              createdById: flagUserId,
+              manualTradeId: matchResult.trade.id,
+              wellsTradeId: officialTrade.id,
+              wellsTransactionId: trade.transactionId,
+              ticker: trade.ticker,
+              tradeType: trade.tradeType,
+              reason: matchResult.reason,
+              differences: matchResult.differences,
+            });
+          } else {
+            failures.push(
+              `Could not create reconciliation flag for ${
+                trade.ticker || trade.securityName
+              }: no user found.`,
+            );
           }
 
           if (existingWellsTrade) {
-            await prisma.trade.update({
-              where: {
-                id: existingWellsTrade.id,
-              },
-              data: tradeData,
-            });
-
+            tradesUpdated += 2;
+          } else {
+            tradesCreated += 1;
             tradesUpdated += 1;
-            continue;
           }
 
+          continue;
+        }
 
-         
-
-          const existingTrade = await prisma.trade.findFirst({
+        if (existingWellsTrade) {
+          await prisma.trade.update({
             where: {
-              sourceRowHash: trade.sourceRowHash,
+              id: existingWellsTrade.id,
             },
+            data: tradeData,
           });
 
-          if (existingTrade) {
-            await prisma.trade.update({
-              where: {
-                id: existingTrade.id,
-              },
-              data: tradeData,
-            });
+          tradesUpdated += 1;
+          continue;
+        }
 
-            tradesUpdated += 1;
-          } else {
-            await prisma.trade.create({
-              data: tradeData,
-            });
+        const existingTrade = await prisma.trade.findFirst({
+          where: {
+            sourceRowHash: trade.sourceRowHash,
+          },
+        });
 
-            tradesCreated += 1;
-          }
+        if (existingTrade) {
+          await prisma.trade.update({
+            where: {
+              id: existingTrade.id,
+            },
+            data: tradeData,
+          });
+
+          tradesUpdated += 1;
+        } else {
+          await prisma.trade.create({
+            data: tradeData,
+          });
+
+          tradesCreated += 1;
         }
       }
+    }
 
-   const finalStatus =
-    rowsFailed > 0
-      ? "COMPLETED_WITH_WARNINGS"
-      : "COMPLETED";
+    const finalStatus =
+      rowsFailed > 0 ? "COMPLETED_WITH_WARNINGS" : "COMPLETED";
 
     await completeIngestionRun({
       id: ingestionRun.id,
@@ -1146,8 +991,7 @@ export async function POST(request: Request) {
       message: `Wells ingestion ${reportType} completed. Processed ${rowsProcessed} rows, failed ${rowsFailed}.`,
       rowsProcessed,
       rowsFailed,
-      sourceReportDate:
-      resolvedSourceReportDate,
+      sourceReportDate: resolvedSourceReportDate,
       accountNumber: undefined,
       details: { failures },
     });
@@ -1155,8 +999,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       source: "WELLS_FARGO",
       reportType,
-      sourceReportDate:
-        resolvedSourceReportDate.toISOString(),
+      sourceReportDate: resolvedSourceReportDate.toISOString(),
       rowsProcessed,
       rowsFailed,
       securitiesCreated,
@@ -1178,18 +1021,24 @@ export async function POST(request: Request) {
       await completeIngestionRun({
         id: ingestionRunId,
         status: "FAILED",
-        message: error instanceof Error ? error.message : "Unknown Wells ingestion error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unknown Wells ingestion error",
         rowsProcessed: 0,
         rowsFailed: 1,
         details: {
-          error: error instanceof Error ? error.stack || error.message : String(error),
+          error:
+            error instanceof Error
+              ? error.stack || error.message
+              : String(error),
         },
       });
     }
 
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

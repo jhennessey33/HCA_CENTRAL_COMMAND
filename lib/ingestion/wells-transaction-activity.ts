@@ -64,12 +64,20 @@ function normalizeTradeType(activity?: string): string {
   if (normalized === "cover short") return "COVER";
   if (normalized.includes("dividend")) return "DIVIDEND";
   if (normalized.includes("wfs credit interest")) return "INTEREST";
-  if (normalized.includes("security lending revenue")) return "STOCK_LOAN_REBATE";
+  if (normalized.includes("security lending revenue"))
+    return "STOCK_LOAN_REBATE";
   return "UNSUPPORTED";
 }
 
-export function parseWellsTransactionActivityCsv(content: string, sourceFileName: string): WellsTransactionParseResult {
-  const records = parseCsv(content, { columns: true, skip_empty_lines: true, trim: true });
+export function parseWellsTransactionActivityCsv(
+  content: string,
+  sourceFileName: string,
+): WellsTransactionParseResult {
+  const records = parseCsv(content, {
+    columns: true,
+    skip_empty_lines: true,
+    trim: true,
+  });
   const rows: WellsTransactionActivityRow[] = [];
   const failures: string[] = [];
 
@@ -79,15 +87,14 @@ export function parseWellsTransactionActivityCsv(content: string, sourceFileName
       lower[k.trim().toLowerCase()] = String(v).trim();
     }
 
-    
     const accountNumber = lower["accountnumber"] || "";
-    const securityName = lower["securitydescription"] || lower["securityid"] || "";
+    const securityName =
+      lower["securitydescription"] || lower["securityid"] || "";
     const securityId = lower["securityid"] || undefined;
     const securityIdType = lower["securityidtype"]?.toUpperCase();
     const ticker = securityIdType === "TS" ? securityId : undefined;
     const activity = lower["activity"];
     const tradeType = normalizeTradeType(activity);
-
 
     const quantity = parseFloatOrUndefined(lower["quantity"]);
     const price = parseFloatOrUndefined(lower["price"]);
@@ -105,7 +112,9 @@ export function parseWellsTransactionActivityCsv(content: string, sourceFileName
     }
 
     if (!securityName && !ticker) {
-      failures.push(`Missing securityName/ticker for row: ${JSON.stringify(lower)}`);
+      failures.push(
+        `Missing securityName/ticker for row: ${JSON.stringify(lower)}`,
+      );
       continue;
     }
 

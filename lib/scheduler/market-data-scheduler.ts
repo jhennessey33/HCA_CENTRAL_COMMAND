@@ -11,7 +11,7 @@ if (!globalThis.hcaMarketDataSchedulerStarted) {
   globalThis.hcaMarketDataSchedulerStarted = true;
 
   console.log(
-    "[market-data-scheduler] Starting automatic 15-minute Finnhub refresh."
+    "[market-data-scheduler] Starting automatic 15-minute Finnhub refresh.",
   );
 
   setInterval(async () => {
@@ -27,24 +27,14 @@ if (!globalThis.hcaMarketDataSchedulerStarted) {
         return;
       }
 
-      console.log(
-        "[market-data-scheduler] Refresh complete:",
-        {
-          updatedCount:
-            result.updatedCount,
-          failedCount:
-            result.failedCount,
-          ptAlertsEvaluated:
-            result.ptAlertsEvaluated,
-          ptAlertsCreated:
-            result.ptAlertsCreated,
-          ptAlertsSkippedDuplicate:
-            result
-              .ptAlertsSkippedDuplicate,
-          ptAlertFailures:
-            result.ptAlertFailures,
-        }
-      );
+      console.log("[market-data-scheduler] Refresh complete:", {
+        updatedCount: result.updatedCount,
+        failedCount: result.failedCount,
+        ptAlertsEvaluated: result.ptAlertsEvaluated,
+        ptAlertsCreated: result.ptAlertsCreated,
+        ptAlertsSkippedDuplicate: result.ptAlertsSkippedDuplicate,
+        ptAlertFailures: result.ptAlertFailures,
+      });
     } catch (error) {
       console.error("[market-data-scheduler] Scheduled refresh failed:", error);
     }

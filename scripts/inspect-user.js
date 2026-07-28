@@ -4,9 +4,7 @@ const prisma = new PrismaClient();
 
 function getArg(name) {
   const prefix = `--${name}=`;
-  const arg = process.argv.find((value) =>
-    value.startsWith(prefix)
-  );
+  const arg = process.argv.find((value) => value.startsWith(prefix));
 
   return arg ? arg.slice(prefix.length).trim() : "";
 }
@@ -16,7 +14,7 @@ async function main() {
 
   if (!email) {
     throw new Error(
-      'Missing --email. Example: node scripts/inspect-user.js --email="viewer@example.com"'
+      'Missing --email. Example: node scripts/inspect-user.js --email="viewer@example.com"',
     );
   }
 
@@ -117,12 +115,12 @@ async function main() {
   if (durableReferences > 0) {
     console.log("");
     console.log(
-      "DO NOT hard-delete this user. The account has operational or audit history."
+      "DO NOT hard-delete this user. The account has operational or audit history.",
     );
   } else {
     console.log("");
     console.log(
-      "This user has no durable operational references and can be safely deleted."
+      "This user has no durable operational references and can be safely deleted.",
     );
   }
 }

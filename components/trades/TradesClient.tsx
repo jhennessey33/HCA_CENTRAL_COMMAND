@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import AppSidebar from "@/components/common/AppSidebar";
 import Badge from "@/components/common/Badge";
@@ -23,13 +19,8 @@ type TradesClientProps = {
   fundEquitySnapshots: FundEquitySnapshot[];
 };
 
-function formatMoney(
-  value: number | null | undefined
-) {
-  if (
-    value == null ||
-    !Number.isFinite(value)
-  ) {
+function formatMoney(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
     return "—";
   }
 
@@ -39,23 +30,15 @@ function formatMoney(
     maximumFractionDigits: 0,
   });
 }
-function formatBps(
-  value: number | null
-) {
-  if (
-    value == null ||
-    !Number.isFinite(value)
-  ) {
+function formatBps(value: number | null) {
+  if (value == null || !Number.isFinite(value)) {
     return "—";
   }
 
-  const roundedValue =
-    Math.round(value);
+  const roundedValue = Math.round(value);
 
-  return `${
-    roundedValue > 0 ? "+" : ""
-  }${roundedValue.toLocaleString(
-    "en-US"
+  return `${roundedValue > 0 ? "+" : ""}${roundedValue.toLocaleString(
+    "en-US",
   )} bps`;
 }
 function sourceTone(source?: string | null) {
@@ -74,9 +57,7 @@ function sourceTone(source?: string | null) {
   return "slate";
 }
 
-function formatSource(
-  source?: string | null
-) {
+function formatSource(source?: string | null) {
   if (source === "WELLS_FARGO") {
     return "Wells";
   }
@@ -92,14 +73,8 @@ function formatSource(
   return source || "Unknown";
 }
 
-function reconciliationTone(
-  status?: string | null,
-  source?: string | null
-) {
-  if (
-    source === "SYSTEM" &&
-    status === "MANUAL_PENDING"
-  ) {
+function reconciliationTone(status?: string | null, source?: string | null) {
+  if (source === "SYSTEM" && status === "MANUAL_PENDING") {
     return "blue";
   }
 
@@ -120,12 +95,9 @@ function reconciliationTone(
 
 function formatReconciliationStatus(
   status?: string | null,
-  source?: string | null
+  source?: string | null,
 ) {
-  if (
-    source === "SYSTEM" &&
-    status === "MANUAL_PENDING"
-  ) {
+  if (source === "SYSTEM" && status === "MANUAL_PENDING") {
     return "Pending Completion";
   }
 
@@ -135,77 +107,41 @@ function formatReconciliationStatus(
 
   return status
     .split("_")
-    .map(
-      (word) =>
-        `${word.charAt(0)}${word
-          .slice(1)
-          .toLowerCase()}`
-    )
+    .map((word) => `${word.charAt(0)}${word.slice(1).toLowerCase()}`)
     .join(" ");
 }
 
-function getLocalDateKey(
-  value: string | Date
-) {
+function getLocalDateKey(value: string | Date) {
   const date = new Date(value);
 
-  const year =
-    date.getFullYear();
+  const year = date.getFullYear();
 
-  const month = String(
-    date.getMonth() + 1
-  ).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
 
-  const day = String(
-    date.getDate()
-  ).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
 
-function getSnapshotDateKey(
-  value: string | Date
-) {
+function getSnapshotDateKey(value: string | Date) {
   const date = new Date(value);
 
-  const year =
-    date.getUTCFullYear();
+  const year = date.getUTCFullYear();
 
-  const month = String(
-    date.getUTCMonth() + 1
-  ).padStart(2, "0");
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
 
-  const day = String(
-    date.getUTCDate()
-  ).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
-function formatDay(
-  value: string
-) {
-  const [
-    year,
-    month,
-    day,
-  ] = value
-    .split("-")
-    .map(Number);
+function formatDay(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
 
-  return new Intl.DateTimeFormat(
-    "en-US",
-    {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    }
-  ).format(
-    new Date(
-      year,
-      month - 1,
-      day
-    )
-  );
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(year, month - 1, day));
 }
 function SummaryCard({
   label,
@@ -228,9 +164,7 @@ function SummaryCard({
         </p>
 
         {detail ? (
-          <div className="flex flex-wrap items-center gap-2">
-            {detail}
-          </div>
+          <div className="flex flex-wrap items-center gap-2">{detail}</div>
         ) : null}
       </div>
     </div>
@@ -241,361 +175,217 @@ export default function TradesClient({
   positions,
   fundEquitySnapshots,
 }: TradesClientProps) {
-  const [
-    localPositions,
-    setLocalPositions,
-  ] = useState<any[]>(positions);
+  const [localPositions, setLocalPositions] = useState<any[]>(positions);
 
-  const [query, setQuery] =
-    useState("");
+  const [query, setQuery] = useState("");
 
-  const [tradeFilter, setTradeFilter] =
-    useState("ALL");
+  const [tradeFilter, setTradeFilter] = useState("ALL");
 
-  const [
-    editingTrade,
-    setEditingTrade,
-  ] = useState<any | null>(null);
+  const [editingTrade, setEditingTrade] = useState<any | null>(null);
 
-  const [
-    tradeNote,
-    setTradeNote,
-  ] = useState("");
+  const [tradeNote, setTradeNote] = useState("");
 
-  const [
-    isSavingNote,
-    setIsSavingNote,
-  ] = useState(false);
+  const [isSavingNote, setIsSavingNote] = useState(false);
 
-  const [
-    noteError,
-    setNoteError,
-  ] = useState("");
+  const [noteError, setNoteError] = useState("");
 
-  const [
-    confirmDeleteTradeId,
-    setConfirmDeleteTradeId,
-  ] = useState<string | null>(
-    null
-  );
+  const [confirmDeleteTradeId, setConfirmDeleteTradeId] = useState<
+    string | null
+  >(null);
 
-  const [
-    deletingTradeId,
-    setDeletingTradeId,
-  ] = useState<string | null>(
-    null
-  );
+  const [deletingTradeId, setDeletingTradeId] = useState<string | null>(null);
   useEffect(() => {
     if (!confirmDeleteTradeId) {
       return;
     }
 
     const timeout = setTimeout(() => {
-      setConfirmDeleteTradeId(
-        null
-      );
+      setConfirmDeleteTradeId(null);
     }, 5000);
 
-    return () =>
-      clearTimeout(timeout);
+    return () => clearTimeout(timeout);
   }, [confirmDeleteTradeId]);
 
- const allTrades = useMemo<any[]>(
-    () => {
-      return localPositions.flatMap(
-        (position) =>
-          (
-            position.trades || []
-          ).map((trade: any) => ({
-            ...trade,
-            ticker:
-              position.security.ticker,
-            company:
-              position.security.name,
-            side:
-              position.side,
-          }))
-      );
-    },
-    [localPositions]
-  );
+  const allTrades = useMemo<any[]>(() => {
+    return localPositions.flatMap((position) =>
+      (position.trades || []).map((trade: any) => ({
+        ...trade,
+        ticker: position.security.ticker,
+        company: position.security.name,
+        side: position.side,
+      })),
+    );
+  }, [localPositions]);
 
   const filteredTrades = useMemo(() => {
-    return allTrades.filter(
-      (trade) => {
-        const searchable =
-          [
-            trade.ticker,
-            trade.company,
-            trade.tradeType,
-            trade.comment,
-            trade.source,
-            trade.reconciliationStatus,
-            formatSource(
-              trade.source
-            ),
-            formatReconciliationStatus(
-              trade.reconciliationStatus,
-              trade.source
-            ),
-          ]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase();
+    return allTrades.filter((trade) => {
+      const searchable = [
+        trade.ticker,
+        trade.company,
+        trade.tradeType,
+        trade.comment,
+        trade.source,
+        trade.reconciliationStatus,
+        formatSource(trade.source),
+        formatReconciliationStatus(trade.reconciliationStatus, trade.source),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
 
-        const matchesSearch =
-          !query.trim() ||
-          searchable.includes(
-            query.toLowerCase()
-          );
+      const matchesSearch =
+        !query.trim() || searchable.includes(query.toLowerCase());
 
-        const matchesFilter =
-          tradeFilter === "ALL" ||
-          trade.tradeType ===
-            tradeFilter ||
-          (tradeFilter ===
-            "PENDING" &&
-            trade.reconciliationStatus ===
-              "MANUAL_PENDING") ||
-          (tradeFilter === "MANUAL" &&
-            trade.source ===
-              "MANUAL") ||
-          (tradeFilter === "WELLS" &&
-            trade.source ===
-              "WELLS_FARGO");
+      const matchesFilter =
+        tradeFilter === "ALL" ||
+        trade.tradeType === tradeFilter ||
+        (tradeFilter === "PENDING" &&
+          trade.reconciliationStatus === "MANUAL_PENDING") ||
+        (tradeFilter === "MANUAL" && trade.source === "MANUAL") ||
+        (tradeFilter === "WELLS" && trade.source === "WELLS_FARGO");
 
-        return (
-          matchesSearch &&
-          matchesFilter
-        );
-      }
-    );
-  }, [
-    allTrades,
-    query,
-    tradeFilter,
-  ]);
+      return matchesSearch && matchesFilter;
+    });
+  }, [allTrades, query, tradeFilter]);
 
   const groupedTrades = useMemo(() => {
-    const groups = new Map<
-      string,
-      any[]
-    >();
+    const groups = new Map<string, any[]>();
 
     [...filteredTrades]
       .sort(
         (a, b) =>
-          new Date(
-            b.dateTraded
-          ).getTime() -
-          new Date(
-            a.dateTraded
-          ).getTime()
+          new Date(b.dateTraded).getTime() - new Date(a.dateTraded).getTime(),
       )
       .forEach((trade) => {
-       const dateKey =
-        getLocalDateKey(
-          trade.dateTraded
-        );
+        const dateKey = getLocalDateKey(trade.dateTraded);
 
         if (!groups.has(dateKey)) {
           groups.set(dateKey, []);
         }
 
-        groups
-          .get(dateKey)!
-          .push(trade);
+        groups.get(dateKey)!.push(trade);
       });
 
-    return Array.from(
-      groups.entries()
-    );
+    return Array.from(groups.entries());
   }, [filteredTrades]);
 
-  const grossNotional =
-    filteredTrades.reduce(
-      (sum, trade) =>
-        sum +
-        Math.abs(
-          Number(
-            trade.shares || 0
-          ) *
-            Number(
-              trade.avgPrice || 0
-            )
+  const grossNotional = filteredTrades.reduce(
+    (sum, trade) =>
+      sum + Math.abs(Number(trade.shares || 0) * Number(trade.avgPrice || 0)),
+    0,
+  );
+
+  const pendingTradeCount = filteredTrades.filter(
+    (trade) => trade.reconciliationStatus === "MANUAL_PENDING",
+  ).length;
+
+  function updateLocalTrade(tradeId: string, updates: Record<string, unknown>) {
+    setLocalPositions((currentPositions) =>
+      currentPositions.map((position) => ({
+        ...position,
+        trades: (position.trades || []).map((trade: any) =>
+          trade.id === tradeId
+            ? {
+                ...trade,
+                ...updates,
+              }
+            : trade,
         ),
-      0
+      })),
     );
+  }
 
-  const pendingTradeCount =
-    filteredTrades.filter(
-      (trade) =>
-        trade.reconciliationStatus ===
-        "MANUAL_PENDING"
-    ).length;
+  function removeLocalTrade(tradeId: string) {
+    setLocalPositions((currentPositions) =>
+      currentPositions.map((position) => ({
+        ...position,
+        trades: (position.trades || []).filter(
+          (trade: any) => trade.id !== tradeId,
+        ),
+      })),
+    );
+  }
 
-    function updateLocalTrade(
-      tradeId: string,
-      updates: Record<
-        string,
-        unknown
-      >
-    ) {
-      setLocalPositions(
-        (currentPositions) =>
-          currentPositions.map(
-            (position) => ({
-              ...position,
-              trades: (
-                position.trades || []
-              ).map((trade: any) =>
-                trade.id === tradeId
-                  ? {
-                      ...trade,
-                      ...updates,
-                    }
-                  : trade
-              ),
-            })
-          )
-      );
-    }
+  async function handleDeleteTrade(tradeId: string) {
+    try {
+      setDeletingTradeId(tradeId);
 
-    function removeLocalTrade(
-      tradeId: string
-    ) {
-      setLocalPositions(
-        (currentPositions) =>
-          currentPositions.map(
-            (position) => ({
-              ...position,
-              trades: (
-                position.trades || []
-              ).filter(
-                (trade: any) =>
-                  trade.id !== tradeId
-              ),
-            })
-          )
-      );
-    }
+      const response = await fetch(`/api/trades/manual/${tradeId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
 
-    async function handleDeleteTrade(
-      tradeId: string
-    ) {
-      try {
-        setDeletingTradeId(
-          tradeId
-        );
+      const data = await response.json();
 
-        const response = await fetch(
-          `/api/trades/manual/${tradeId}`,
-          {
-            method: "DELETE",
-            credentials: "include",
-          }
-        );
-
-        const data =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.error ||
-              "Failed to delete trade."
-          );
-        }
-
-        removeLocalTrade(
-          tradeId
-        );
-
-        setConfirmDeleteTradeId(
-          null
-        );
-      } catch (error) {
-        window.alert(
-          error instanceof Error
-            ? error.message
-            : "Failed to delete trade."
-        );
-      } finally {
-        setDeletingTradeId(
-          null
-        );
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete trade.");
       }
+
+      removeLocalTrade(tradeId);
+
+      setConfirmDeleteTradeId(null);
+    } catch (error) {
+      window.alert(
+        error instanceof Error ? error.message : "Failed to delete trade.",
+      );
+    } finally {
+      setDeletingTradeId(null);
+    }
+  }
+
+  function handleOpenTradeNote(trade: any) {
+    setEditingTrade(trade);
+
+    setTradeNote(trade.comment || "");
+
+    setNoteError("");
+  }
+
+  async function handleSaveTradeNote() {
+    if (!editingTrade) {
+      return;
     }
 
-    function handleOpenTradeNote(
-      trade: any
-    ) {
-      setEditingTrade(trade);
-
-      setTradeNote(
-        trade.comment || ""
-      );
-
+    try {
+      setIsSavingNote(true);
       setNoteError("");
-    }
 
-    async function handleSaveTradeNote() {
-      if (!editingTrade) {
-        return;
+      const response = await fetch(
+        `/api/trades/manual/${editingTrade.id}/note`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            comment: tradeNote,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to save trade note.");
       }
 
-      try {
-        setIsSavingNote(true);
-        setNoteError("");
+      const updatedComment = tradeNote.trim() || null;
 
-        const response = await fetch(
-          `/api/trades/manual/${editingTrade.id}/note`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            credentials: "include",
-            body: JSON.stringify({
-              comment: tradeNote,
-            }),
-          }
-        );
+      updateLocalTrade(editingTrade.id, {
+        comment: updatedComment,
+      });
 
-        const data =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.error ||
-              "Failed to save trade note."
-          );
-        }
-
-        const updatedComment =
-          tradeNote.trim() || null;
-
-        updateLocalTrade(
-          editingTrade.id,
-          {
-            comment:
-              updatedComment,
-          }
-        );
-
-        setEditingTrade(null);
-        setTradeNote("");
-      } catch (error) {
-        setNoteError(
-          error instanceof Error
-            ? error.message
-            : "Failed to save trade note."
-        );
-      } finally {
-        setIsSavingNote(false);
-      }
+      setEditingTrade(null);
+      setTradeNote("");
+    } catch (error) {
+      setNoteError(
+        error instanceof Error ? error.message : "Failed to save trade note.",
+      );
+    } finally {
+      setIsSavingNote(false);
     }
-
+  }
 
   return (
     <main className="h-screen overflow-hidden bg-slate-100 text-slate-900">
@@ -605,13 +395,9 @@ export default function TradesClient({
         <section className="flex min-w-0 flex-1 flex-col">
           <header className="flex h-20 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
             <div>
-              <p className="text-sm font-medium text-slate-900">
-                Trades
-              </p>
+              <p className="text-sm font-medium text-slate-900">Trades</p>
 
-              <p className="text-xs text-slate-500">
-                Global trade history
-              </p>
+              <p className="text-xs text-slate-500">Global trade history</p>
             </div>
 
             <CurrentUserPill />
@@ -619,45 +405,26 @@ export default function TradesClient({
 
           <div className="overflow-auto p-6">
             <div className="mb-6">
-              <h2 className="text-3xl font-semibold tracking-tight">
-                Trades
-              </h2>
+              <h2 className="text-3xl font-semibold tracking-tight">Trades</h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Global trade history
-                grouped by day.
+                Global trade history grouped by day.
               </p>
             </div>
 
             <div className="mb-6 grid grid-cols-4 gap-4">
-              
               <SummaryCard
                 label="Gross Notional"
-                value={formatMoney(
-                  grossNotional
-                )}
-              />
-              
-            
-
-              <SummaryCard
-                label="Pending Trades"
-                value={
-                  pendingTradeCount
-                }
+                value={formatMoney(grossNotional)}
               />
 
-             
+              <SummaryCard label="Pending Trades" value={pendingTradeCount} />
             </div>
 
             <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-3">
               <input
                 value={query}
-                onChange={(event) =>
-                  setQuery(
-                    event.target.value
-                  )
-                }
+                onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search ticker, company, trade type, note..."
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"
               />
@@ -676,14 +443,9 @@ export default function TradesClient({
               ].map((filter) => (
                 <button
                   key={filter}
-                  onClick={() =>
-                    setTradeFilter(
-                      filter
-                    )
-                  }
+                  onClick={() => setTradeFilter(filter)}
                   className={`rounded-xl px-3 py-2 text-sm ${
-                    tradeFilter ===
-                    filter
+                    tradeFilter === filter
                       ? "bg-slate-900 text-white"
                       : "border border-slate-200 bg-white"
                   }`}
@@ -694,424 +456,268 @@ export default function TradesClient({
             </div>
 
             <div className="space-y-6">
-              {groupedTrades.map(
-                ([date, trades]) => {
-                  const dayNotional =
-                    trades.reduce(
-                      (
-                        sum,
-                        trade
-                      ) =>
-                        sum +
-                        Math.abs(
-                          Number(
-                            trade.shares ||
-                              0
-                          ) *
-                            Number(
-                              trade.avgPrice ||
-                                0
-                            )
-                        ),
-                      0
-                    );
-                  const dayExposureChanges =
-                    trades.reduce(
-                      (
-                        totals,
-                        trade
-                      ) => {
-                        const tradeNotional =
-                          Math.abs(
-                            Number(
-                              trade.shares ?? 0
-                            ) *
-                              Number(
-                                trade.avgPrice ?? 0
-                              )
-                          );
-
-                        if (
-                          trade.tradeType === "BUY"
-                        ) {
-                          totals.longNotional +=
-                            tradeNotional;
-                        } else if (
-                          trade.tradeType === "SELL"
-                        ) {
-                          totals.longNotional -=
-                            tradeNotional;
-                        } else if (
-                          trade.tradeType === "SHORT"
-                        ) {
-                          totals.shortNotional +=
-                            tradeNotional;
-                        } else if (
-                          trade.tradeType === "COVER"
-                        ) {
-                          totals.shortNotional -=
-                            tradeNotional;
-                        }
-
-                        return totals;
-                      },
-                      {
-                        longNotional: 0,
-                        shortNotional: 0,
-                      }
+              {groupedTrades.map(([date, trades]) => {
+                const dayNotional = trades.reduce(
+                  (sum, trade) =>
+                    sum +
+                    Math.abs(
+                      Number(trade.shares || 0) * Number(trade.avgPrice || 0),
+                    ),
+                  0,
+                );
+                const dayExposureChanges = trades.reduce(
+                  (totals, trade) => {
+                    const tradeNotional = Math.abs(
+                      Number(trade.shares ?? 0) * Number(trade.avgPrice ?? 0),
                     );
 
-                  const applicableFundEquity =
-                    fundEquitySnapshots.find(
-                      (snapshot) =>
-                        getSnapshotDateKey(
-                          snapshot.asOfDate
-                        ) <= date
-                    ) ?? null;
+                    if (trade.tradeType === "BUY") {
+                      totals.longNotional += tradeNotional;
+                    } else if (trade.tradeType === "SELL") {
+                      totals.longNotional -= tradeNotional;
+                    } else if (trade.tradeType === "SHORT") {
+                      totals.shortNotional += tradeNotional;
+                    } else if (trade.tradeType === "COVER") {
+                      totals.shortNotional -= tradeNotional;
+                    }
 
-                  const dayNetEquity = Number(
-                    applicableFundEquity
-                      ?.netEquity
-                  );
+                    return totals;
+                  },
+                  {
+                    longNotional: 0,
+                    shortNotional: 0,
+                  },
+                );
 
-                  const hasValidDayNetEquity =
-                    Number.isFinite(
-                      dayNetEquity
-                    ) &&
-                    dayNetEquity > 0;
+                const applicableFundEquity =
+                  fundEquitySnapshots.find(
+                    (snapshot) => getSnapshotDateKey(snapshot.asOfDate) <= date,
+                  ) ?? null;
 
-                  const dayLongExposureBps =
-                    hasValidDayNetEquity
-                      ? (
-                          dayExposureChanges
-                            .longNotional /
-                          dayNetEquity
-                        ) * 10_000
-                      : null;
+                const dayNetEquity = Number(applicableFundEquity?.netEquity);
 
-                  const dayShortExposureBps =
-                    hasValidDayNetEquity
-                      ? (
-                          dayExposureChanges
-                            .shortNotional /
-                          dayNetEquity
-                        ) * 10_000
-                      : null;
-                  const dayPending =
-                    trades.filter(
-                      (
-                        trade
-                      ) =>
-                        trade.reconciliationStatus ===
-                        "MANUAL_PENDING"
-                    ).length;
+                const hasValidDayNetEquity =
+                  Number.isFinite(dayNetEquity) && dayNetEquity > 0;
 
-                  return (
-                    <div
-                      key={date}
-                      className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
-                    >
-                      <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="text-lg font-semibold text-slate-950">
-                              {formatDay(
-                                date
-                              )}
-                            </h3>
+                const dayLongExposureBps = hasValidDayNetEquity
+                  ? (dayExposureChanges.longNotional / dayNetEquity) * 10_000
+                  : null;
 
-                           <p className="mt-1 text-sm text-slate-500">
-                                Trade Count: {trades.length}
-                                {dayPending > 0
-                                    ? ` • ${dayPending} Pending`
-                                    : ""}
-                                </p>
-                          </div>
+                const dayShortExposureBps = hasValidDayNetEquity
+                  ? (dayExposureChanges.shortNotional / dayNetEquity) * 10_000
+                  : null;
+                const dayPending = trades.filter(
+                  (trade) => trade.reconciliationStatus === "MANUAL_PENDING",
+                ).length;
 
-                          <div className="flex items-center gap-5">
-                            <div className="flex flex-wrap items-center justify-end gap-2">
-                              <span
-                                title={
-                                  applicableFundEquity
-                                    ? `Calculated using Net Equity of ${formatMoney(
-                                        dayNetEquity
-                                      )} as of ${formatDay(
-                                        getSnapshotDateKey(
-                                          applicableFundEquity
-                                            .asOfDate
-                                        )
-                                      )}`
-                                    : "No Net Equity snapshot was available on or before this trade date."
-                                }
-                                className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 tabular-nums"
-                              >
-                                Long{" "}
-                                {formatBps(
-                                  dayLongExposureBps
-                                )}
-                              </span>
+                return (
+                  <div
+                    key={date}
+                    className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                  >
+                    <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold text-slate-950">
+                            {formatDay(date)}
+                          </h3>
 
-                              <span
-                                title={
-                                  applicableFundEquity
-                                    ? `Calculated using Net Equity of ${formatMoney(
-                                        dayNetEquity
-                                      )} as of ${formatDay(
-                                        getSnapshotDateKey(
-                                          applicableFundEquity
-                                            .asOfDate
-                                        )
-                                      )}`
-                                    : "No Net Equity snapshot was available on or before this trade date."
-                                }
-                                className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 tabular-nums"
-                              >
-                                Short{" "}
-                                {formatBps(
-                                  dayShortExposureBps
-                                )}
-                              </span>
-                            </div>
-
-                            <div className="text-right">
-                              <p className="text-xs uppercase tracking-wide text-slate-500">
-                                Gross Notional
-                              </p>
-
-                              <p className="text-xl font-semibold text-slate-950 tabular-nums">
-                                {formatMoney(
-                                  dayNotional
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="overflow-x-auto">
-                        <div className="grid grid-cols-[0.8fr_2fr_1.4fr_0.9fr_1fr_1fr_1.2fr_1fr_1.4fr_2.2fr_1.6fr] border-b bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                          <div>
-                            Ticker
-                          </div>
-                          <div>
-                            Company
-                          </div>
-                          <div>
-                            Time
-                          </div>
-                          <div>
-                            Type
-                          </div>
-                          <div>
-                            Shares
-                          </div>
-                          <div>
-                            Avg
-                            Price
-                          </div>
-                          <div>
-                            Notional
-                          </div>
-                          <div>
-                            Source
-                          </div>
-                          <div>
-                            Reconciliation
-                          </div>
-                          <div>
-                            Note
-                          </div>
-                          <div>
-                            Actions
-                          </div>
+                          <p className="mt-1 text-sm text-slate-500">
+                            Trade Count: {trades.length}
+                            {dayPending > 0 ? ` • ${dayPending} Pending` : ""}
+                          </p>
                         </div>
 
-                        {trades.map(
-                          (trade) => (
-                            <div
-                                key={trade.id}
-                                className="grid grid-cols-[0.8fr_2fr_1.4fr_0.9fr_1fr_1fr_1.2fr_1fr_1.4fr_2.2fr_1.6fr] items-center border-b border-slate-100 px-3 py-2 text-xs hover:bg-slate-50"
-                                >
-                              <div className="font-semibold text-slate-950">
-                                {
-                                  trade.ticker
-                                }
-                              </div>
+                        <div className="flex items-center gap-5">
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            <span
+                              title={
+                                applicableFundEquity
+                                  ? `Calculated using Net Equity of ${formatMoney(
+                                      dayNetEquity,
+                                    )} as of ${formatDay(
+                                      getSnapshotDateKey(
+                                        applicableFundEquity.asOfDate,
+                                      ),
+                                    )}`
+                                  : "No Net Equity snapshot was available on or before this trade date."
+                              }
+                              className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 tabular-nums"
+                            >
+                              Long {formatBps(dayLongExposureBps)}
+                            </span>
 
-                              <div className="truncate text-slate-700">
-                                {
-                                  trade.company
-                                }
-                              </div>
+                            <span
+                              title={
+                                applicableFundEquity
+                                  ? `Calculated using Net Equity of ${formatMoney(
+                                      dayNetEquity,
+                                    )} as of ${formatDay(
+                                      getSnapshotDateKey(
+                                        applicableFundEquity.asOfDate,
+                                      ),
+                                    )}`
+                                  : "No Net Equity snapshot was available on or before this trade date."
+                              }
+                              className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 tabular-nums"
+                            >
+                              Short {formatBps(dayShortExposureBps)}
+                            </span>
+                          </div>
 
-                              <div>
-                                <LocalDateTime
-                                  value={
-                                    trade.dateTraded
-                                  }
-                                />
-                              </div>
+                          <div className="text-right">
+                            <p className="text-xs uppercase tracking-wide text-slate-500">
+                              Gross Notional
+                            </p>
 
-                              <div>
-                                <Badge
-                                  tone={
-                                    trade.tradeType ===
-                                      "BUY" ||
-                                    trade.tradeType ===
-                                      "SHORT"
-                                      ? "green"
-                                      : "red"
-                                  }
-                                >
-                                  {
-                                    trade.tradeType
-                                  }
-                                </Badge>
-                              </div>
-
-                              <div>
-                                {Number(
-                                  trade.shares ||
-                                    0
-                                ).toLocaleString()}
-                              </div>
-
-                              <div>
-                                {formatMoney(
-                                  Number(
-                                    trade.avgPrice ||
-                                      0
-                                  )
-                                )}
-                              </div>
-
-                              <div>
-                                {formatMoney(
-                                  Number(
-                                    trade.shares ||
-                                      0
-                                  ) *
-                                    Number(
-                                      trade.avgPrice ||
-                                        0
-                                    )
-                                )}
-                              </div>
-
-                              <div>
-                                <Badge
-                                  tone={
-                                    sourceTone(
-                                      trade.source
-                                    ) as any
-                                  }
-                                >
-                                  {formatSource(
-                                    trade.source
-                                  )}
-                                </Badge>
-                              </div>
-
-                              <div>
-                                <Badge
-                                  tone={
-                                    reconciliationTone(
-                                      trade.reconciliationStatus,
-                                      trade.source
-                                    ) as any
-                                  }
-                                >
-                                  {formatReconciliationStatus(
-                                    trade.reconciliationStatus,
-                                    trade.source
-                                  )}
-                                </Badge>
-                              </div>
-
-                             <div
-                                title={
-                                  trade.comment || ""
-                                }
-                                className="truncate text-slate-500"
-                              >
-                                {trade.comment || "—"}
-                              </div>
-
-                              <div className="flex items-center gap-1">
-                                {trade.source ===
-                                  "MANUAL" &&
-                                trade.reconciliationStatus ===
-                                  "MANUAL_PENDING" ? (
-                                  <>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleOpenTradeNote(
-                                          trade
-                                        )
-                                      }
-                                      className="rounded-xl bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700 hover:bg-blue-100"
-                                    >
-                                      {trade.comment
-                                        ? "Edit Note"
-                                        : "Add Note"}
-                                    </button>
-
-                                    {deletingTradeId ===
-                                    trade.id ? (
-                                      <span className="text-[11px] font-semibold text-slate-500">
-                                        Deleting...
-                                      </span>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          if (
-                                            confirmDeleteTradeId ===
-                                            trade.id
-                                          ) {
-                                            handleDeleteTrade(
-                                              trade.id
-                                            );
-
-                                            return;
-                                          }
-
-                                          setConfirmDeleteTradeId(
-                                            trade.id
-                                          );
-                                        }}
-                                        className={`inline-flex min-h-7 items-center justify-center rounded-xl px-2 py-1 text-[11px] font-medium ${
-                                          confirmDeleteTradeId ===
-                                          trade.id
-                                            ? "bg-rose-600 text-white hover:bg-rose-700"
-                                            : "text-rose-600 hover:bg-rose-50"
-                                        }`}
-                                      >
-                                        {confirmDeleteTradeId ===
-                                        trade.id
-                                          ? "Confirm"
-                                          : "Delete"}
-                                      </button>
-                                    )}
-                                  </>
-                                ) : (
-                                  <span className="text-slate-400">
-                                    —
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          )
-                        )}
+                            <p className="text-xl font-semibold text-slate-950 tabular-nums">
+                              {formatMoney(dayNotional)}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  );
-                }
-              )}
+
+                    <div className="overflow-x-auto">
+                      <div className="grid grid-cols-[0.8fr_2fr_1.4fr_0.9fr_1fr_1fr_1.2fr_1fr_1.4fr_2.2fr_1.6fr] border-b bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        <div>Ticker</div>
+                        <div>Company</div>
+                        <div>Time</div>
+                        <div>Type</div>
+                        <div>Shares</div>
+                        <div>Avg Price</div>
+                        <div>Notional</div>
+                        <div>Source</div>
+                        <div>Reconciliation</div>
+                        <div>Note</div>
+                        <div>Actions</div>
+                      </div>
+
+                      {trades.map((trade) => (
+                        <div
+                          key={trade.id}
+                          className="grid grid-cols-[0.8fr_2fr_1.4fr_0.9fr_1fr_1fr_1.2fr_1fr_1.4fr_2.2fr_1.6fr] items-center border-b border-slate-100 px-3 py-2 text-xs hover:bg-slate-50"
+                        >
+                          <div className="font-semibold text-slate-950">
+                            {trade.ticker}
+                          </div>
+
+                          <div className="truncate text-slate-700">
+                            {trade.company}
+                          </div>
+
+                          <div>
+                            <LocalDateTime value={trade.dateTraded} />
+                          </div>
+
+                          <div>
+                            <Badge
+                              tone={
+                                trade.tradeType === "BUY" ||
+                                trade.tradeType === "SHORT"
+                                  ? "green"
+                                  : "red"
+                              }
+                            >
+                              {trade.tradeType}
+                            </Badge>
+                          </div>
+
+                          <div>
+                            {Number(trade.shares || 0).toLocaleString()}
+                          </div>
+
+                          <div>{formatMoney(Number(trade.avgPrice || 0))}</div>
+
+                          <div>
+                            {formatMoney(
+                              Number(trade.shares || 0) *
+                                Number(trade.avgPrice || 0),
+                            )}
+                          </div>
+
+                          <div>
+                            <Badge tone={sourceTone(trade.source) as any}>
+                              {formatSource(trade.source)}
+                            </Badge>
+                          </div>
+
+                          <div>
+                            <Badge
+                              tone={
+                                reconciliationTone(
+                                  trade.reconciliationStatus,
+                                  trade.source,
+                                ) as any
+                              }
+                            >
+                              {formatReconciliationStatus(
+                                trade.reconciliationStatus,
+                                trade.source,
+                              )}
+                            </Badge>
+                          </div>
+
+                          <div
+                            title={trade.comment || ""}
+                            className="truncate text-slate-500"
+                          >
+                            {trade.comment || "—"}
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            {trade.source === "MANUAL" &&
+                            trade.reconciliationStatus === "MANUAL_PENDING" ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenTradeNote(trade)}
+                                  className="rounded-xl bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700 hover:bg-blue-100"
+                                >
+                                  {trade.comment ? "Edit Note" : "Add Note"}
+                                </button>
+
+                                {deletingTradeId === trade.id ? (
+                                  <span className="text-[11px] font-semibold text-slate-500">
+                                    Deleting...
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (confirmDeleteTradeId === trade.id) {
+                                        handleDeleteTrade(trade.id);
+
+                                        return;
+                                      }
+
+                                      setConfirmDeleteTradeId(trade.id);
+                                    }}
+                                    className={`inline-flex min-h-7 items-center justify-center rounded-xl px-2 py-1 text-[11px] font-medium ${
+                                      confirmDeleteTradeId === trade.id
+                                        ? "bg-rose-600 text-white hover:bg-rose-700"
+                                        : "text-rose-600 hover:bg-rose-50"
+                                    }`}
+                                  >
+                                    {confirmDeleteTradeId === trade.id
+                                      ? "Confirm"
+                                      : "Delete"}
+                                  </button>
+                                )}
+                              </>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-                </section>
+        </section>
       </div>
 
       {editingTrade ? (
@@ -1120,22 +726,13 @@ export default function TradesClient({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-lg font-semibold text-slate-950">
-                  {editingTrade.comment
-                    ? "Edit Trade Note"
-                    : "Add Trade Note"}
+                  {editingTrade.comment ? "Edit Trade Note" : "Add Trade Note"}
                 </h3>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  {editingTrade.ticker}{" "}
-                  •{" "}
-                  {editingTrade.tradeType}{" "}
-                  •{" "}
-                  {Math.abs(
-                    Number(
-                      editingTrade.shares
-                    ) || 0
-                  ).toLocaleString(
-                    "en-US"
+                  {editingTrade.ticker} • {editingTrade.tradeType} •{" "}
+                  {Math.abs(Number(editingTrade.shares) || 0).toLocaleString(
+                    "en-US",
                   )}{" "}
                   shares
                 </p>
@@ -1144,21 +741,15 @@ export default function TradesClient({
               <button
                 type="button"
                 onClick={() => {
-                  if (
-                    isSavingNote
-                  ) {
+                  if (isSavingNote) {
                     return;
                   }
 
-                  setEditingTrade(
-                    null
-                  );
+                  setEditingTrade(null);
 
                   setNoteError("");
                 }}
-                disabled={
-                  isSavingNote
-                }
+                disabled={isSavingNote}
                 className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 ✕
@@ -1167,11 +758,7 @@ export default function TradesClient({
 
             <textarea
               value={tradeNote}
-              onChange={(event) =>
-                setTradeNote(
-                  event.target.value
-                )
-              }
+              onChange={(event) => setTradeNote(event.target.value)}
               disabled={isSavingNote}
               className="mt-4 h-32 w-full resize-none rounded-2xl border border-slate-200 p-4 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
               placeholder="Enter trade note..."
@@ -1187,15 +774,11 @@ export default function TradesClient({
               <button
                 type="button"
                 onClick={() => {
-                  setEditingTrade(
-                    null
-                  );
+                  setEditingTrade(null);
 
                   setNoteError("");
                 }}
-                disabled={
-                  isSavingNote
-                }
+                disabled={isSavingNote}
                 className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Cancel
@@ -1203,17 +786,11 @@ export default function TradesClient({
 
               <button
                 type="button"
-                onClick={
-                  handleSaveTradeNote
-                }
-                disabled={
-                  isSavingNote
-                }
+                onClick={handleSaveTradeNote}
+                disabled={isSavingNote}
                 className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSavingNote
-                  ? "Saving..."
-                  : "Save Note"}
+                {isSavingNote ? "Saving..." : "Save Note"}
               </button>
             </div>
           </div>

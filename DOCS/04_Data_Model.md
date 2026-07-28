@@ -1,4 +1,3 @@
-
 Data Model Overview
 Main Entities
 
@@ -14,7 +13,7 @@ Main Entities
 - IngestionRun
 - AuditLog
 - Attachment
-Relationship Summary
+  Relationship Summary
 
 Security has many Positions.
 Security has many Trades.
@@ -27,7 +26,6 @@ Position has many Flags.
 WatchlistEntry has many Comments.
 WatchlistEntry has many Flags.
 User creates Comments, Flags, WatchlistEntries, and AuditLogs.
-
 
 Critical Modeling Decision
 Do not model comments only by ticker string. Comments should attach to stable database IDs such as security_id, position_id, or watchlist_entry_id.

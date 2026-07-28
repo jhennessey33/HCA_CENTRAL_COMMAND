@@ -1,6 +1,5 @@
 "use client";
 
-
 import CurrentUserPill from "@/components/auth/CurrentUserPill";
 
 import TradeCalculatorWorkspace from "@/components/trade-calculator/TradeCalculatorWorkspace";
@@ -19,13 +18,8 @@ type TradeCalculatorClientProps = {
   fundEquitySnapshots: FundEquitySnapshot[];
 };
 
-function formatMoney(
-  value: number | null | undefined
-) {
-  if (
-    value == null ||
-    !Number.isFinite(value)
-  ) {
+function formatMoney(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
     return "—";
   }
 
@@ -41,50 +35,37 @@ export default function TradeCalculatorClient({
   grossPortfolioMarketValue,
   fundEquitySnapshots,
 }: TradeCalculatorClientProps) {
-  const activePositionCount =
-    initialSecurities.reduce(
-      (total, security) =>
-        total +
-        (Array.isArray(security.positions)
-          ? security.positions.length
-          : 0),
-      0
-    );
+  const activePositionCount = initialSecurities.reduce(
+    (total, security) =>
+      total +
+      (Array.isArray(security.positions) ? security.positions.length : 0),
+    0,
+  );
 
-  const securitiesWithPositions =
-    initialSecurities.filter(
-      (security) =>
-        Array.isArray(security.positions) &&
-        security.positions.length > 0
-    ).length;
+  const securitiesWithPositions = initialSecurities.filter(
+    (security) =>
+      Array.isArray(security.positions) && security.positions.length > 0,
+  ).length;
 
-  const pendingManualTradeCount =
-    initialSecurities.reduce(
-      (securityTotal, security) => {
-        const positions = Array.isArray(
-          security.positions
+  const pendingManualTradeCount = initialSecurities.reduce(
+    (securityTotal, security) => {
+      const positions = Array.isArray(security.positions)
+        ? security.positions
+        : [];
+
+      return (
+        securityTotal +
+        positions.reduce(
+          (positionTotal: number, position: any) =>
+            positionTotal +
+            (Array.isArray(position.trades) ? position.trades.length : 0),
+          0,
         )
-          ? security.positions
-          : [];
+      );
+    },
+    0,
+  );
 
-        return (
-          securityTotal +
-          positions.reduce(
-            (
-              positionTotal: number,
-              position: any
-            ) =>
-              positionTotal +
-              (Array.isArray(position.trades)
-                ? position.trades.length
-                : 0),
-            0
-          )
-        );
-      },
-      0
-    );
-   
   return (
     <main className="h-screen overflow-hidden bg-slate-100 text-slate-900">
       <div className="flex h-full">
@@ -97,14 +78,10 @@ export default function TradeCalculatorClient({
                 Trade Calculator
               </p>
 
-              <p className="text-xs text-slate-500">
-                Potential trade analysis
-              </p>
+              <p className="text-xs text-slate-500">Potential trade analysis</p>
             </div>
 
             <div className="ml-4 flex items-center gap-3">
-             
-
               <CurrentUserPill />
             </div>
           </header>
@@ -117,26 +94,18 @@ export default function TradeCalculatorClient({
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Model position sizing, portfolio
-                  impact, and risk without changing
-                  HCA records.
+                  Model position sizing, portfolio impact, and risk without
+                  changing HCA records.
                 </p>
               </div>
 
-              <div className="grid grid-cols-4 gap-4">
-                
-            </div>
+              <div className="grid grid-cols-4 gap-4"></div>
 
               <TradeCalculatorWorkspace
                 securities={initialSecurities}
-                grossPortfolioMarketValue={
-                  grossPortfolioMarketValue
-                }
-                fundEquitySnapshots={
-                  fundEquitySnapshots
-                }
+                grossPortfolioMarketValue={grossPortfolioMarketValue}
+                fundEquitySnapshots={fundEquitySnapshots}
               />
-
             </div>
           </div>
         </section>

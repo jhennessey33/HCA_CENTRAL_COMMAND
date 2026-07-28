@@ -26,13 +26,13 @@ async function main() {
 
   if (!email) {
     throw new Error(
-      "Missing required --email argument. Example: node scripts/add-user.js --email=test@example.com --name=\"Test User\" --role=ADMIN"
+      'Missing required --email argument. Example: node scripts/add-user.js --email=test@example.com --name="Test User" --role=ADMIN',
     );
   }
 
   if (!VALID_ROLES.has(role)) {
     throw new Error(
-      `Invalid role "${role}". Valid roles: ${Array.from(VALID_ROLES).join(", ")}`
+      `Invalid role "${role}". Valid roles: ${Array.from(VALID_ROLES).join(", ")}`,
     );
   }
 

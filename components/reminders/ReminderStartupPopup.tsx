@@ -6,14 +6,11 @@ import Badge from "@/components/common/Badge";
 import LocalDateTime from "@/components/common/LocalDateTime";
 import { canCreateFlags } from "@/lib/client-permissions";
 
-const SESSION_STORAGE_KEY =
-  "hca-reminder-summary-shown";
+const SESSION_STORAGE_KEY = "hca-reminder-summary-shown";
 
-const PT_ALERTS_PRESENTED_KEY =
-  "hca-pt-alerts-presented";
+const PT_ALERTS_PRESENTED_KEY = "hca-pt-alerts-presented";
 
-const SUMMARY_POLL_INTERVAL_MS =
-  60 * 1000;
+const SUMMARY_POLL_INTERVAL_MS = 60 * 1000;
 
 type Reminder = {
   id: string;
@@ -21,22 +18,12 @@ type Reminder = {
   description: string | null;
   priority: string;
   status: string;
-  reminderAt:
-  | string
-  | null;
-  metadataJson:
-  | string
-  | null;
+  reminderAt: string | null;
+  metadataJson: string | null;
   createdAt: string;
-  securityId:
-  | string
-  | null;
-  positionId:
-  | string
-  | null;
-  watchlistEntryId:
-  | string
-  | null;
+  securityId: string | null;
+  positionId: string | null;
+  watchlistEntryId: string | null;
   security: {
     id: string;
     ticker: string;
@@ -56,133 +43,81 @@ function priorityTone(priority: string) {
   return "slate";
 }
 
-function isPtProximityAlert(
-  reminder: Reminder
-) {
-  return (
-    reminder.flagType ===
-    "PT Proximity Alert"
-  );
+function isPtProximityAlert(reminder: Reminder) {
+  return reminder.flagType === "PT Proximity Alert";
 }
 
-function parseReminderMetadata(
-  reminder: Reminder
-) {
+function parseReminderMetadata(reminder: Reminder) {
   if (!reminder.metadataJson) {
     return null;
   }
 
   try {
-    return JSON.parse(
-      reminder.metadataJson
-    );
+    return JSON.parse(reminder.metadataJson);
   } catch {
     return null;
   }
 }
 
-function formatPtPrice(
-  value: unknown
-) {
-  if (
-    value === null ||
-    value === undefined ||
-    value === ""
-  ) {
+function formatPtPrice(value: unknown) {
+  if (value === null || value === undefined || value === "") {
     return "—";
   }
 
-  const numericValue =
-    Number(value);
+  const numericValue = Number(value);
 
-  if (
-    !Number.isFinite(
-      numericValue
-    )
-  ) {
+  if (!Number.isFinite(numericValue)) {
     return "—";
   }
 
-  return numericValue.toLocaleString(
-    "en-US",
-    {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }
-  );
+  return numericValue.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
-function formatPtDistance(
-  value: unknown
-) {
-  if (
-    value === null ||
-    value === undefined ||
-    value === ""
-  ) {
+function formatPtDistance(value: unknown) {
+  if (value === null || value === undefined || value === "") {
     return "—";
   }
 
-  const numericValue =
-    Number(value);
+  const numericValue = Number(value);
 
-  if (
-    !Number.isFinite(
-      numericValue
-    )
-  ) {
+  if (!Number.isFinite(numericValue)) {
     return "—";
   }
 
-  return `${numericValue.toFixed(
-    2
-  )}%`;
+  return `${numericValue.toFixed(2)}%`;
 }
 
 function getPresentedPtAlertIds() {
-  const storedValue =
-    window.sessionStorage.getItem(
-      PT_ALERTS_PRESENTED_KEY
-    );
+  const storedValue = window.sessionStorage.getItem(PT_ALERTS_PRESENTED_KEY);
 
   if (!storedValue) {
     return new Set<string>();
   }
 
   try {
-    const parsedValue =
-      JSON.parse(storedValue);
+    const parsedValue = JSON.parse(storedValue);
 
-    if (
-      !Array.isArray(
-        parsedValue
-      )
-    ) {
+    if (!Array.isArray(parsedValue)) {
       return new Set<string>();
     }
 
     return new Set(
-      parsedValue.filter(
-        (value): value is string =>
-          typeof value ===
-          "string"
-      )
+      parsedValue.filter((value): value is string => typeof value === "string"),
     );
   } catch {
     return new Set<string>();
   }
 }
 
-function storePresentedPtAlertIds(
-  alertIds: Set<string>
-) {
+function storePresentedPtAlertIds(alertIds: Set<string>) {
   window.sessionStorage.setItem(
     PT_ALERTS_PRESENTED_KEY,
-    JSON.stringify(
-      Array.from(alertIds)
-    )
+    JSON.stringify(Array.from(alertIds)),
   );
 }
 
@@ -214,20 +149,15 @@ function ReminderList({
     green: "border-emerald-200 bg-emerald-50 text-emerald-700",
   };
 
-
   return (
     <section>
       <div
         className={`flex items-center justify-between rounded-2xl border px-4 py-3 ${toneClasses[tone]}`}
       >
         <div>
-          <h3 className="text-sm font-semibold">
-            {title}
-          </h3>
+          <h3 className="text-sm font-semibold">{title}</h3>
 
-          <p className="mt-0.5 text-xs opacity-80">
-            {description}
-          </p>
+          <p className="mt-0.5 text-xs opacity-80">{description}</p>
         </div>
 
         <span className="flex h-8 min-w-8 items-center justify-center rounded-full bg-white px-2 text-sm font-bold shadow-sm">
@@ -248,16 +178,12 @@ function ReminderList({
                     {reminder.security?.ticker || "General"}
                   </span>
 
-                  <Badge tone="blue">
-                    {reminder.flagType}
-                  </Badge>
+                  <Badge tone="blue">{reminder.flagType}</Badge>
 
                   <Badge
                     tone={
                       priorityTone(reminder.priority) as
-                      | "red"
-                      | "amber"
-                      | "slate"
+                        "red" | "amber" | "slate"
                     }
                   >
                     {reminder.priority}
@@ -265,17 +191,14 @@ function ReminderList({
                 </div>
 
                 <p className="mt-2 text-sm leading-6 text-slate-700">
-                  {reminder.description ||
-                    `${reminder.flagType} item`}
+                  {reminder.description || `${reminder.flagType} item`}
                 </p>
 
                 {reminder.reminderAt ? (
                   <p className="mt-2 text-xs font-semibold text-violet-700">
                     Due{" "}
                     <LocalDateTime
-                      value={
-                        reminder.reminderAt
-                      }
+                      value={reminder.reminderAt}
                       className="text-xs font-semibold text-violet-700"
                     />
                   </p>
@@ -289,9 +212,7 @@ function ReminderList({
                   disabled={resolvingId === reminder.id}
                   className="shrink-0 rounded-xl bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {resolvingId === reminder.id
-                    ? "Resolving..."
-                    : "Resolve"}
+                  {resolvingId === reminder.id ? "Resolving..." : "Resolve"}
                 </button>
               ) : (
                 <span className="shrink-0 rounded-xl bg-slate-100 px-3 py-2 text-xs font-medium text-slate-400">
@@ -317,16 +238,10 @@ function PtAlertList({
   alerts: Reminder[];
   canResolve: boolean;
   resolvingId: string | null;
-  confirmingResolveId:
-  | string
-  | null;
-  onBeginResolve: (
-    alertId: string
-  ) => void;
+  confirmingResolveId: string | null;
+  onBeginResolve: (alertId: string) => void;
   onCancelResolve: () => void;
-  onConfirmResolve: (
-    alert: Reminder
-  ) => Promise<void>;
+  onConfirmResolve: (alert: Reminder) => Promise<void>;
 }) {
   if (!alerts.length) {
     return null;
@@ -336,13 +251,10 @@ function PtAlertList({
     <section>
       <div className="flex items-center justify-between rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-violet-700">
         <div>
-          <h3 className="text-sm font-semibold">
-            PT Alerts
-          </h3>
+          <h3 className="text-sm font-semibold">PT Alerts</h3>
 
           <p className="mt-0.5 text-xs opacity-80">
-            Securities within 2% of a
-            monitored price target
+            Securities within 2% of a monitored price target
           </p>
         </div>
 
@@ -353,15 +265,10 @@ function PtAlertList({
 
       <div className="mt-2 space-y-2">
         {alerts.map((alert) => {
-          const metadata =
-            parseReminderMetadata(
-              alert
-            );
+          const metadata = parseReminderMetadata(alert);
 
           const ticker =
-            alert.security?.ticker ||
-            metadata?.ticker ||
-            "Unknown";
+            alert.security?.ticker || metadata?.ticker || "Unknown";
 
           return (
             <div
@@ -375,23 +282,16 @@ function PtAlertList({
                       {ticker}
                     </span>
 
-                    <Badge tone="blue">
-                      PT Alert
-                    </Badge>
+                    <Badge tone="blue">PT Alert</Badge>
 
                     <Badge tone="amber">
-                      {metadata?.targetLabel ||
-                        "Price Target"}
+                      {metadata?.targetLabel || "Price Target"}
                     </Badge>
 
                     <Badge
                       tone={
-                        priorityTone(
-                          alert.priority
-                        ) as
-                        | "red"
-                        | "amber"
-                        | "slate"
+                        priorityTone(alert.priority) as
+                          "red" | "amber" | "slate"
                       }
                     >
                       {alert.priority}
@@ -410,22 +310,17 @@ function PtAlertList({
                       </p>
 
                       <p className="mt-1 font-semibold text-slate-950 tabular-nums">
-                        {formatPtPrice(
-                          metadata?.currentPrice
-                        )}
+                        {formatPtPrice(metadata?.currentPrice)}
                       </p>
                     </div>
 
                     <div className="rounded-xl bg-violet-50 p-3">
                       <p className="font-medium uppercase tracking-wide text-slate-500">
-                        {metadata?.targetLabel ||
-                          "Target"}
+                        {metadata?.targetLabel || "Target"}
                       </p>
 
                       <p className="mt-1 font-semibold text-slate-950 tabular-nums">
-                        {formatPtPrice(
-                          metadata?.targetPrice
-                        )}
+                        {formatPtPrice(metadata?.targetPrice)}
                       </p>
                     </div>
 
@@ -435,9 +330,7 @@ function PtAlertList({
                       </p>
 
                       <p className="mt-1 font-semibold text-violet-700 tabular-nums">
-                        {formatPtDistance(
-                          metadata?.distancePercent
-                        )}
+                        {formatPtDistance(metadata?.distancePercent)}
                       </p>
                     </div>
                   </div>
@@ -446,24 +339,20 @@ function PtAlertList({
                     Price as of{" "}
                     {metadata?.marketDataAsOf ? (
                       <LocalDateTime
-                        value={
-                          metadata.marketDataAsOf
-                        }
+                        value={metadata.marketDataAsOf}
                         className="text-xs text-slate-500"
                       />
                     ) : (
                       "—"
                     )}
                     {" • "}
-                    {metadata?.marketDataSource ||
-                      "Unknown source"}
+                    {metadata?.marketDataSource || "Unknown source"}
                   </p>
                 </div>
 
                 {canResolve ? (
                   <div className="shrink-0">
-                    {resolvingId ===
-                      alert.id ? (
+                    {resolvingId === alert.id ? (
                       <button
                         type="button"
                         disabled
@@ -471,16 +360,11 @@ function PtAlertList({
                       >
                         Resolving...
                       </button>
-                    ) : confirmingResolveId ===
-                      alert.id ? (
+                    ) : confirmingResolveId === alert.id ? (
                       <div className="flex flex-col gap-2">
                         <button
                           type="button"
-                          onClick={() =>
-                            void onConfirmResolve(
-                              alert
-                            )
-                          }
+                          onClick={() => void onConfirmResolve(alert)}
                           className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700"
                         >
                           Confirm Resolve
@@ -488,9 +372,7 @@ function PtAlertList({
 
                         <button
                           type="button"
-                          onClick={
-                            onCancelResolve
-                          }
+                          onClick={onCancelResolve}
                           className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
                         >
                           Cancel
@@ -499,11 +381,7 @@ function PtAlertList({
                     ) : (
                       <button
                         type="button"
-                        onClick={() =>
-                          onBeginResolve(
-                            alert.id
-                          )
-                        }
+                        onClick={() => onBeginResolve(alert.id)}
                         className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800"
                       >
                         Resolve
@@ -526,26 +404,17 @@ function PtAlertList({
 export default function ReminderStartupPopup() {
   const router = useRouter();
 
-  const [reminders, setReminders] = useState<Reminder[]>(
-    []
-  );
+  const [reminders, setReminders] = useState<Reminder[]>([]);
 
-  const [currentUser, setCurrentUser] = useState<any | null>(
-    null
-  );
+  const [currentUser, setCurrentUser] = useState<any | null>(null);
 
   const [isOpen, setIsOpen] = useState(false);
 
-  const [resolvingId, setResolvingId] = useState<
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+
+  const [confirmingPtResolveId, setConfirmingPtResolveId] = useState<
     string | null
   >(null);
-
-  const [
-    confirmingPtResolveId,
-    setConfirmingPtResolveId,
-  ] = useState<string | null>(
-    null
-  );
 
   const [error, setError] = useState("");
 
@@ -555,13 +424,10 @@ export default function ReminderStartupPopup() {
     }
 
     const timeout = setTimeout(() => {
-      setConfirmingPtResolveId(
-        null
-      );
+      setConfirmingPtResolveId(null);
     }, 5000);
 
-    return () =>
-      clearTimeout(timeout);
+    return () => clearTimeout(timeout);
   }, [confirmingPtResolveId]);
 
   useEffect(() => {
@@ -578,130 +444,78 @@ export default function ReminderStartupPopup() {
         const through = new Date(
           now.getFullYear(),
           now.getMonth(),
-          now.getDate() + 8
+          now.getDate() + 8,
         );
 
-        const summaryUrl =
-          `/api/reminders/summary?through=${encodeURIComponent(
-            through.toISOString()
-          )}`;
+        const summaryUrl = `/api/reminders/summary?through=${encodeURIComponent(
+          through.toISOString(),
+        )}`;
 
-        const [summaryResponse, userResponse] =
-          await Promise.all([
-            fetch(summaryUrl, {
-              credentials:
-                "include",
-              cache: "no-store",
-            }),
-            fetch("/api/auth/me", {
-              credentials:
-                "include",
-              cache: "no-store",
-            }),
-          ]);
+        const [summaryResponse, userResponse] = await Promise.all([
+          fetch(summaryUrl, {
+            credentials: "include",
+            cache: "no-store",
+          }),
+          fetch("/api/auth/me", {
+            credentials: "include",
+            cache: "no-store",
+          }),
+        ]);
 
-        if (
-          summaryResponse.status ===
-          401 ||
-          userResponse.status === 401
-        ) {
+        if (summaryResponse.status === 401 || userResponse.status === 401) {
           return;
         }
 
-        const summaryData =
-          await summaryResponse.json();
+        const summaryData = await summaryResponse.json();
 
-        const userData =
-          await userResponse.json();
+        const userData = await userResponse.json();
 
         if (!summaryResponse.ok) {
-          throw new Error(
-            summaryData.error ||
-            "Failed to load reminders."
-          );
+          throw new Error(summaryData.error || "Failed to load reminders.");
         }
 
         if (!userResponse.ok) {
-          throw new Error(
-            userData.error ||
-            "Failed to load the current user."
-          );
+          throw new Error(userData.error || "Failed to load the current user.");
         }
 
         if (isCancelled) {
           return;
         }
 
-        const loadedReminders:
-          Reminder[] =
-          Array.isArray(
-            summaryData.reminders
-          )
-            ? summaryData.reminders
-            : [];
+        const loadedReminders: Reminder[] = Array.isArray(summaryData.reminders)
+          ? summaryData.reminders
+          : [];
 
-        setCurrentUser(
-          userData.user
+        setCurrentUser(userData.user);
+
+        setReminders(loadedReminders);
+
+        const loadedPtAlerts = loadedReminders.filter(isPtProximityAlert);
+
+        const presentedPtAlertIds = getPresentedPtAlertIds();
+
+        const unseenPtAlerts = loadedPtAlerts.filter(
+          (alert) => !presentedPtAlertIds.has(alert.id),
         );
 
-        setReminders(
-          loadedReminders
-        );
-
-        const loadedPtAlerts =
-          loadedReminders.filter(
-            isPtProximityAlert
-          );
-
-        const presentedPtAlertIds =
-          getPresentedPtAlertIds();
-
-        const unseenPtAlerts =
-          loadedPtAlerts.filter(
-            (alert) =>
-              !presentedPtAlertIds.has(
-                alert.id
-              )
-          );
-
-        if (
-          unseenPtAlerts.length >
-          0
-        ) {
-          for (
-            const alert
-            of unseenPtAlerts
-          ) {
-            presentedPtAlertIds.add(
-              alert.id
-            );
+        if (unseenPtAlerts.length > 0) {
+          for (const alert of unseenPtAlerts) {
+            presentedPtAlertIds.add(alert.id);
           }
 
-          storePresentedPtAlertIds(
-            presentedPtAlertIds
-          );
+          storePresentedPtAlertIds(presentedPtAlertIds);
 
           setIsOpen(true);
         }
 
         if (isInitialLoad) {
           const hasShownStartupSummary =
-            window.sessionStorage.getItem(
-              SESSION_STORAGE_KEY
-            );
+            window.sessionStorage.getItem(SESSION_STORAGE_KEY);
 
-          if (
-            !hasShownStartupSummary
-          ) {
-            window.sessionStorage.setItem(
-              SESSION_STORAGE_KEY,
-              "true"
-            );
+          if (!hasShownStartupSummary) {
+            window.sessionStorage.setItem(SESSION_STORAGE_KEY, "true");
 
-            if (
-              loadedReminders.length >
-              0
-            ) {
+            if (loadedReminders.length > 0) {
               setIsOpen(true);
             }
           }
@@ -711,10 +525,7 @@ export default function ReminderStartupPopup() {
           return;
         }
 
-        console.error(
-          "Failed to load startup reminders",
-          loadError
-        );
+        console.error("Failed to load startup reminders", loadError);
       }
     }
 
@@ -722,14 +533,11 @@ export default function ReminderStartupPopup() {
       isInitialLoad: true,
     });
 
-    const interval = setInterval(
-      () => {
-        void loadReminderSummary({
-          isInitialLoad: false,
-        });
-      },
-      SUMMARY_POLL_INTERVAL_MS
-    );
+    const interval = setInterval(() => {
+      void loadReminderSummary({
+        isInitialLoad: false,
+      });
+    }, SUMMARY_POLL_INTERVAL_MS);
 
     return () => {
       isCancelled = true;
@@ -744,92 +552,67 @@ export default function ReminderStartupPopup() {
     const startOfToday = new Date(
       now.getFullYear(),
       now.getMonth(),
-      now.getDate()
+      now.getDate(),
     );
 
     const startOfTomorrow = new Date(
       now.getFullYear(),
       now.getMonth(),
-      now.getDate() + 1
+      now.getDate() + 1,
     );
 
     const endOfUpcomingWindow = new Date(
       now.getFullYear(),
       now.getMonth(),
-      now.getDate() + 8
+      now.getDate() + 8,
     );
-    const ptAlerts =
-      reminders.filter(
-        isPtProximityAlert
-      );
+    const ptAlerts = reminders.filter(isPtProximityAlert);
     const overdue = reminders.filter((reminder) => {
       if (
-        reminder.flagType ===
-        "Agenda" ||
-        isPtProximityAlert(
-          reminder
-        ) ||
+        reminder.flagType === "Agenda" ||
+        isPtProximityAlert(reminder) ||
         !reminder.reminderAt
       ) {
         return false;
       }
 
-      const reminderDate = new Date(
-        reminder.reminderAt
-      );
+      const reminderDate = new Date(reminder.reminderAt);
 
       return reminderDate < startOfToday;
     });
 
+    const today = reminders.filter((reminder) => {
+      if (
+        reminder.flagType === "Agenda" ||
+        isPtProximityAlert(reminder) ||
+        !reminder.reminderAt
+      ) {
+        return false;
+      }
 
-    const today = reminders.filter(
-      (reminder) => {
-        if (
-          reminder.flagType ===
-          "Agenda" ||
-          isPtProximityAlert(
-            reminder
-          ) ||
-          !reminder.reminderAt
-        ) {
-          return false;
-        }
+      const reminderDate = new Date(reminder.reminderAt);
 
-        const reminderDate = new Date(
-          reminder.reminderAt
-        );
+      return reminderDate >= startOfToday && reminderDate < startOfTomorrow;
+    });
 
-        return (
-          reminderDate >= startOfToday &&
-          reminderDate < startOfTomorrow
-        );
-      });
+    const upcoming = reminders.filter((reminder) => {
+      if (
+        reminder.flagType === "Agenda" ||
+        isPtProximityAlert(reminder) ||
+        !reminder.reminderAt
+      ) {
+        return false;
+      }
 
-    const upcoming = reminders.filter(
-      (reminder) => {
-        if (
-          reminder.flagType ===
-          "Agenda" ||
-          isPtProximityAlert(
-            reminder
-          ) ||
-          !reminder.reminderAt
-        ) {
-          return false;
-        }
+      const reminderDate = new Date(reminder.reminderAt);
 
-        const reminderDate = new Date(
-          reminder.reminderAt
-        );
-
-        return (
-          reminderDate >= startOfTomorrow &&
-          reminderDate < endOfUpcomingWindow
-        );
-      });
+      return (
+        reminderDate >= startOfTomorrow && reminderDate < endOfUpcomingWindow
+      );
+    });
 
     const agenda = reminders.filter(
-      (reminder) => reminder.flagType === "Agenda"
+      (reminder) => reminder.flagType === "Agenda",
     );
 
     return {
@@ -839,36 +622,23 @@ export default function ReminderStartupPopup() {
       upcoming,
       agenda,
     };
-
   }, [reminders]);
 
-  const userCanResolve = canCreateFlags(
-    currentUser?.role
-  );
+  const userCanResolve = canCreateFlags(currentUser?.role);
 
   async function handleResolve(reminder: Reminder) {
-    if (
-      reminder.id ===
-      "UPLOAD_WELLS_FILES"
-    ) {
+    if (reminder.id === "UPLOAD_WELLS_FILES") {
       setIsOpen(false);
 
       router.push("/settings");
 
       return;
     }
-    const isPtAlert =
-      isPtProximityAlert(
-        reminder
-      );
-    const contextLabel =
-      reminder.security?.ticker || "General";
+    const isPtAlert = isPtProximityAlert(reminder);
+    const contextLabel = reminder.security?.ticker || "General";
 
     if (!isPtAlert) {
-      const confirmed =
-        window.confirm(
-          `Resolve reminder for ${contextLabel}?`
-        );
+      const confirmed = window.confirm(`Resolve reminder for ${contextLabel}?`);
 
       if (!confirmed) {
         return;
@@ -879,31 +649,22 @@ export default function ReminderStartupPopup() {
     setResolvingId(reminder.id);
 
     try {
-      const response = await fetch(
-        `/api/flags/${reminder.id}/resolve`,
-        {
-          method: "POST",
-          credentials: "include",
-        }
-      );
+      const response = await fetch(`/api/flags/${reminder.id}/resolve`, {
+        method: "POST",
+        credentials: "include",
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error ||
-          "Failed to resolve reminder."
-        );
+        throw new Error(data.error || "Failed to resolve reminder.");
       }
-      setConfirmingPtResolveId(
-        null
-      );
+      setConfirmingPtResolveId(null);
 
       setReminders((currentReminders) => {
-        const nextReminders =
-          currentReminders.filter(
-            (item) => item.id !== reminder.id
-          );
+        const nextReminders = currentReminders.filter(
+          (item) => item.id !== reminder.id,
+        );
 
         if (nextReminders.length === 0) {
           setIsOpen(false);
@@ -915,7 +676,7 @@ export default function ReminderStartupPopup() {
       setError(
         resolveError instanceof Error
           ? resolveError.message
-          : "Failed to resolve reminder."
+          : "Failed to resolve reminder.",
       );
     } finally {
       setResolvingId(null);
@@ -947,7 +708,8 @@ export default function ReminderStartupPopup() {
             </h2>
 
             <p className="mt-1 text-sm leading-6 text-slate-500">
-              Open PT alerts, reminders, and agenda items that require attention.
+              Open PT alerts, reminders, and agenda items that require
+              attention.
             </p>
           </div>
 
@@ -962,33 +724,13 @@ export default function ReminderStartupPopup() {
 
         <div className="flex-1 space-y-5 overflow-auto p-6">
           <PtAlertList
-            alerts={
-              groupedReminders.ptAlerts
-            }
-            canResolve={
-              userCanResolve
-            }
-            resolvingId={
-              resolvingId
-            }
-            confirmingResolveId={
-              confirmingPtResolveId
-            }
-            onBeginResolve={(
-              alertId
-            ) =>
-              setConfirmingPtResolveId(
-                alertId
-              )
-            }
-            onCancelResolve={() =>
-              setConfirmingPtResolveId(
-                null
-              )
-            }
-            onConfirmResolve={
-              handleResolve
-            }
+            alerts={groupedReminders.ptAlerts}
+            canResolve={userCanResolve}
+            resolvingId={resolvingId}
+            confirmingResolveId={confirmingPtResolveId}
+            onBeginResolve={(alertId) => setConfirmingPtResolveId(alertId)}
+            onCancelResolve={() => setConfirmingPtResolveId(null)}
+            onConfirmResolve={handleResolve}
           />
           <ReminderList
             title="Overdue"

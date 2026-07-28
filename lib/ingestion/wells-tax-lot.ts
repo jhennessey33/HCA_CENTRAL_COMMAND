@@ -21,7 +21,6 @@ export type WellsTaxLotPosition = {
   ingestionRunId?: string;
 };
 
-
 export type WellsTaxLot = {
   accountNumber: string;
   ticker: string;
@@ -43,14 +42,12 @@ export type WellsTaxLot = {
   sourceRowHash: string;
 };
 
-
 export type WellsTaxLotParseResult = {
   rows: WellsTaxLotPosition[];
   positions: WellsTaxLotPosition[];
   taxLots: WellsTaxLot[];
   failures: string[];
 };
-
 
 type NormalizedCsvRow = Record<string, string>;
 
@@ -118,7 +115,7 @@ function hashRow(row: NormalizedCsvRow): string {
 
 export function parseWellsTaxLotCsv(
   content: string,
-  sourceFileName: string
+  sourceFileName: string,
 ): WellsTaxLotParseResult {
   const records = parseCsv(content, {
     columns: true,
@@ -165,7 +162,7 @@ export function parseWellsTaxLotCsv(
     const marketValue = parseNumber(getValue(row, "ReportingMarketValue"));
     const costBasis = parseNumber(getValue(row, "ReportingCost"));
     const unrealizedPriceGainLoss = parseNumber(
-      getValue(row, "ReportingUnrealizedPriceGainLoss")
+      getValue(row, "ReportingUnrealizedPriceGainLoss"),
     );
     const unrealizedFxGainLoss =
       parseNumber(getValue(row, "ReportingUnrealizedFXGainLoss")) ?? 0;
@@ -196,8 +193,7 @@ export function parseWellsTaxLotCsv(
     const validUnrealizedPriceGainLoss: number = unrealizedPriceGainLoss;
 
     const unrealizedPnl = validUnrealizedPriceGainLoss + unrealizedFxGainLoss;
-    const wap =
-      validShares !== 0 ? Math.abs(validCostBasis / validShares) : 0;
+    const wap = validShares !== 0 ? Math.abs(validCostBasis / validShares) : 0;
 
     const taxLotId = getValue(row, "TaxLotID") || undefined;
     const unitCost =
@@ -293,7 +289,6 @@ export function parseWellsTaxLotCsv(
         rowHashes: [rowHash],
       });
     }
-
   }
 
   const positions: WellsTaxLotPosition[] = Array.from(grouped.values()).map(
@@ -306,7 +301,10 @@ export function parseWellsTaxLotCsv(
       marketValue: position.marketValue,
       costBasis: position.costBasis,
       unrealizedPnl: position.unrealizedPnl,
-      wap: position.shares !== 0 ? Math.abs(position.costBasis / position.shares) : 0,
+      wap:
+        position.shares !== 0
+          ? Math.abs(position.costBasis / position.shares)
+          : 0,
       side: position.shares < 0 ? "SHORT" : "LONG",
       openedAt: position.openedAt,
       status: "ACTIVE",
@@ -314,17 +312,15 @@ export function parseWellsTaxLotCsv(
       sourceReportDate: position.sourceReportDate,
       sourceFileName: position.sourceFileName,
       sourceRowHash: hashString(
-        `${sourceFileName}|${position.rowHashes.sort().join("|")}`
+        `${sourceFileName}|${position.rowHashes.sort().join("|")}`,
       ),
-    })
+    }),
   );
 
- 
   return {
     rows,
     positions,
     taxLots,
     failures,
   };
-
 }

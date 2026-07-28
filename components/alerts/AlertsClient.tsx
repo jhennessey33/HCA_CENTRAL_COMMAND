@@ -30,13 +30,8 @@ function getContextLabel(flag: any) {
   return "General";
 }
 
-function isPtProximityAlert(
-  flag: any
-) {
-  return (
-    flag.flagType ===
-    "PT Proximity Alert"
-  );
+function isPtProximityAlert(flag: any) {
+  return flag.flagType === "PT Proximity Alert";
 }
 
 function parseFlagMetadata(flag: any) {
@@ -61,74 +56,38 @@ function formatDateTime(value: string | Date | null | undefined) {
   }).format(new Date(value));
 }
 
-function formatPtPrice(
-  value: unknown
-) {
-  const numericValue =
-    Number(value);
+function formatPtPrice(value: unknown) {
+  const numericValue = Number(value);
 
-  if (
-    !Number.isFinite(
-      numericValue
-    )
-  ) {
+  if (!Number.isFinite(numericValue)) {
     return "—";
   }
 
-  return numericValue.toLocaleString(
-    "en-US",
-    {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }
-  );
+  return numericValue.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
-function formatPtDistance(
-  value: unknown
-) {
-  const numericValue =
-    Number(value);
+function formatPtDistance(value: unknown) {
+  const numericValue = Number(value);
 
-  if (
-    !Number.isFinite(
-      numericValue
-    )
-  ) {
+  if (!Number.isFinite(numericValue)) {
     return "—";
   }
 
-  return `${numericValue.toFixed(
-    2
-  )}%`;
+  return `${numericValue.toFixed(2)}%`;
 }
 
-function getPtContextLabel(
-  flag: any,
-  metadata: any
-) {
-  if (
-    metadata?.context ===
-    "WATCHLIST" ||
-    flag.watchlistEntryId
-  ) {
-    return metadata?.side ===
-      "SHORT"
-      ? "Short Watchlist"
-      : "Long Watchlist";
+function getPtContextLabel(flag: any, metadata: any) {
+  if (metadata?.context === "WATCHLIST" || flag.watchlistEntryId) {
+    return metadata?.side === "SHORT" ? "Short Watchlist" : "Long Watchlist";
   }
 
-  if (
-    metadata?.context ===
-    "POSITION" ||
-    flag.positionId
-  ) {
-    return metadata?.side ===
-      "SHORT"
-      ? "Short Position"
-      : "Long Position";
+  if (metadata?.context === "POSITION" || flag.positionId) {
+    return metadata?.side === "SHORT" ? "Short Position" : "Long Position";
   }
 
   return "Security";
@@ -196,16 +155,15 @@ function AlertCard({
               {flag.priority}
             </Badge>
 
-            <Badge tone={statusTone(flag.status) as any}>
-              {flag.status}
-            </Badge>
+            <Badge tone={statusTone(flag.status) as any}>{flag.status}</Badge>
 
             <Badge>{getContextLabel(flag)}</Badge>
           </div>
 
           <p className="mt-1 text-sm text-slate-600">
             {flag.description ||
-              `${flag.flagType} alert for ${flag.security?.ticker || "General"
+              `${flag.flagType} alert for ${
+                flag.security?.ticker || "General"
               }.`}
           </p>
           {flag.reminderAt ? (
@@ -223,8 +181,7 @@ function AlertCard({
               value={flag.createdAt}
               className="text-xs text-slate-400"
             />{" "}
-            by{" "}
-            {flag.createdBy?.name || flag.createdBy?.email || "Unknown"}
+            by {flag.createdBy?.name || flag.createdBy?.email || "Unknown"}
           </p>
         </div>
       </div>
@@ -295,25 +252,15 @@ function TradeReconciliationAlertCard({
   onKeepManual: (flagId: string) => Promise<void>;
   canResolve: boolean;
 }) {
+  const metadata = parseFlagMetadata(flag);
 
-  const metadata =
-    parseFlagMetadata(flag);
+  const differences = metadata?.differences || {};
 
-  const differences =
-    metadata?.differences || {};
+  const isResolved = flag.status === "RESOLVED";
 
-  const isResolved =
-    flag.status === "RESOLVED";
+  const [confirmingResolve, setConfirmingResolve] = useState(false);
 
-  const [
-    confirmingResolve,
-    setConfirmingResolve,
-  ] = useState(false);
-
-  const [
-    isResolving,
-    setIsResolving,
-  ] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
 
   useEffect(() => {
     if (!confirmingResolve) {
@@ -324,8 +271,7 @@ function TradeReconciliationAlertCard({
       setConfirmingResolve(false);
     }, 5000);
 
-    return () =>
-      clearTimeout(timeout);
+    return () => clearTimeout(timeout);
   }, [confirmingResolve]);
 
   async function handleConfirmResolve() {
@@ -349,15 +295,14 @@ function TradeReconciliationAlertCard({
               {flag.priority}
             </Badge>
 
-            <Badge tone={statusTone(flag.status) as any}>
-              {flag.status}
-            </Badge>
+            <Badge tone={statusTone(flag.status) as any}>{flag.status}</Badge>
 
             <Badge>{getContextLabel(flag)}</Badge>
           </div>
 
           <h3 className="mt-3 text-lg font-semibold text-slate-950">
-            {flag.security?.ticker || metadata?.ticker || "N/A"} trade needs review
+            {flag.security?.ticker || metadata?.ticker || "N/A"} trade needs
+            review
           </h3>
 
           <p className="mt-1 text-sm leading-6 text-slate-700">
@@ -410,9 +355,7 @@ function TradeReconciliationAlertCard({
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={
-                    handleConfirmResolve
-                  }
+                  onClick={handleConfirmResolve}
                   className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700"
                 >
                   Confirm Resolve Only
@@ -420,11 +363,7 @@ function TradeReconciliationAlertCard({
 
                 <button
                   type="button"
-                  onClick={() =>
-                    setConfirmingResolve(
-                      false
-                    )
-                  }
+                  onClick={() => setConfirmingResolve(false)}
                   className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
                 >
                   Cancel
@@ -433,9 +372,7 @@ function TradeReconciliationAlertCard({
             ) : (
               <button
                 type="button"
-                onClick={() =>
-                  setConfirmingResolve(true)
-                }
+                onClick={() => setConfirmingResolve(true)}
                 className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
               >
                 Resolve Only
@@ -455,20 +392,14 @@ function TradeReconciliationAlertCard({
       <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
         <div className="rounded-2xl bg-white p-4 ring-1 ring-amber-100">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {Number(
-              differences.partialCandidateCount
-            ) > 1
+            {Number(differences.partialCandidateCount) > 1
               ? "Selected Manual Candidate"
               : "Manual Trade"}
           </p>
-          {Number(
-            differences.partialCandidateCount
-          ) > 1 ? (
+          {Number(differences.partialCandidateCount) > 1 ? (
             <p className="mt-1 text-xs font-medium text-amber-700">
-              {
-                differences.partialCandidateCount
-              }{" "}
-              manual trades qualify for review
+              {differences.partialCandidateCount} manual trades qualify for
+              review
             </p>
           ) : null}
           <div className="mt-3 space-y-2 text-slate-700">
@@ -541,28 +472,16 @@ function PtProximityAlertCard({
   canResolve,
 }: {
   flag: any;
-  onResolve: (
-    flagId: string
-  ) => Promise<void>;
+  onResolve: (flagId: string) => Promise<void>;
   canResolve: boolean;
 }) {
-  const metadata =
-    parseFlagMetadata(flag);
+  const metadata = parseFlagMetadata(flag);
 
-  const [
-    confirmingResolve,
-    setConfirmingResolve,
-  ] = useState(false);
+  const [confirmingResolve, setConfirmingResolve] = useState(false);
 
-  const [
-    isResolving,
-    setIsResolving,
-  ] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
 
-  const [
-    resolveError,
-    setResolveError,
-  ] = useState("");
+  const [resolveError, setResolveError] = useState("");
 
   useEffect(() => {
     if (!confirmingResolve) {
@@ -573,8 +492,7 @@ function PtProximityAlertCard({
       setConfirmingResolve(false);
     }, 5000);
 
-    return () =>
-      clearTimeout(timeout);
+    return () => clearTimeout(timeout);
   }, [confirmingResolve]);
 
   async function handleConfirmResolve() {
@@ -582,14 +500,10 @@ function PtProximityAlertCard({
       setIsResolving(true);
       setResolveError("");
 
-      await onResolve(
-        flag.id
-      );
+      await onResolve(flag.id);
     } catch (error) {
       setResolveError(
-        error instanceof Error
-          ? error.message
-          : "Failed to resolve PT alert."
+        error instanceof Error ? error.message : "Failed to resolve PT alert.",
       );
     } finally {
       setIsResolving(false);
@@ -602,40 +516,22 @@ function PtProximityAlertCard({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone="blue">
-              PT Alert
-            </Badge>
+            <Badge tone="blue">PT Alert</Badge>
 
             <Badge tone="amber">
-              {metadata?.targetLabel ||
-                "Price Target"}
+              {metadata?.targetLabel || "Price Target"}
             </Badge>
 
-            <Badge>
-              {getPtContextLabel(
-                flag,
-                metadata
-              )}
-            </Badge>
+            <Badge>{getPtContextLabel(flag, metadata)}</Badge>
 
-            <Badge
-              tone={
-                priorityTone(
-                  flag.priority
-                ) as any
-              }
-            >
+            <Badge tone={priorityTone(flag.priority) as any}>
               {flag.priority}
             </Badge>
           </div>
 
           <h3 className="mt-3 text-lg font-semibold text-slate-950">
-            {flag.security?.ticker ||
-              metadata?.ticker ||
-              "Unknown Security"}{" "}
-            is approaching its{" "}
-            {metadata?.targetLabel ||
-              "price target"}
+            {flag.security?.ticker || metadata?.ticker || "Unknown Security"} is
+            approaching its {metadata?.targetLabel || "price target"}
           </h3>
 
           <p className="mt-1 text-sm leading-6 text-slate-700">
@@ -646,9 +542,7 @@ function PtProximityAlertCard({
           <p className="mt-2 text-xs text-slate-500">
             Alert created{" "}
             <LocalDateTime
-              value={
-                flag.createdAt
-              }
+              value={flag.createdAt}
               className="text-xs text-slate-500"
             />
           </p>
@@ -668,9 +562,7 @@ function PtProximityAlertCard({
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={
-                    handleConfirmResolve
-                  }
+                  onClick={handleConfirmResolve}
                   className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
                 >
                   Confirm Resolve
@@ -678,11 +570,7 @@ function PtProximityAlertCard({
 
                 <button
                   type="button"
-                  onClick={() =>
-                    setConfirmingResolve(
-                      false
-                    )
-                  }
+                  onClick={() => setConfirmingResolve(false)}
                   className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
                 >
                   Cancel
@@ -691,11 +579,7 @@ function PtProximityAlertCard({
             ) : (
               <button
                 type="button"
-                onClick={() =>
-                  setConfirmingResolve(
-                    true
-                  )
-                }
+                onClick={() => setConfirmingResolve(true)}
                 className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
               >
                 Resolve
@@ -720,22 +604,17 @@ function PtProximityAlertCard({
           </p>
 
           <p className="mt-2 text-lg font-semibold text-slate-950 tabular-nums">
-            {formatPtPrice(
-              metadata?.currentPrice
-            )}
+            {formatPtPrice(metadata?.currentPrice)}
           </p>
         </div>
 
         <div className="rounded-2xl bg-white p-4 ring-1 ring-violet-100">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {metadata?.targetLabel ||
-              "Target Price"}
+            {metadata?.targetLabel || "Target Price"}
           </p>
 
           <p className="mt-2 text-lg font-semibold text-slate-950 tabular-nums">
-            {formatPtPrice(
-              metadata?.targetPrice
-            )}
+            {formatPtPrice(metadata?.targetPrice)}
           </p>
         </div>
 
@@ -745,9 +624,7 @@ function PtProximityAlertCard({
           </p>
 
           <p className="mt-2 text-lg font-semibold text-violet-700 tabular-nums">
-            {formatPtDistance(
-              metadata?.distancePercent
-            )}
+            {formatPtDistance(metadata?.distancePercent)}
           </p>
         </div>
 
@@ -757,10 +634,7 @@ function PtProximityAlertCard({
           </p>
 
           <p className="mt-2 text-lg font-semibold text-slate-950 tabular-nums">
-            Within{" "}
-            {formatPtDistance(
-              metadata?.triggerPercent
-            )}
+            Within {formatPtDistance(metadata?.triggerPercent)}
           </p>
         </div>
       </div>
@@ -775,8 +649,7 @@ function PtProximityAlertCard({
             <p>
               Source:{" "}
               <span className="font-semibold text-slate-950">
-                {metadata?.marketDataSource ||
-                  "Unknown"}
+                {metadata?.marketDataSource || "Unknown"}
               </span>
             </p>
 
@@ -784,9 +657,7 @@ function PtProximityAlertCard({
               Price As Of:{" "}
               <span className="font-semibold text-slate-950">
                 {metadata?.marketDataAsOf
-                  ? formatDateTime(
-                    metadata.marketDataAsOf
-                  )
+                  ? formatDateTime(metadata.marketDataAsOf)
                   : "—"}
               </span>
             </p>
@@ -802,16 +673,14 @@ function PtProximityAlertCard({
             <p>
               Side:{" "}
               <span className="font-semibold text-slate-950">
-                {metadata?.side ||
-                  "—"}
+                {metadata?.side || "—"}
               </span>
             </p>
 
             <p>
               Target Kind:{" "}
               <span className="font-semibold text-slate-950">
-                {metadata?.targetKind ||
-                  "—"}
+                {metadata?.targetKind || "—"}
               </span>
             </p>
           </div>
@@ -854,13 +723,9 @@ function AlertGroup({
         className={`flex items-center justify-between rounded-2xl border px-4 py-3 ${toneClasses[tone]}`}
       >
         <div>
-          <h3 className="text-sm font-semibold">
-            {title}
-          </h3>
+          <h3 className="text-sm font-semibold">{title}</h3>
 
-          <p className="mt-0.5 text-xs opacity-80">
-            {description}
-          </p>
+          <p className="mt-0.5 text-xs opacity-80">{description}</p>
         </div>
 
         <span className="flex h-8 min-w-8 items-center justify-center rounded-full bg-white px-2 text-sm font-bold shadow-sm">
@@ -868,9 +733,7 @@ function AlertGroup({
         </span>
       </div>
 
-      <div className="space-y-3">
-        {children}
-      </div>
+      <div className="space-y-3">{children}</div>
     </section>
   );
 }
@@ -892,8 +755,9 @@ function CreateFlagModal({
   }) => Promise<void>;
   securities: any[];
 }) {
-  const [associationType, setAssociationType] =
-    useState<"GENERAL" | "SECURITY">("GENERAL");
+  const [associationType, setAssociationType] = useState<
+    "GENERAL" | "SECURITY"
+  >("GENERAL");
 
   const [securityId, setSecurityId] = useState("");
   const [flagType, setFlagType] = useState("REMINDER");
@@ -920,32 +784,22 @@ function CreateFlagModal({
     "Custom",
   ];
 
-  const normalizedSecurityQuery =
-    securityQuery.trim().toLowerCase();
+  const normalizedSecurityQuery = securityQuery.trim().toLowerCase();
 
-  const filteredSecurities = securities.filter(
-    (security) => {
-      if (!normalizedSecurityQuery) {
-        return true;
-      }
-
-      const searchable = [
-        security.ticker,
-        security.name,
-        security.sector,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return searchable.includes(
-        normalizedSecurityQuery
-      );
+  const filteredSecurities = securities.filter((security) => {
+    if (!normalizedSecurityQuery) {
+      return true;
     }
-  );
 
-  const isReminder =
-    flagType.trim().toUpperCase() === "REMINDER";
+    const searchable = [security.ticker, security.name, security.sector]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return searchable.includes(normalizedSecurityQuery);
+  });
+
+  const isReminder = flagType.trim().toUpperCase() === "REMINDER";
 
   function resetForm() {
     setAssociationType("GENERAL");
@@ -970,10 +824,7 @@ function CreateFlagModal({
   async function handleSave() {
     setError("");
 
-    if (
-      associationType === "SECURITY" &&
-      !securityId
-    ) {
+    if (associationType === "SECURITY" && !securityId) {
       setError("Please select a Security.");
       return;
     }
@@ -984,16 +835,12 @@ function CreateFlagModal({
     }
 
     if (isReminder && !description.trim()) {
-      setError(
-        "A description is required for reminders."
-      );
+      setError("A description is required for reminders.");
       return;
     }
 
     if (isReminder && !reminderAt) {
-      setError(
-        "A reminder date and time are required."
-      );
+      setError("A reminder date and time are required.");
       return;
     }
 
@@ -1002,27 +849,19 @@ function CreateFlagModal({
     if (reminderAt) {
       const parsedReminderAt = new Date(reminderAt);
 
-      if (
-        Number.isNaN(parsedReminderAt.getTime())
-      ) {
-        setError(
-          "Enter a valid reminder date and time."
-        );
+      if (Number.isNaN(parsedReminderAt.getTime())) {
+        setError("Enter a valid reminder date and time.");
         return;
       }
 
-      serializedReminderAt =
-        parsedReminderAt.toISOString();
+      serializedReminderAt = parsedReminderAt.toISOString();
     }
 
     setIsSaving(true);
 
     try {
       await onSave({
-        securityId:
-          associationType === "SECURITY"
-            ? securityId
-            : null,
+        securityId: associationType === "SECURITY" ? securityId : null,
         flagType,
         priority,
         description,
@@ -1033,9 +872,7 @@ function CreateFlagModal({
       onClose();
     } catch (error) {
       setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to create flag."
+        error instanceof Error ? error.message : "Failed to create flag.",
       );
     } finally {
       setIsSaving(false);
@@ -1056,8 +893,7 @@ function CreateFlagModal({
             </h2>
 
             <p className="mt-1 text-sm leading-6 text-slate-500">
-              Create a General operational item or
-              associate it with a Security.
+              Create a General operational item or associate it with a Security.
             </p>
           </div>
 
@@ -1087,10 +923,11 @@ function CreateFlagModal({
                   setError("");
                 }}
                 disabled={isSaving}
-                className={`rounded-2xl px-4 py-3 text-sm font-medium transition ${associationType === "GENERAL"
+                className={`rounded-2xl px-4 py-3 text-sm font-medium transition ${
+                  associationType === "GENERAL"
                     ? "bg-slate-900 text-white"
                     : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                  }`}
+                }`}
               >
                 General
               </button>
@@ -1102,10 +939,11 @@ function CreateFlagModal({
                   setError("");
                 }}
                 disabled={isSaving}
-                className={`rounded-2xl px-4 py-3 text-sm font-medium transition ${associationType === "SECURITY"
+                className={`rounded-2xl px-4 py-3 text-sm font-medium transition ${
+                  associationType === "SECURITY"
                     ? "bg-slate-900 text-white"
                     : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                  }`}
+                }`}
               >
                 Security
               </button>
@@ -1126,9 +964,7 @@ function CreateFlagModal({
 
               <input
                 value={securityQuery}
-                onChange={(event) =>
-                  setSecurityQuery(event.target.value)
-                }
+                onChange={(event) => setSecurityQuery(event.target.value)}
                 disabled={isSaving}
                 className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
                 placeholder="Search ticker, company, or sector..."
@@ -1136,31 +972,20 @@ function CreateFlagModal({
 
               <select
                 value={securityId}
-                onChange={(event) =>
-                  setSecurityId(event.target.value)
-                }
+                onChange={(event) => setSecurityId(event.target.value)}
                 disabled={isSaving}
                 className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
               >
-                <option value="">
-                  Select a Security
-                </option>
+                <option value="">Select a Security</option>
 
-                {filteredSecurities.map(
-                  (security) => (
-                    <option
-                      key={security.id}
-                      value={security.id}
-                    >
-                      {security.ticker} —{" "}
-                      {security.name}
-                    </option>
-                  )
-                )}
+                {filteredSecurities.map((security) => (
+                  <option key={security.id} value={security.id}>
+                    {security.ticker} — {security.name}
+                  </option>
+                ))}
               </select>
 
-              {normalizedSecurityQuery &&
-                !filteredSecurities.length ? (
+              {normalizedSecurityQuery && !filteredSecurities.length ? (
                 <p className="mt-2 text-xs font-medium text-amber-700">
                   No Securities matched the search.
                 </p>
@@ -1184,9 +1009,7 @@ function CreateFlagModal({
             >
               {flagTypes.map((type) => (
                 <option key={type} value={type}>
-                  {type === "REMINDER"
-                    ? "Reminder"
-                    : type}
+                  {type === "REMINDER" ? "Reminder" : type}
                 </option>
               ))}
             </select>
@@ -1199,16 +1022,12 @@ function CreateFlagModal({
 
             <select
               value={priority}
-              onChange={(event) =>
-                setPriority(event.target.value)
-              }
+              onChange={(event) => setPriority(event.target.value)}
               disabled={isSaving}
               className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
             >
               <option value="LOW">Low</option>
-              <option value="MEDIUM">
-                Medium
-              </option>
+              <option value="MEDIUM">Medium</option>
               <option value="HIGH">High</option>
             </select>
           </div>
@@ -1217,21 +1036,15 @@ function CreateFlagModal({
             <label className="text-sm font-medium text-slate-700">
               Date and Time{" "}
               {isReminder ? (
-                <span className="text-rose-600">
-                  *
-                </span>
+                <span className="text-rose-600">*</span>
               ) : (
-                <span className="font-normal text-slate-400">
-                  — Optional
-                </span>
+                <span className="font-normal text-slate-400">— Optional</span>
               )}
             </label>
 
             <input
               value={reminderAt}
-              onChange={(event) =>
-                setReminderAt(event.target.value)
-              }
+              onChange={(event) => setReminderAt(event.target.value)}
               type="datetime-local"
               required={isReminder}
               disabled={isSaving}
@@ -1248,18 +1061,12 @@ function CreateFlagModal({
           <div>
             <label className="text-sm font-medium text-slate-700">
               Description{" "}
-              {isReminder ? (
-                <span className="text-rose-600">
-                  *
-                </span>
-              ) : null}
+              {isReminder ? <span className="text-rose-600">*</span> : null}
             </label>
 
             <textarea
               value={description}
-              onChange={(event) =>
-                setDescription(event.target.value)
-              }
+              onChange={(event) => setDescription(event.target.value)}
               disabled={isSaving}
               className="mt-2 h-28 w-full resize-none rounded-2xl border border-slate-200 p-4 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
               placeholder={
@@ -1352,23 +1159,20 @@ export default function AlertsClient({
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(
-        data.error || "Failed to create flag."
-      );
+      throw new Error(data.error || "Failed to create flag.");
     }
 
     setFlags((currentFlags) => [
       data.flag,
-      ...currentFlags.filter(
-        (flag) => flag.id !== data.flag.id
-      ),
+      ...currentFlags.filter((flag) => flag.id !== data.flag.id),
     ]);
   }
   const filteredFlags = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
     const sortedFlags = [...flags].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
 
     if (!normalizedQuery) return sortedFlags;
@@ -1379,9 +1183,7 @@ export default function AlertsClient({
         flag.security?.name,
         flag.security ? null : "General",
         flag.metadataJson,
-        isPtProximityAlert(flag)
-          ? "PT Alert Price Target Proximity"
-          : null,
+        isPtProximityAlert(flag) ? "PT Alert Price Target Proximity" : null,
         flag.flagType,
         flag.description,
         flag.priority,
@@ -1399,114 +1201,80 @@ export default function AlertsClient({
     });
   }, [flags, query]);
 
-  const openFlags = flags.filter(
-    (flag) => flag.status === "OPEN"
-  );
+  const openFlags = flags.filter((flag) => flag.status === "OPEN");
 
-  const highPriority = flags.filter(
-    (flag) => flag.priority === "HIGH"
-  );
+  const highPriority = flags.filter((flag) => flag.priority === "HIGH");
 
-  const userCanResolveFlags =
-    canCreateFlags(currentUser?.role);
+  const userCanResolveFlags = canCreateFlags(currentUser?.role);
 
   const now = new Date();
 
   const startOfToday = new Date(
     now.getFullYear(),
     now.getMonth(),
-    now.getDate()
+    now.getDate(),
   );
 
   const startOfTomorrow = new Date(
     now.getFullYear(),
     now.getMonth(),
-    now.getDate() + 1
+    now.getDate() + 1,
   );
 
   const endOfUpcomingWindow = new Date(
     now.getFullYear(),
     now.getMonth(),
-    now.getDate() + 8
+    now.getDate() + 8,
   );
 
-  const overdueFlags = filteredFlags.filter(
-    (flag) => {
-      if (!flag.reminderAt) return false;
+  const overdueFlags = filteredFlags.filter((flag) => {
+    if (!flag.reminderAt) return false;
 
-      const reminderDate = new Date(
-        flag.reminderAt
-      );
+    const reminderDate = new Date(flag.reminderAt);
 
-      return reminderDate < startOfToday;
-    }
-  );
+    return reminderDate < startOfToday;
+  });
 
-  const todayFlags = filteredFlags.filter(
-    (flag) => {
-      if (!flag.reminderAt) return false;
+  const todayFlags = filteredFlags.filter((flag) => {
+    if (!flag.reminderAt) return false;
 
-      const reminderDate = new Date(
-        flag.reminderAt
-      );
+    const reminderDate = new Date(flag.reminderAt);
 
-      return (
-        reminderDate >= startOfToday &&
-        reminderDate < startOfTomorrow
-      );
-    }
-  );
+    return reminderDate >= startOfToday && reminderDate < startOfTomorrow;
+  });
 
-  const upcomingFlags = filteredFlags.filter(
-    (flag) => {
-      if (!flag.reminderAt) return false;
+  const upcomingFlags = filteredFlags.filter((flag) => {
+    if (!flag.reminderAt) return false;
 
-      const reminderDate = new Date(
-        flag.reminderAt
-      );
+    const reminderDate = new Date(flag.reminderAt);
 
-      return (
-        reminderDate >= startOfTomorrow &&
-        reminderDate < endOfUpcomingWindow
-      );
-    }
-  );
-
-  const laterFlags = filteredFlags.filter(
-    (flag) => {
-      if (!flag.reminderAt) return false;
-
-      const reminderDate = new Date(
-        flag.reminderAt
-      );
-
-      return reminderDate >= endOfUpcomingWindow;
-    }
-  );
-
-  const ptAlertFlags =
-    filteredFlags.filter(
-      (flag) =>
-        flag.status === "OPEN" &&
-        isPtProximityAlert(flag)
+    return (
+      reminderDate >= startOfTomorrow && reminderDate < endOfUpcomingWindow
     );
+  });
+
+  const laterFlags = filteredFlags.filter((flag) => {
+    if (!flag.reminderAt) return false;
+
+    const reminderDate = new Date(flag.reminderAt);
+
+    return reminderDate >= endOfUpcomingWindow;
+  });
+
+  const ptAlertFlags = filteredFlags.filter(
+    (flag) => flag.status === "OPEN" && isPtProximityAlert(flag),
+  );
 
   const agendaFlags = filteredFlags.filter(
-    (flag) =>
-      flag.status === "OPEN" &&
-      flag.flagType === "Agenda"
+    (flag) => flag.status === "OPEN" && flag.flagType === "Agenda",
   );
 
-  const undatedFlags =
-    filteredFlags.filter(
-      (flag) =>
-        !flag.reminderAt &&
-        flag.flagType !==
-        "Agenda" &&
-        !isPtProximityAlert(
-          flag
-        )
-    );
+  const undatedFlags = filteredFlags.filter(
+    (flag) =>
+      !flag.reminderAt &&
+      flag.flagType !== "Agenda" &&
+      !isPtProximityAlert(flag),
+  );
 
   const datedFlagCount =
     overdueFlags.length +
@@ -1515,16 +1283,14 @@ export default function AlertsClient({
     laterFlags.length;
 
   const dueSoonCount =
-    overdueFlags.length +
-    todayFlags.length +
-    upcomingFlags.length;
+    overdueFlags.length + todayFlags.length + upcomingFlags.length;
 
   async function handleAcceptWells(flagId: string) {
     const response = await fetch(
       `/api/trade-reconciliation/${flagId}/accept-wells`,
       {
         method: "POST",
-      }
+      },
     );
 
     const data = await response.json();
@@ -1537,8 +1303,8 @@ export default function AlertsClient({
 
     setFlags((currentFlags) =>
       currentFlags.map((flag) =>
-        flag.id === resolvedFlag.id ? resolvedFlag : flag
-      )
+        flag.id === resolvedFlag.id ? resolvedFlag : flag,
+      ),
     );
   }
 
@@ -1547,7 +1313,7 @@ export default function AlertsClient({
       `/api/trade-reconciliation/${flagId}/keep-manual`,
       {
         method: "POST",
-      }
+      },
     );
 
     const data = await response.json();
@@ -1560,12 +1326,10 @@ export default function AlertsClient({
 
     setFlags((currentFlags) =>
       currentFlags.map((flag) =>
-        flag.id === resolvedFlag.id ? resolvedFlag : flag
-      )
+        flag.id === resolvedFlag.id ? resolvedFlag : flag,
+      ),
     );
   }
-
-
 
   async function handleResolveFlag(flagId: string) {
     const response = await fetch(`/api/flags/${flagId}/resolve`, {
@@ -1581,33 +1345,24 @@ export default function AlertsClient({
 
     setFlags((currentFlags) =>
       currentFlags.map((flag) =>
-        flag.id === resolvedFlag.id ? resolvedFlag : flag
-      )
+        flag.id === resolvedFlag.id ? resolvedFlag : flag,
+      ),
     );
   }
 
   function renderFlag(flag: any) {
-    if (
-      isPtProximityAlert(flag)
-    ) {
+    if (isPtProximityAlert(flag)) {
       return (
         <PtProximityAlertCard
           key={flag.id}
           flag={flag}
-          onResolve={
-            handleResolveFlag
-          }
-          canResolve={
-            userCanResolveFlags
-          }
+          onResolve={handleResolveFlag}
+          canResolve={userCanResolveFlags}
         />
       );
     }
 
-    if (
-      flag.flagType ===
-      "Trade Reconciliation Review"
-    ) {
+    if (flag.flagType === "Trade Reconciliation Review") {
       return (
         <TradeReconciliationAlertCard
           key={flag.id}
@@ -1638,12 +1393,12 @@ export default function AlertsClient({
           <header className="flex h-20 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
             <div>
               <p className="text-sm font-medium text-slate-900">Alert Center</p>
-              <p className="text-xs text-slate-500">Open flags and review workflow</p>
+              <p className="text-xs text-slate-500">
+                Open flags and review workflow
+              </p>
             </div>
 
             <div className="ml-4 flex items-center gap-3">
-
-
               <CurrentUserPill />
             </div>
           </header>
@@ -1657,17 +1412,15 @@ export default function AlertsClient({
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    Review flags and reminders across Securities,
-                    positions, watchlists, and General operations.
+                    Review flags and reminders across Securities, positions,
+                    watchlists, and General operations.
                   </p>
                 </div>
 
                 {userCanResolveFlags ? (
                   <button
                     type="button"
-                    onClick={() =>
-                      setIsCreateFlagOpen(true)
-                    }
+                    onClick={() => setIsCreateFlagOpen(true)}
                     className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
                   >
                     New Flag / Reminder
@@ -1703,9 +1456,7 @@ export default function AlertsClient({
                   <p className="mt-2 text-2xl font-semibold text-rose-600">
                     {openFlags.length}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Require review
-                  </p>
+                  <p className="mt-1 text-xs text-slate-500">Require review</p>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -1792,14 +1543,10 @@ export default function AlertsClient({
                       <AlertGroup
                         title="PT Alerts"
                         description="Securities within 2% of a monitored entry or exit price target"
-                        count={
-                          ptAlertFlags.length
-                        }
+                        count={ptAlertFlags.length}
                         tone="blue"
                       >
-                        {ptAlertFlags.map(
-                          renderFlag
-                        )}
+                        {ptAlertFlags.map(renderFlag)}
                       </AlertGroup>
                     ) : null}
                     {agendaFlags.length ? (
@@ -1835,9 +1582,7 @@ export default function AlertsClient({
       </div>
       <CreateFlagModal
         open={isCreateFlagOpen}
-        onClose={() =>
-          setIsCreateFlagOpen(false)
-        }
+        onClose={() => setIsCreateFlagOpen(false)}
         onSave={handleCreateFlag}
         securities={securities}
       />

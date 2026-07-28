@@ -10,14 +10,14 @@ export async function GET() {
     if (!user) {
       return NextResponse.json(
         { error: "Authentication required." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     if (!canViewAuditLogs(user.role)) {
       return NextResponse.json(
         { error: "You do not have permission to view audit logs." },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -44,7 +44,7 @@ export async function GET() {
 
     return NextResponse.json(
       { error: "Failed to load audit logs." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

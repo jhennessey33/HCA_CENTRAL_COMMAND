@@ -6,8 +6,7 @@ const MAXIMUM_WINDOW_DAYS = 9;
 
 function parseThroughDate(request: Request) {
   const requestUrl = new URL(request.url);
-  const throughValue =
-    requestUrl.searchParams.get("through");
+  const throughValue = requestUrl.searchParams.get("through");
 
   if (!throughValue) {
     throw new Error("THROUGH_REQUIRED");
@@ -22,12 +21,7 @@ function parseThroughDate(request: Request) {
   const now = new Date();
 
   const maximumAllowedDate = new Date(
-    now.getTime() +
-    MAXIMUM_WINDOW_DAYS *
-    24 *
-    60 *
-    60 *
-    1000
+    now.getTime() + MAXIMUM_WINDOW_DAYS * 24 * 60 * 60 * 1000,
   );
 
   if (throughDate <= now) {
@@ -52,7 +46,7 @@ export async function GET(request: Request) {
         },
         {
           status: 401,
-        }
+        },
       );
     }
 
@@ -61,44 +55,35 @@ export async function GET(request: Request) {
     try {
       throughDate = parseThroughDate(request);
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === "THROUGH_REQUIRED"
-      ) {
+      if (error instanceof Error && error.message === "THROUGH_REQUIRED") {
         return NextResponse.json(
           {
-            error:
-              "The reminder-summary window is required.",
+            error: "The reminder-summary window is required.",
           },
           {
             status: 400,
-          }
+          },
         );
       }
 
-      if (
-        error instanceof Error &&
-        error.message === "THROUGH_TOO_FAR"
-      ) {
+      if (error instanceof Error && error.message === "THROUGH_TOO_FAR") {
         return NextResponse.json(
           {
-            error:
-              "The reminder-summary window cannot exceed nine days.",
+            error: "The reminder-summary window cannot exceed nine days.",
           },
           {
             status: 400,
-          }
+          },
         );
       }
 
       return NextResponse.json(
         {
-          error:
-            "The reminder-summary window is invalid.",
+          error: "The reminder-summary window is invalid.",
         },
         {
           status: 400,
-        }
+        },
       );
     }
 
@@ -116,8 +101,7 @@ export async function GET(request: Request) {
             flagType: "Agenda",
           },
           {
-            flagType:
-              "PT Proximity Alert",
+            flagType: "PT Proximity Alert",
           },
         ],
       },
@@ -155,22 +139,21 @@ export async function GET(request: Request) {
     const startOfToday = new Date(
       now.getFullYear(),
       now.getMonth(),
-      now.getDate()
+      now.getDate(),
     );
 
-    const wellsUploadToday =
-      await prisma.ingestionRun.findFirst({
-        where: {
-          source: "WELLS_FARGO",
-          startedAt: {
-            gte: startOfToday,
-          },
-          status: "COMPLETED",
+    const wellsUploadToday = await prisma.ingestionRun.findFirst({
+      where: {
+        source: "WELLS_FARGO",
+        startedAt: {
+          gte: startOfToday,
         },
-        orderBy: {
-          startedAt: "desc",
-        },
-      });
+        status: "COMPLETED",
+      },
+      orderBy: {
+        startedAt: "desc",
+      },
+    });
     const allReminders = [...reminders];
 
     if (!wellsUploadToday) {
@@ -196,10 +179,7 @@ export async function GET(request: Request) {
       through: throughDate.toISOString(),
     });
   } catch (error) {
-    console.error(
-      "GET /api/reminders/summary failed",
-      error
-    );
+    console.error("GET /api/reminders/summary failed", error);
 
     return NextResponse.json(
       {
@@ -207,7 +187,7 @@ export async function GET(request: Request) {
       },
       {
         status: 500,
-      }
+      },
     );
   }
 }

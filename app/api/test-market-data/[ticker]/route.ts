@@ -3,7 +3,7 @@ import { getFmpMarketData } from "@/lib/fmp";
 
 export async function GET(
   _request: Request,
-  context: { params: Promise<{ ticker: string }> }
+  context: { params: Promise<{ ticker: string }> },
 ) {
   try {
     const params = await context.params;
@@ -24,7 +24,7 @@ export async function GET(
         error: "Failed to fetch FMP market data.",
         detail: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

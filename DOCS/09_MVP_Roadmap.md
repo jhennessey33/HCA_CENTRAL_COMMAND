@@ -1,4 +1,3 @@
-
 MVP Roadmap
 Phase 0 — Prototype Alignment
 
@@ -6,7 +5,7 @@ Phase 0 — Prototype Alignment
 - Confirm data fields.
 - Confirm user roles.
 - Confirm report sources.
-Phase 1 — Internal Data Foundation
+  Phase 1 — Internal Data Foundation
 
 - Database schema.
 - Seed data.
@@ -16,7 +15,7 @@ Phase 1 — Internal Data Foundation
 - Watchlist.
 - Past positions.
 - Audit logs.
-Phase 2 — Core UI
+  Phase 2 — Core UI
 
 - Home / Positions.
 - Ticker detail panel.
@@ -25,20 +24,20 @@ Phase 2 — Core UI
 - Watchlist.
 - Past positions.
 - Global comments.
-Phase 3 — Data Ingestion MVP
+  Phase 3 — Data Ingestion MVP
 
 - Manual Wells report upload.
 - Parser for position report.
 - Parser for trade report.
 - Parser for closed positions report.
 - Ingestion audit logs.
-Phase 4 — Production Integrations
+  Phase 4 — Production Integrations
 
 - Wells SFTP automation.
 - Bloomberg API integration.
 - Market data cache.
 - Refresh jobs.
-Phase 5 — Workflow Enhancements
+  Phase 5 — Workflow Enhancements
 
 - Pinned current view.
 - Flag modal.

@@ -1,6 +1,5 @@
 import HcaLogo from "@/components/common/HcaLogo";
 
-
 function NavItem({
   href,
   label,
@@ -24,51 +23,41 @@ function NavItem({
   );
 }
 
-export default function AppSidebar({
-  activePage,
-}: {
-  activePage: string;
-}) {
+export default function AppSidebar({ activePage }: { activePage: string }) {
+  const navItems = [
+    { href: "/trade-calculator", label: "Trade Calculator" },
+    { href: "/portfolio", label: "Portfolio" },
+    { href: "/", label: "Home / Positions" },
+    { href: "/watchlist", label: "Watchlist" },
+    { href: "/alerts", label: "Alerts" },
+    { href: "/meetings", label: "Meetings" },
 
+    { href: "/comments", label: "Comments" },
+    { href: "/trades", label: "Trades" },
+    { href: "/past-positions", label: "Past Positions" },
+    { href: "/settings", label: "Settings" },
+  ];
 
-const navItems = [
-  { href: "/trade-calculator", label: "Trade Calculator" },
-  { href: "/portfolio", label: "Portfolio" },
-  { href: "/", label: "Home / Positions" },
-  { href: "/watchlist", label: "Watchlist" },
-  { href: "/alerts", label: "Alerts" },
-  { href: "/meetings", label: "Meetings" },
+  return (
+    <aside className="flex w-72 shrink-0 flex-col border-r border-slate-200 bg-white p-4">
+      <div className="mb-6 flex items-center gap-3 px-2 py-2">
+        <HcaLogo />
+        <div>
+          <h1 className="font-semibold leading-tight">HCA Central Command</h1>
+          <p className="text-xs text-slate-500">Portfolio operations hub</p>
+        </div>
+      </div>
 
-  { href: "/comments", label: "Comments" },
-  { href: "/trades", label: "Trades" },
-  { href: "/past-positions", label: "Past Positions" },
-  { href: "/settings", label: "Settings" },
-];
-
-return (
-<aside className="flex w-72 shrink-0 flex-col border-r border-slate-200 bg-white p-4">
-    <div className="mb-6 flex items-center gap-3 px-2 py-2">
-            <HcaLogo />
-            <div>
-              <h1 className="font-semibold leading-tight">
-                HCA Central Command
-              </h1>
-              <p className="text-xs text-slate-500">Portfolio operations hub</p>
-            </div>
-          </div>
-
-    <nav className="space-y-2">
-                {navItems.map((item) => (
-                    <NavItem
-                    key={item.href}
-                    href={item.href}
-                    label={item.label}
-                    active={item.href === activePage}
-                    />
-                ))}
-            </nav>
+      <nav className="space-y-2">
+        {navItems.map((item) => (
+          <NavItem
+            key={item.href}
+            href={item.href}
+            label={item.label}
+            active={item.href === activePage}
+          />
+        ))}
+      </nav>
     </aside>
-)
+  );
 }
-
-            

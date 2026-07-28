@@ -96,16 +96,14 @@ export default async function WatchlistPage() {
 
   const serializedEntries = JSON.parse(JSON.stringify(entries));
   const serializedPortfolioSecurities = JSON.parse(
-    JSON.stringify(portfolioSecurities)
+    JSON.stringify(portfolioSecurities),
   );
 
   return (
     <WatchlistClient
-        initialEntries={serializedEntries}
-        portfolioSecurities={
-        serializedPortfolioSecurities
-        }
-        mode="PORTFOLIO"
+      initialEntries={serializedEntries}
+      portfolioSecurities={serializedPortfolioSecurities}
+      mode="PORTFOLIO"
     />
-    );
+  );
 }

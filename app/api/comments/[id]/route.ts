@@ -14,7 +14,7 @@ function canDeleteComment(user: any, comment: any) {
 
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -23,7 +23,7 @@ export async function DELETE(
     if (!user) {
       return NextResponse.json(
         { error: "Authentication required." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -53,14 +53,14 @@ export async function DELETE(
     if (!existingComment || existingComment.archivedAt) {
       return NextResponse.json(
         { error: "Comment not found." },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     if (!canDeleteComment(user, existingComment)) {
       return NextResponse.json(
         { error: "You do not have permission to delete this comment." },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -108,7 +108,7 @@ export async function DELETE(
         error: "Failed to delete comment.",
         detail: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

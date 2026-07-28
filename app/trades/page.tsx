@@ -4,10 +4,7 @@ import TradesClient from "@/components/trades/TradesClient";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-const [
-    wellsActivePositionCount,
-    fundEquitySnapshots,
-  ] = await Promise.all([
+  const [wellsActivePositionCount, fundEquitySnapshots] = await Promise.all([
     prisma.position.count({
       where: {
         status: "ACTIVE",
@@ -28,8 +25,7 @@ const [
     }),
   ]);
 
-const positions =
-  await prisma.position.findMany({
+  const positions = await prisma.position.findMany({
     where: {
       status: "ACTIVE",
       ...(wellsActivePositionCount > 0
@@ -103,7 +99,7 @@ const positions =
           dateTraded: "desc",
         },
       },
-            comments: {
+      comments: {
         where: {
           archivedAt: null,
         },
@@ -140,25 +136,16 @@ const positions =
     ],
   });
 
+  const serializedPositions = JSON.parse(JSON.stringify(positions));
 
-  const serializedPositions =
-    JSON.parse(
-      JSON.stringify(positions)
-    );
-
-  const serializedFundEquitySnapshots =
-    JSON.parse(
-      JSON.stringify(
-        fundEquitySnapshots
-      )
-    );
+  const serializedFundEquitySnapshots = JSON.parse(
+    JSON.stringify(fundEquitySnapshots),
+  );
 
   return (
     <TradesClient
       positions={serializedPositions}
-      fundEquitySnapshots={
-        serializedFundEquitySnapshots
-      }
+      fundEquitySnapshots={serializedFundEquitySnapshots}
     />
   );
 }

@@ -53,13 +53,9 @@ export default async function AlertsPage() {
     }),
   ]);
 
-  const serializedFlags = JSON.parse(
-    JSON.stringify(flags)
-  );
+  const serializedFlags = JSON.parse(JSON.stringify(flags));
 
-  const serializedSecurities = JSON.parse(
-    JSON.stringify(securities)
-  );
+  const serializedSecurities = JSON.parse(JSON.stringify(securities));
 
   return (
     <AlertsClient

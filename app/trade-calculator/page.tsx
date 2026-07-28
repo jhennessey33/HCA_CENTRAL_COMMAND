@@ -4,11 +4,8 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export default async function TradeCalculatorPage() {
-  const [
-    securities,
-    activePositionValues,
-    fundEquitySnapshots,
-  ] = await Promise.all([
+  const [securities, activePositionValues, fundEquitySnapshots] =
+    await Promise.all([
       prisma.security.findMany({
         select: {
           id: true,
@@ -56,13 +53,9 @@ export default async function TradeCalculatorPage() {
               trades: {
                 where: {
                   source: {
-                    in: [
-                      "MANUAL",
-                      "SYSTEM",
-                    ],
+                    in: ["MANUAL", "SYSTEM"],
                   },
-                  reconciliationStatus:
-                    "MANUAL_PENDING",
+                  reconciliationStatus: "MANUAL_PENDING",
                   isHidden: false,
                 },
                 select: {
@@ -88,8 +81,6 @@ export default async function TradeCalculatorPage() {
         },
       }),
 
-      
-
       prisma.position.findMany({
         where: {
           status: "ACTIVE",
@@ -112,39 +103,23 @@ export default async function TradeCalculatorPage() {
         },
       }),
     ]);
-    
-  const grossPortfolioMarketValue =
-    activePositionValues.reduce(
-      (total, position) =>
-        total +
-        Math.abs(
-          Number(position.marketValue) || 0
-        ),
-      0
-    );
 
-  const serializedSecurities = JSON.parse(
-    JSON.stringify(securities)
+  const grossPortfolioMarketValue = activePositionValues.reduce(
+    (total, position) => total + Math.abs(Number(position.marketValue) || 0),
+    0,
   );
 
-  const serializedFundEquitySnapshots =
-  JSON.parse(
-    JSON.stringify(
-      fundEquitySnapshots
-    )
+  const serializedSecurities = JSON.parse(JSON.stringify(securities));
+
+  const serializedFundEquitySnapshots = JSON.parse(
+    JSON.stringify(fundEquitySnapshots),
   );
 
   return (
-  <TradeCalculatorClient
-    initialSecurities={
-      serializedSecurities
-    }
-    grossPortfolioMarketValue={
-      grossPortfolioMarketValue
-    }
-    fundEquitySnapshots={
-      serializedFundEquitySnapshots
-    }
-  />
+    <TradeCalculatorClient
+      initialSecurities={serializedSecurities}
+      grossPortfolioMarketValue={grossPortfolioMarketValue}
+      fundEquitySnapshots={serializedFundEquitySnapshots}
+    />
   );
 }

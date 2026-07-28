@@ -22,26 +22,21 @@ async function main() {
   await prisma.user.deleteMany();
 
   console.log("Users after delete:", await prisma.user.count());
-console.log("Securities after delete:", await prisma.security.count());
-console.log("Positions after delete:", await prisma.position.count());
-console.log("Trades after delete:", await prisma.trade.count());
+  console.log("Securities after delete:", await prisma.security.count());
+  console.log("Positions after delete:", await prisma.position.count());
+  console.log("Trades after delete:", await prisma.trade.count());
 
-  const adminEmail =
-    process.env.SEED_ADMIN_EMAIL;
+  const adminEmail = process.env.SEED_ADMIN_EMAIL;
 
-  const adminPassword =
-    process.env.SEED_ADMIN_PASSWORD;
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
 
   if (!adminEmail || !adminPassword) {
     throw new Error(
-      "SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD must be defined."
+      "SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD must be defined.",
     );
   }
 
-  const passwordHash = await bcrypt.hash(
-    adminPassword,
-    10
-  );
+  const passwordHash = await bcrypt.hash(adminPassword, 10);
 
   const admin = await prisma.user.create({
     data: {
@@ -72,8 +67,8 @@ console.log("Trades after delete:", await prisma.trade.count());
     },
   });
 
-console.log("Login user:");
-console.log(adminEmail);
+  console.log("Login user:");
+  console.log(adminEmail);
 }
 
 main()

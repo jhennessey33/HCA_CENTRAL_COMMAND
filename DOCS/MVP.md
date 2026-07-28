@@ -45,6 +45,7 @@ The prototype code should be saved in the repo as:
 docs/prototype-reference/HcaCentralCommandPrototype.tsx
 
 Use this file as a reference implementation for:
+
 - Layout
 - Styling
 - Component structure
@@ -58,7 +59,6 @@ Use this file as a reference implementation for:
 The production implementation should not remain one giant component. Break the prototype into reusable components, but preserve the visual result.
 Use the supplied HCA Central Command prototype code as the visual reference. The real app should look and behave like the prototype: left sidebar, top search/header, stat cards, green/red/yellow section headers, dense trader tables, right-side ticker detail panel, comment timeline cards, rounded modals, slate/white styling, badges, flags, and market-data modal. Refactor the prototype into reusable components and database-backed pages, but preserve the UI/UX closely.
 
-
 ==================================================
 VISUAL DESIGN REQUIREMENTS FROM PROTOTYPE
 ==================================================
@@ -66,6 +66,7 @@ VISUAL DESIGN REQUIREMENTS FROM PROTOTYPE
 The app should visually match these prototype characteristics:
 
 1. Overall Layout
+
 - Full-height desktop application.
 - Left sidebar navigation.
 - Main content area.
@@ -75,6 +76,7 @@ The app should visually match these prototype characteristics:
 - Desktop-first UI.
 
 2. Sidebar
+
 - Width approximately 18rem / 288px.
 - White background.
 - Slate borders.
@@ -93,6 +95,7 @@ The app should visually match these prototype characteristics:
   - Compliance Mode card pinned near bottom.
 
 3. Header
+
 - Height approximately 80px.
 - White background.
 - Search input on left/middle.
@@ -103,6 +106,7 @@ The app should visually match these prototype characteristics:
   - User profile card/avatar
 
 4. Main Dashboard
+
 - Use large page title:
   - “Home Page / Position Display”
 - Subtitle text should explain active long/short positions.
@@ -125,12 +129,14 @@ The app should visually match these prototype characteristics:
   - “Sort: Total % Change”
 
 5. Section Headers
+
 - Long Positions header should be green.
 - Short Positions header should be red.
 - Past Positions header should be yellow.
 - Headers should be centered, uppercase, bold, compact, and span the table width.
 
 6. Position Tables
+
 - Tables should be dense and spreadsheet-like.
 - Use white table background.
 - Use rounded card container.
@@ -142,6 +148,7 @@ The app should visually match these prototype characteristics:
 - Flagged tickers should show amber flag icon beside ticker.
 
 Position table columns must visually match the prototype:
+
 - Ticker
 - Company Name
 - Current Price
@@ -155,6 +162,7 @@ Position table columns must visually match the prototype:
 - Comment Section
 
 7. Watchlist Tables
+
 - Use the same visual table format.
 - Separate Long Watchlist and Short Watchlist.
 - Long header green.
@@ -168,6 +176,7 @@ Position table columns must visually match the prototype:
   - Comment Section
 
 8. Past Positions Table
+
 - Yellow section header.
 - Columns:
   - Ticker
@@ -179,6 +188,7 @@ Position table columns must visually match the prototype:
   - “Exit rationale: [text]”
 
 9. Right-Side Ticker Detail Panel
+
 - Opens from the right when user clicks a ticker.
 - Width approximately 460px.
 - White background.
@@ -206,6 +216,7 @@ Position table columns must visually match the prototype:
   - Comment Timeline
 
 10. Trade History Panel
+
 - Dense mini-table with six columns:
   - Ticker
   - Date Traded
@@ -218,10 +229,12 @@ Position table columns must visually match the prototype:
 - Text should be small.
 
 11. Comment Section
+
 - Current/main comment displayed in a rounded slate-50 box.
 - Label should be “Comment Section”.
 
 12. Comment Timeline
+
 - Label should be “Comment Timeline”.
 - Timeline entries should use card-style layout:
   - Rounded border
@@ -232,6 +245,7 @@ Position table columns must visually match the prototype:
 - This should match the original prototype’s notes timeline style.
 
 13. Comment Modal
+
 - Centered modal with backdrop blur/dim.
 - Rounded-3xl white card.
 - Title: “Comment Section”
@@ -249,6 +263,7 @@ Position table columns must visually match the prototype:
 - Save button dark slate/black.
 
 14. Market Data Modal
+
 - Centered modal with backdrop blur/dim.
 - Rounded-3xl white card.
 - Title: “Market Data”
@@ -270,6 +285,7 @@ Position table columns must visually match the prototype:
   - EPS
 
 15. Add Stock Modal
+
 - Similar modal style.
 - Fields:
   - Ticker
@@ -279,6 +295,7 @@ Position table columns must visually match the prototype:
 - Add Stock button should use dark slate/black.
 
 16. Alerts Page
+
 - Use card list layout.
 - Each alert card should include:
   - Priority icon block
@@ -289,6 +306,7 @@ Position table columns must visually match the prototype:
   - Review button
 
 17. Settings Page
+
 - Use card grid layout.
 - Include cards for:
   - Permissions
@@ -305,6 +323,7 @@ The prototype is currently written as a single React component with mock arrays.
 Suggested mapping:
 
 Prototype component/function:
+
 - Badge → components/ui/Badge.tsx
 - NavItem → components/layout/NavItem.tsx
 - StatCard → components/dashboard/StatCard.tsx
@@ -318,6 +337,7 @@ Prototype component/function:
 - AddStockModal → components/watchlist/AddStockModal.tsx
 
 Important:
+
 - Do not use browser-only mock arrays as the final data source.
 - Replace mock arrays with API/database-backed data.
 - Keep the same visual layout and interactions.
@@ -370,13 +390,13 @@ HIGH-LEVEL ARCHITECTURE
 Use this conceptual architecture:
 
 Frontend UI
-    ↓
+↓
 API / Server Actions
-    ↓
+↓
 Domain Services
-    ↓
+↓
 Prisma / PostgreSQL
-    ↓
+↓
 External Integration Stubs
 
 The most important internal data layer is:
@@ -564,18 +584,21 @@ Clicking a ticker from Dashboard, Watchlist, or Past Positions opens a right-sid
 The panel must show:
 
 Header:
+
 - Ticker
 - Company name
 - Side/status badge
 - Flag badge if flagged
 
 Summary cards:
+
 - Current price, if available
 - WAP or target point
 - Shares, if applicable
 - Total % change or % from target point
 
 Actions:
+
 - Comment
 - Flag
 - Market Data
@@ -584,6 +607,7 @@ Actions:
 
 Trade History section:
 Table columns:
+
 - Ticker
 - Date Traded
 - Shares Traded
@@ -592,11 +616,13 @@ Table columns:
 - Comment
 
 Comment Section:
+
 - Show latest/main comment text.
 
 Comment Timeline:
 Use card-style timeline entries.
 Each timeline card includes:
+
 - Category badge
 - Timestamp
 - Text
@@ -777,24 +803,31 @@ MVP can implement simple role checks.
 Basic rules:
 
 ADMIN:
+
 - Can do everything.
 
 TRADER:
+
 - Can view, comment, flag, edit watchlist, set target prices.
 
 ANALYST:
+
 - Can view, comment, edit watchlist.
 
 PM:
+
 - Can view, comment, flag, resolve flags, pin current views if implemented.
 
 VIEWER:
+
 - Can view only.
 
 COMPLIANCE:
+
 - Can view audit logs and all historical comments.
 
 At minimum:
+
 - Only authenticated users can access the app.
 - Only non-viewers can create comments and flags.
 - Only admin can access deeper settings/audit controls if implemented.
@@ -890,12 +923,14 @@ SEED DATA REQUIREMENTS
 Seed realistic demo data.
 
 Users:
+
 - Admin
 - Trader 1
 - Trader 2
 - Viewer
 
 Securities:
+
 - AAPL
 - MSFT
 - NVDA
@@ -920,6 +955,7 @@ Securities:
 - INTC
 
 Active long positions:
+
 - AAPL
 - MSFT
 - NVDA
@@ -927,11 +963,13 @@ Active long positions:
 - LLY
 
 Active short positions:
+
 - TSLA
 - BA
 - NFLX
 
 Long watchlist:
+
 - AMD
 - SHOP
 - UBER
@@ -939,6 +977,7 @@ Long watchlist:
 - SNOW
 
 Short watchlist:
+
 - COIN
 - RIVN
 - PLTR
@@ -946,6 +985,7 @@ Short watchlist:
 - GME
 
 Past positions:
+
 - META
 - TSLA
 - NFLX
@@ -955,6 +995,7 @@ Past positions:
 - INTC
 
 Add realistic:
+
 - comments
 - comment timelines
 - flags
@@ -969,6 +1010,7 @@ API REQUIREMENTS
 Create API routes for:
 
 Positions:
+
 - GET /api/positions
 - GET /api/positions/:id
 - GET /api/positions/:id/trades
@@ -976,12 +1018,14 @@ Positions:
 - GET /api/positions/:id/flags
 
 Watchlist:
+
 - GET /api/watchlist
 - POST /api/watchlist
 - PATCH /api/watchlist/:id
 - DELETE /api/watchlist/:id
 
 Comments:
+
 - GET /api/comments
 - POST /api/comments
 - PATCH /api/comments/:id
@@ -989,24 +1033,29 @@ Comments:
 - POST /api/comments/:id/pin, optional
 
 Flags:
+
 - GET /api/flags
 - POST /api/flags
 - PATCH /api/flags/:id
 - POST /api/flags/:id/resolve
 
 Market Data:
+
 - GET /api/securities/:id/market-data
 - POST /api/market-data/refresh, stub
 
 Audit:
+
 - GET /api/audit-logs, admin/compliance only
 
 Ingestion:
+
 - GET /api/ingestion/runs
 - POST /api/ingestion/wells/manual-upload, stub
 - POST /api/ingestion/wells/run, stub
 
 All write routes must:
+
 - require authentication
 - validate input
 - check permissions
@@ -1042,66 +1091,66 @@ FOLDER STRUCTURE
 Use a clean structure similar to:
 
 app/
-  login/
-  page.tsx
-  page.tsx
-  watchlist/
-  past-positions/
-  comments/
-  alerts/
-  settings/
-  api/
-    positions/
-    watchlist/
-    comments/
-    flags/
-    market-data/
-    audit-logs/
-    ingestion/
+login/
+page.tsx
+page.tsx
+watchlist/
+past-positions/
+comments/
+alerts/
+settings/
+api/
+positions/
+watchlist/
+comments/
+flags/
+market-data/
+audit-logs/
+ingestion/
 
 components/
-  layout/
-    AppShell.tsx
-    Sidebar.tsx
-    TopBar.tsx
-  positions/
-    PositionGrid.tsx
-    TickerDetailPanel.tsx
-  watchlist/
-    WatchlistGrid.tsx
-    AddWatchlistModal.tsx
-  past-positions/
-    PastPositionsGrid.tsx
-  comments/
-    CommentModal.tsx
-    CommentTimeline.tsx
-    CommentCard.tsx
-  flags/
-    FlagModal.tsx
-    FlagBadge.tsx
-  market-data/
-    MarketDataModal.tsx
-  ui/
-    Badge.tsx
-    Button.tsx
-    Card.tsx
+layout/
+AppShell.tsx
+Sidebar.tsx
+TopBar.tsx
+positions/
+PositionGrid.tsx
+TickerDetailPanel.tsx
+watchlist/
+WatchlistGrid.tsx
+AddWatchlistModal.tsx
+past-positions/
+PastPositionsGrid.tsx
+comments/
+CommentModal.tsx
+CommentTimeline.tsx
+CommentCard.tsx
+flags/
+FlagModal.tsx
+FlagBadge.tsx
+market-data/
+MarketDataModal.tsx
+ui/
+Badge.tsx
+Button.tsx
+Card.tsx
 
 lib/
-  auth.ts
-  permissions.ts
-  prisma.ts
-  audit.ts
-  market-data.ts
-  wells-ingestion.ts
-  validation.ts
-  format.ts
+auth.ts
+permissions.ts
+prisma.ts
+audit.ts
+market-data.ts
+wells-ingestion.ts
+validation.ts
+format.ts
 
 prisma/
-  schema.prisma
-  seed.ts
+schema.prisma
+seed.ts
 
 types/
-  index.ts
+index.ts
 
 ==================================================
 COMPONENT REQUIREMENTS
@@ -1110,34 +1159,43 @@ COMPONENT REQUIREMENTS
 Build reusable components:
 
 AppShell:
+
 - Sidebar + top search + main content area.
 
 PositionGrid:
+
 - Takes title, tone, positions, callbacks.
 - Displays long/short sections.
 
 WatchlistGrid:
+
 - Takes title, tone, watchlist entries, callbacks.
 
 TickerDetailPanel:
+
 - Opens on ticker click.
 - Displays trade history, comment section, comment timeline, actions.
 
 CommentModal:
+
 - Allows category selection and comment entry.
 - Categories include Comment, Thesis, Risk, Catalyst, Trade, Exit.
 
 MarketDataModal:
+
 - Displays required market data fields.
 
 FlagModal:
+
 - Allows flag type, priority, description.
 - Creates flag.
 
 PastPositionsGrid:
+
 - Shows exit rationale under rows.
 
 GlobalComments:
+
 - Card/timeline style list of all comments.
 
 ==================================================
@@ -1147,21 +1205,25 @@ VALIDATION REQUIREMENTS
 Validate inputs:
 
 Comment:
+
 - content required
 - tag required
 - valid related entity must be provided
 
 Watchlist entry:
+
 - ticker required
 - side required
 - target price numeric if entered
 
 Flag:
+
 - flag type required
 - priority valid
 - at least one related entity
 
 Auth:
+
 - email required
 - password required
 

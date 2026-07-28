@@ -43,17 +43,25 @@ async function fetchSecTickerMap(): Promise<SecTickerMapEntry[]> {
   const data = await res.json();
   const entries = Object.values(data) as Array<SecTickerMapEntry>;
 
-  secTickerMapCache = entries.filter((entry): entry is SecTickerMapEntry => !!entry?.ticker && entry?.cik_str != null);
+  secTickerMapCache = entries.filter(
+    (entry): entry is SecTickerMapEntry =>
+      !!entry?.ticker && entry?.cik_str != null,
+  );
   return secTickerMapCache;
 }
 
-export async function resolveSecCikForTicker(ticker: string): Promise<string | null> {
+export async function resolveSecCikForTicker(
+  ticker: string,
+): Promise<string | null> {
   const normalized = ticker.trim().toUpperCase();
   if (!normalized) return null;
-  if (secTickerLookupCache.has(normalized)) return secTickerLookupCache.get(normalized)!;
+  if (secTickerLookupCache.has(normalized))
+    return secTickerLookupCache.get(normalized)!;
 
   const entries = await fetchSecTickerMap();
-  const match = entries.find((entry) => entry.ticker.toUpperCase() === normalized);
+  const match = entries.find(
+    (entry) => entry.ticker.toUpperCase() === normalized,
+  );
   if (!match) return null;
 
   const cik = String(match.cik_str).replace(/^0+/, "");
@@ -68,9 +76,13 @@ function parseNumber(value: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-async function fetchCompanyFacts(cik: string, ticker?: string): Promise<CompanyFacts | null> {
+async function fetchCompanyFacts(
+  cik: string,
+  ticker?: string,
+): Promise<CompanyFacts | null> {
   const apiAgent = process.env.SEC_API_USER_AGENT;
-  if (!apiAgent) throw new Error("Missing SEC_API_USER_AGENT environment variable.");
+  if (!apiAgent)
+    throw new Error("Missing SEC_API_USER_AGENT environment variable.");
 
   const normalized = normalizeCik(cik);
   const padded = `CIK${normalized}`;
@@ -86,14 +98,19 @@ async function fetchCompanyFacts(cik: string, ticker?: string): Promise<CompanyF
 
   if (!res.ok) {
     const txt = await res.text();
-    throw new Error(`SEC companyfacts request failed: ticker=${ticker ?? "unknown"} cik=${normalized} url=${url} status=${res.status} message=${txt}`);
+    throw new Error(
+      `SEC companyfacts request failed: ticker=${ticker ?? "unknown"} cik=${normalized} url=${url} status=${res.status} message=${txt}`,
+    );
   }
 
   return res.json();
 }
 
 // Extract latest numeric value for a set of tag candidates
-function getLatestFactValue(facts: CompanyFacts, candidates: string[]): { value: number | null; asOf?: string } {
+function getLatestFactValue(
+  facts: CompanyFacts,
+  candidates: string[],
+): { value: number | null; asOf?: string } {
   if (!facts || !facts.facts) return { value: null };
   const usgaap = facts.facts["us-gaap"] || {};
 
@@ -111,7 +128,8 @@ function getLatestFactValue(facts: CompanyFacts, candidates: string[]): { value:
         if (val === null) continue;
         const end = v.end || v.filed || v.filed;
         if (!best) best = { val, end };
-        else if (end && best.end && new Date(end) > new Date(best.end)) best = { val, end };
+        else if (end && best.end && new Date(end) > new Date(best.end))
+          best = { val, end };
       }
     }
 
@@ -122,7 +140,10 @@ function getLatestFactValue(facts: CompanyFacts, candidates: string[]): { value:
 }
 
 // Get array of quarterly values (with end dates) for a tag
-function getQuarterlyValues(facts: CompanyFacts, tag: string): Array<{ val: number; end?: string }> {
+function getQuarterlyValues(
+  facts: CompanyFacts,
+  tag: string,
+): Array<{ val: number; end?: string }> {
   const out: Array<{ val: number; end?: string }> = [];
   if (!facts || !facts.facts) return out;
   const usgaap = facts.facts["us-gaap"] || {};
@@ -132,7 +153,8 @@ function getQuarterlyValues(facts: CompanyFacts, tag: string): Array<{ val: numb
   for (const unitKey of Object.keys(entry.units)) {
     const values = entry.units[unitKey] as Array<any>;
     for (const v of values) {
-      if (v.fp && v.fp !== "FY") { // prefer periodic (Q) entries
+      if (v.fp && v.fp !== "FY") {
+        // prefer periodic (Q) entries
         const val = parseNumber(v.val);
         if (val !== null) out.push({ val, end: v.end });
       }
@@ -140,7 +162,9 @@ function getQuarterlyValues(facts: CompanyFacts, tag: string): Array<{ val: numb
   }
 
   // sort by end
-  out.sort((a, b) => (a.end && b.end ? new Date(a.end).getTime() - new Date(b.end).getTime() : 0));
+  out.sort((a, b) =>
+    a.end && b.end ? new Date(a.end).getTime() - new Date(b.end).getTime() : 0,
+  );
   return out;
 }
 
@@ -152,11 +176,18 @@ function sumLastN(items: Array<{ val: number; end?: string }>, n: number) {
 }
 
 // Compute TTM value from quarterly facts. Fall back to most recent annual if quarterly insufficient.
-function computeTTM(facts: CompanyFacts, tagCandidates: string[]): { value: number | null; asOf?: string } {
+function computeTTM(
+  facts: CompanyFacts,
+  tagCandidates: string[],
+): { value: number | null; asOf?: string } {
   for (const candidate of tagCandidates) {
     const q = getQuarterlyValues(facts, candidate);
     const summed = sumLastN(q, 4);
-    if (summed !== null) return { value: summed, asOf: q.length ? q[q.length - 1].end : undefined };
+    if (summed !== null)
+      return {
+        value: summed,
+        asOf: q.length ? q[q.length - 1].end : undefined,
+      };
 
     const latest = getLatestFactValue(facts, [candidate]);
     if (latest.value !== null) return latest;
@@ -166,11 +197,26 @@ function computeTTM(facts: CompanyFacts, tagCandidates: string[]): { value: numb
 }
 
 function formatQuarterlyValues(values: Array<{ val: number; end?: string }>) {
-  return values.map((item) => `${item.end ?? "unknown"}:${item.val}`).join(", ");
+  return values
+    .map((item) => `${item.end ?? "unknown"}:${item.val}`)
+    .join(", ");
 }
 
-function computeEpsTtm(facts: CompanyFacts, tagCandidates: string[], ticker?: string): { value: number | null; asOf?: string; source: string; quarterlyValues: Array<{ val: number; end?: string }>; tag?: string } {
-  const allQuarterly: Array<{ tag: string; values: Array<{ val: number; end?: string }> }> = [];
+function computeEpsTtm(
+  facts: CompanyFacts,
+  tagCandidates: string[],
+  ticker?: string,
+): {
+  value: number | null;
+  asOf?: string;
+  source: string;
+  quarterlyValues: Array<{ val: number; end?: string }>;
+  tag?: string;
+} {
+  const allQuarterly: Array<{
+    tag: string;
+    values: Array<{ val: number; end?: string }>;
+  }> = [];
 
   for (const candidate of tagCandidates) {
     const q = getQuarterlyValues(facts, candidate);
@@ -180,22 +226,46 @@ function computeEpsTtm(facts: CompanyFacts, tagCandidates: string[], ticker?: st
     if (summed !== null) {
       const last4 = q.slice(-4);
       const asOf = last4[last4.length - 1].end;
-      console.debug(`SEC EPS TTM for ${ticker ?? "unknown"} using quarterly ${candidate}: ${formatQuarterlyValues(last4)} -> ${summed}`);
-      return { value: summed, asOf, source: "quarterly", quarterlyValues: last4, tag: candidate };
+      console.debug(
+        `SEC EPS TTM for ${ticker ?? "unknown"} using quarterly ${candidate}: ${formatQuarterlyValues(last4)} -> ${summed}`,
+      );
+      return {
+        value: summed,
+        asOf,
+        source: "quarterly",
+        quarterlyValues: last4,
+        tag: candidate,
+      };
     }
   }
 
   for (const candidate of tagCandidates) {
     const latestAnnual = getLatestFactValue(facts, [candidate]);
     if (latestAnnual.value !== null) {
-      console.debug(`SEC EPS TTM for ${ticker ?? "unknown"} falling back to annual ${candidate}: ${latestAnnual.value}`);
-      return { value: latestAnnual.value, asOf: latestAnnual.asOf, source: "annual", quarterlyValues: [], tag: candidate };
+      console.debug(
+        `SEC EPS TTM for ${ticker ?? "unknown"} falling back to annual ${candidate}: ${latestAnnual.value}`,
+      );
+      return {
+        value: latestAnnual.value,
+        asOf: latestAnnual.asOf,
+        source: "annual",
+        quarterlyValues: [],
+        tag: candidate,
+      };
     }
   }
 
   const latestFact = getLatestFactValue(facts, tagCandidates);
-  console.debug(`SEC EPS TTM for ${ticker ?? "unknown"} falling back to latest EPS fact: ${latestFact.value}`);
-  return { value: latestFact.value, asOf: latestFact.asOf, source: "latest_fact", quarterlyValues: [], tag: tagCandidates[0] };
+  console.debug(
+    `SEC EPS TTM for ${ticker ?? "unknown"} falling back to latest EPS fact: ${latestFact.value}`,
+  );
+  return {
+    value: latestFact.value,
+    asOf: latestFact.asOf,
+    source: "latest_fact",
+    quarterlyValues: [],
+    tag: tagCandidates[0],
+  };
 }
 
 // Public mapping function that extracts many common fundamentals
@@ -203,14 +273,35 @@ export async function getSecFundamentals(cik: string, ticker?: string) {
   const facts = await fetchCompanyFacts(cik, ticker);
 
   // Helper candidates for common tags
-  const revenueTags = ["Revenues", "SalesRevenueNet", "RevenueFromContractWithCustomerExcludingAssessedTax"];
+  const revenueTags = [
+    "Revenues",
+    "SalesRevenueNet",
+    "RevenueFromContractWithCustomerExcludingAssessedTax",
+  ];
   const netIncomeTags = ["NetIncomeLoss", "ProfitLoss"];
-  const epsTags = ["EarningsPerShareBasic", "EarningsPerShareDiluted", "EarningsPerShareBasicContinuousOperations"];
-  const shareholdersEquityTags = ["StockholdersEquity", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"];
-  const commonSharesTags = ["CommonStockSharesOutstanding", "EntityCommonStockSharesOutstanding"];
-  const intangibleTags = ["Goodwill", "IntangibleAssets" , "IntangibleAssetsNet"];
+  const epsTags = [
+    "EarningsPerShareBasic",
+    "EarningsPerShareDiluted",
+    "EarningsPerShareBasicContinuousOperations",
+  ];
+  const shareholdersEquityTags = [
+    "StockholdersEquity",
+    "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
+  ];
+  const commonSharesTags = [
+    "CommonStockSharesOutstanding",
+    "EntityCommonStockSharesOutstanding",
+  ];
+  const intangibleTags = [
+    "Goodwill",
+    "IntangibleAssets",
+    "IntangibleAssetsNet",
+  ];
   const totalDebtTags = ["Debt", "LongTermDebt", "LiabilitiesNoncurrent"];
-  const ebitdaTags = ["EarningsBeforeInterestTaxesDepreciationAndAmortization", "Ebitdar"];
+  const ebitdaTags = [
+    "EarningsBeforeInterestTaxesDepreciationAndAmortization",
+    "Ebitdar",
+  ];
 
   const revenueTtm = computeTTM(facts, revenueTags);
   const netIncomeTtm = computeTTM(facts, netIncomeTags);
@@ -221,28 +312,46 @@ export async function getSecFundamentals(cik: string, ticker?: string) {
 
   const shareholdersEquity = getLatestFactValue(facts, shareholdersEquityTags);
   const totalDebt = getLatestFactValue(facts, totalDebtTags);
-  const cashAndEquivalents = getLatestFactValue(facts, ["CashAndCashEquivalentsAtCarryingValue", "CashAndCashEquivalentsPeriodEnd"]);
+  const cashAndEquivalents = getLatestFactValue(facts, [
+    "CashAndCashEquivalentsAtCarryingValue",
+    "CashAndCashEquivalentsPeriodEnd",
+  ]);
 
   const commonShares = getLatestFactValue(facts, commonSharesTags);
 
   // book value per share
   const bookValue = shareholdersEquity.value;
-  const bookValuePerShare = (bookValue !== null && commonShares.value) ? bookValue / commonShares.value : null;
+  const bookValuePerShare =
+    bookValue !== null && commonShares.value
+      ? bookValue / commonShares.value
+      : null;
 
   // tangible book value = shareholdersEquity - intangible assets
   const intangible = getLatestFactValue(facts, intangibleTags);
-  const tangibleBookValue = (bookValue !== null) ? (bookValue - (intangible.value ?? 0)) : null;
-  const tangibleBookValuePerShare = (tangibleBookValue !== null && commonShares.value) ? tangibleBookValue / commonShares.value : null;
+  const tangibleBookValue =
+    bookValue !== null ? bookValue - (intangible.value ?? 0) : null;
+  const tangibleBookValuePerShare =
+    tangibleBookValue !== null && commonShares.value
+      ? tangibleBookValue / commonShares.value
+      : null;
 
   // ebitda
   const ebitdaVal = getLatestFactValue(facts, ebitdaTags);
 
   // revenue and net income pick values & asOf
-  const revenueVal = revenueTtm.value !== null ? revenueTtm.value : getLatestFactValue(facts, revenueTags).value;
-  const revenueAsOf = revenueTtm.asOf ?? getLatestFactValue(facts, revenueTags).asOf;
+  const revenueVal =
+    revenueTtm.value !== null
+      ? revenueTtm.value
+      : getLatestFactValue(facts, revenueTags).value;
+  const revenueAsOf =
+    revenueTtm.asOf ?? getLatestFactValue(facts, revenueTags).asOf;
 
-  const netIncomeVal = netIncomeTtm.value !== null ? netIncomeTtm.value : getLatestFactValue(facts, netIncomeTags).value;
-  const netIncomeAsOf = netIncomeTtm.asOf ?? getLatestFactValue(facts, netIncomeTags).asOf;
+  const netIncomeVal =
+    netIncomeTtm.value !== null
+      ? netIncomeTtm.value
+      : getLatestFactValue(facts, netIncomeTags).value;
+  const netIncomeAsOf =
+    netIncomeTtm.asOf ?? getLatestFactValue(facts, netIncomeTags).asOf;
 
   return {
     revenue: getLatestFactValue(facts, revenueTags).value,

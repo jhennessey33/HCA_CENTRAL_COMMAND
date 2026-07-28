@@ -24,7 +24,7 @@ export async function GET() {
         database: "error",
         timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

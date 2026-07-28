@@ -9,14 +9,14 @@ export async function POST() {
   if (!user) {
     return NextResponse.json(
       { error: "Authentication required." },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
   if (user.role !== "ADMIN") {
     return NextResponse.json(
       { error: "Admin access required." },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -48,14 +48,24 @@ export async function POST() {
     for (const security of securities) {
       try {
         if (security.cik) {
-          results.push({ ticker: security.ticker, status: "SKIPPED", message: "Existing CIK preserved.", cik: security.cik });
+          results.push({
+            ticker: security.ticker,
+            status: "SKIPPED",
+            message: "Existing CIK preserved.",
+            cik: security.cik,
+          });
           continue;
         }
 
         const resolvedCik = await resolveSecCikForTicker(security.ticker);
         if (!resolvedCik) {
           failedCount += 1;
-          results.push({ ticker: security.ticker, status: "FAILED", message: "Ticker not found in SEC mapping.", cik: null });
+          results.push({
+            ticker: security.ticker,
+            status: "FAILED",
+            message: "Ticker not found in SEC mapping.",
+            cik: null,
+          });
           continue;
         }
 
@@ -65,11 +75,20 @@ export async function POST() {
         });
 
         updatedCount += 1;
-        results.push({ ticker: security.ticker, status: "UPDATED", cik: resolvedCik });
+        results.push({
+          ticker: security.ticker,
+          status: "UPDATED",
+          cik: resolvedCik,
+        });
       } catch (error) {
         failedCount += 1;
         console.error(`Failed to resolve CIK for ${security.ticker}:`, error);
-        results.push({ ticker: security.ticker, status: "FAILED", message: error instanceof Error ? error.message : "Unknown error", cik: security.cik ?? null });
+        results.push({
+          ticker: security.ticker,
+          status: "FAILED",
+          message: error instanceof Error ? error.message : "Unknown error",
+          cik: security.cik ?? null,
+        });
       }
     }
 
@@ -91,8 +110,11 @@ export async function POST() {
   } catch (error) {
     console.error("SEC CIK refresh failed:", error);
     return NextResponse.json(
-      { error: "SEC CIK refresh failed.", detail: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      {
+        error: "SEC CIK refresh failed.",
+        detail: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
 }

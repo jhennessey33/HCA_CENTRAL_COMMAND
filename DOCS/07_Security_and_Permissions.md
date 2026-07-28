@@ -1,4 +1,3 @@
-
 Security and Permissions
 Authentication
 All users must authenticate before accessing the app.
@@ -12,8 +11,8 @@ Roles
 - Portfolio Manager
 - Read-only Viewer
 - Compliance Viewer
-Sensitive Actions
-Require authorization:
+  Sensitive Actions
+  Require authorization:
 
 - Create/edit/delete comments.
 - Create/resolve flags.
@@ -23,5 +22,5 @@ Require authorization:
 - Run ingestion.
 - Export data.
 - Change permissions.
-Audit Requirements
-Every sensitive action should create an audit log.
+  Audit Requirements
+  Every sensitive action should create an audit log.

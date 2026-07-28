@@ -48,7 +48,7 @@ async function fetchFmpJson<T>(path: string): Promise<T | null> {
 }
 
 function extractFirst(response: unknown): any | null {
-  return Array.isArray(response) ? response[0] ?? null : null;
+  return Array.isArray(response) ? (response[0] ?? null) : null;
 }
 
 function emptyMarketData(): FmpMarketData {
@@ -75,7 +75,7 @@ export async function getFmpMarketData(ticker: string): Promise<FmpMarketData> {
 
   try {
     const quoteResponse = await fetchFmpJson<any[]>(
-      `/quote?symbol=${encodeURIComponent(symbol)}`
+      `/quote?symbol=${encodeURIComponent(symbol)}`,
     );
 
     const quote = extractFirst(quoteResponse);
@@ -86,15 +86,11 @@ export async function getFmpMarketData(ticker: string): Promise<FmpMarketData> {
 
     return {
       currentPrice: toNumber(quote.price),
-      vwap:
-        toNumber(quote.vwap) ??
-        toNumber(quote.volumeWeightedAveragePrice),
+      vwap: toNumber(quote.vwap) ?? toNumber(quote.volumeWeightedAveragePrice),
       high52w: toNumber(quote.yearHigh),
       low52w: toNumber(quote.yearLow),
       beta: toNumber(quote.beta),
-      avgVolume:
-        toNumber(quote.avgVolume) ??
-        toNumber(quote.volume),
+      avgVolume: toNumber(quote.avgVolume) ?? toNumber(quote.volume),
       shortFloat: null,
       marketCap: toNumber(quote.marketCap),
       peLtm: toNumber(quote.pe),
@@ -107,12 +103,12 @@ export async function getFmpMarketData(ticker: string): Promise<FmpMarketData> {
   } catch (fullQuoteError) {
     console.warn(
       `FMP full quote failed for ${symbol}. Trying quote-short fallback.`,
-      fullQuoteError
+      fullQuoteError,
     );
 
     try {
       const shortQuoteResponse = await fetchFmpJson<any[]>(
-        `/quote-short?symbol=${encodeURIComponent(symbol)}`
+        `/quote-short?symbol=${encodeURIComponent(symbol)}`,
       );
 
       const shortQuote = extractFirst(shortQuoteResponse);
@@ -129,7 +125,7 @@ export async function getFmpMarketData(ticker: string): Promise<FmpMarketData> {
     } catch (shortQuoteError) {
       console.warn(
         `FMP quote-short fallback failed for ${symbol}.`,
-        shortQuoteError
+        shortQuoteError,
       );
 
       throw fullQuoteError;

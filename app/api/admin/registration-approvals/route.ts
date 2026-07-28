@@ -42,14 +42,14 @@ export async function GET() {
     if (!user) {
       return NextResponse.json(
         { error: "Authentication required." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     if (user.role !== "ADMIN") {
       return NextResponse.json(
         { error: "Admin access required." },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -62,14 +62,11 @@ export async function GET() {
 
     return NextResponse.json({ approvals });
   } catch (error) {
-    console.error(
-      "GET /api/admin/registration-approvals failed",
-      error
-    );
+    console.error("GET /api/admin/registration-approvals failed", error);
 
     return NextResponse.json(
       { error: "Failed to load registration approvals." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -81,33 +78,37 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json(
         { error: "Authentication required." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     if (user.role !== "ADMIN") {
       return NextResponse.json(
         { error: "Admin access required." },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     const body = await request.json();
 
-    const email = String(body.email || "").trim().toLowerCase();
-    const role = String(body.role || "").trim().toUpperCase();
+    const email = String(body.email || "")
+      .trim()
+      .toLowerCase();
+    const role = String(body.role || "")
+      .trim()
+      .toUpperCase();
 
     if (!isValidEmail(email)) {
       return NextResponse.json(
         { error: "Enter a valid email address." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!VALID_ROLES.has(role)) {
       return NextResponse.json(
         { error: "Select a valid role." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -123,37 +124,33 @@ export async function POST(request: Request) {
     if (existingUser) {
       return NextResponse.json(
         {
-          error:
-            "A registered user already has this email address.",
+          error: "A registered user already has this email address.",
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
-    const existingApproval =
-      await prisma.registrationApproval.findUnique({
-        where: {
-          email,
-        },
-      });
+    const existingApproval = await prisma.registrationApproval.findUnique({
+      where: {
+        email,
+      },
+    });
 
     if (existingApproval?.status === "PENDING") {
       return NextResponse.json(
         {
-          error:
-            "This email address already has a pending approval.",
+          error: "This email address already has a pending approval.",
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
     if (existingApproval?.status === "REGISTERED") {
       return NextResponse.json(
         {
-          error:
-            "This email address has already completed registration.",
+          error: "This email address has already completed registration.",
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -208,22 +205,16 @@ export async function POST(request: Request) {
         });
 
         return savedApproval;
-      }
+      },
     );
 
-    return NextResponse.json(
-      { approval },
-      { status: 201 }
-    );
+    return NextResponse.json({ approval }, { status: 201 });
   } catch (error) {
-    console.error(
-      "POST /api/admin/registration-approvals failed",
-      error
-    );
+    console.error("POST /api/admin/registration-approvals failed", error);
 
     return NextResponse.json(
       { error: "Failed to approve registration access." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

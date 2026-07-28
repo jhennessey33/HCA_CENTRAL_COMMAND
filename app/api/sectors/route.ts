@@ -18,10 +18,7 @@ export async function GET() {
   for (const security of securities) {
     if (!security.sector) continue;
 
-    counts.set(
-      security.sector,
-      (counts.get(security.sector) ?? 0) + 1
-    );
+    counts.set(security.sector, (counts.get(security.sector) ?? 0) + 1);
   }
 
   const sectors = Array.from(counts.entries())
@@ -29,9 +26,7 @@ export async function GET() {
       name,
       count,
     }))
-    .sort((a, b) =>
-      a.name.localeCompare(b.name)
-    );
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return NextResponse.json({
     sectors,

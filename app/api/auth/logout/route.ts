@@ -35,9 +35,6 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("POST /api/auth/logout failed", error);
 
-    return NextResponse.json(
-      { error: "Failed to log out." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to log out." }, { status: 500 });
   }
 }

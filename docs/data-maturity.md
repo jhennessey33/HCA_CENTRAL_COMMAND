@@ -49,6 +49,7 @@ Placeholder values are not real data. They exist only to avoid empty records or 
 ## 4. Current source ownership
 
 ### FMP
+
 These fields are currently owned by the FMP market data provider:
 
 - `currentPrice`
@@ -58,6 +59,7 @@ These fields are currently owned by the FMP market data provider:
 - `avgVolume`
 
 ### SEC_EDGAR
+
 These fields are currently owned by the SEC EDGAR fundamentals provider:
 
 - `cik`
@@ -76,6 +78,7 @@ These fields are currently owned by the SEC EDGAR fundamentals provider:
 - `epsTtm`
 
 ### CALCULATED
+
 These fields are derived from other source fields and calculated in the app:
 
 - `peLtm`
@@ -85,6 +88,7 @@ These fields are derived from other source fields and calculated in the app:
 - `enterpriseValue`
 
 ### SEEDED_POSITION
+
 These fields are seeded position/trade data and should remain as seeded reference values until Wells Fargo or another position source is integrated:
 
 - position `shares`
@@ -96,6 +100,7 @@ These fields are seeded position/trade data and should remain as seeded referenc
 - `closedAt`
 
 ### FUTURE_SOURCE
+
 These fields are expected to come from a future source and should not be treated as authoritative until that source is integrated:
 
 - Wells Fargo positions

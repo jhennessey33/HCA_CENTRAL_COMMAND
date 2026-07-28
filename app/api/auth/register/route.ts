@@ -8,7 +8,9 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     const name = String(body.name || "").trim();
-    const email = String(body.email || "").trim().toLowerCase();
+    const email = String(body.email || "")
+      .trim()
+      .toLowerCase();
     const password = String(body.password || "");
     const confirmPassword = String(body.confirmPassword || "");
 
@@ -18,28 +20,28 @@ export async function POST(request: Request) {
           error:
             "Full name, email, password, and password confirmation are required.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json(
         { error: "Enter a valid email address." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (password !== confirmPassword) {
       return NextResponse.json(
         { error: "Passwords do not match." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (password.length < 8) {
       return NextResponse.json(
         { error: "Password must be at least 8 characters." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -57,7 +59,7 @@ export async function POST(request: Request) {
         {
           error: "An account already exists for this email address.",
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -72,7 +74,7 @@ export async function POST(request: Request) {
         {
           error: "Registration is not authorized for this email address.",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -80,17 +82,13 @@ export async function POST(request: Request) {
 
     const user = await prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
-        const currentApproval =
-          await tx.registrationApproval.findUnique({
-            where: {
-              id: approval.id,
-            },
-          });
+        const currentApproval = await tx.registrationApproval.findUnique({
+          where: {
+            id: approval.id,
+          },
+        });
 
-        if (
-          !currentApproval ||
-          currentApproval.status !== "PENDING"
-        ) {
+        if (!currentApproval || currentApproval.status !== "PENDING") {
           throw new Error("REGISTRATION_APPROVAL_UNAVAILABLE");
         }
 
@@ -139,14 +137,13 @@ export async function POST(request: Request) {
               email: createdUser.email,
               name: createdUser.name,
               role: createdUser.role,
-              registrationMethod:
-                "DATABASE_APPROVED_EMAIL_SELF_REGISTRATION",
+              registrationMethod: "DATABASE_APPROVED_EMAIL_SELF_REGISTRATION",
             }),
           },
         });
 
         return createdUser;
-      }
+      },
     );
 
     return NextResponse.json(
@@ -158,7 +155,7 @@ export async function POST(request: Request) {
           role: user.role,
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     if (
@@ -169,19 +166,16 @@ export async function POST(request: Request) {
         {
           error: "This registration approval is no longer available.",
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
-    if (
-      error instanceof Error &&
-      error.message === "USER_ALREADY_EXISTS"
-    ) {
+    if (error instanceof Error && error.message === "USER_ALREADY_EXISTS") {
       return NextResponse.json(
         {
           error: "An account already exists for this email address.",
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -189,7 +183,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       { error: "Failed to register account." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

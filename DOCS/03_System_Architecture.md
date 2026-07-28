@@ -1,4 +1,3 @@
-
 System Architecture
 Recommended Stack
 Frontend:
@@ -7,29 +6,29 @@ Frontend:
 - TypeScript.
 - Tailwind CSS.
 - shadcn/ui style components.
-Backend:
+  Backend:
 
 - Node.js with NestJS or Express.
 - TypeScript.
 - REST API.
-Database:
+  Database:
 
 - PostgreSQL.
 - Prisma or Drizzle ORM.
-Cache:
+  Cache:
 
 - Redis, optional for market data and background jobs.
-Jobs:
+  Jobs:
 
 - BullMQ or equivalent background job queue.
-Storage:
+  Storage:
 
 - S3-compatible object storage for raw reports and attachments.
-Auth:
+  Auth:
 
 - Enterprise SSO if available.
 - Otherwise email/password or internal auth for MVP.
-Architecture Layers
+  Architecture Layers
 
 UI Layer
 API Layer
@@ -37,7 +36,6 @@ Domain Service Layer
 Persistence Layer
 Integration Layer
 Audit Layer
-
 
 Core Services
 
@@ -51,7 +49,7 @@ Core Services
 - WellsIngestionService
 - AuditLogService
 - PermissionService
-Key Design Principles
+  Key Design Principles
 
 - External data is read/imported, internal data is owned.
 - Do not block UI on Bloomberg failures.

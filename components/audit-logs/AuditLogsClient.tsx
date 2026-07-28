@@ -8,12 +8,10 @@ type AuditLogsClientProps = {
   initialLogs: any[];
 };
 
-
-
 function actionTone(action: string) {
   const normalized = action.toUpperCase();
 
-    if (
+  if (
     normalized.includes("DELETE") ||
     normalized.includes("REMOVE") ||
     normalized.includes("FAILED") ||
@@ -30,16 +28,11 @@ function actionTone(action: string) {
     return "amber";
   }
 
-  if (
-    normalized.includes("CREATE") ||
-    normalized.includes("CREATED")
-  ) {
+  if (normalized.includes("CREATE") || normalized.includes("CREATED")) {
     return "green";
   }
 
-  if (
-    normalized.includes("LOGIN")
-  ) {
+  if (normalized.includes("LOGIN")) {
     return "blue";
   }
 
@@ -65,24 +58,17 @@ function parseJson(value: string | null | undefined) {
   }
 }
 
-
-
 function getChangedFields(log: any) {
   const previous = parseJson(log.previousValueJson);
   const next = parseJson(log.newValueJson);
 
   if (!previous || !next) return [];
 
-  const keys = new Set([
-    ...Object.keys(previous),
-    ...Object.keys(next),
-  ]);
+  const keys = new Set([...Object.keys(previous), ...Object.keys(next)]);
 
   return Array.from(keys)
     .filter(
-      (key) =>
-        JSON.stringify(previous[key]) !==
-        JSON.stringify(next[key])
+      (key) => JSON.stringify(previous[key]) !== JSON.stringify(next[key]),
     )
     .map((key) => ({
       field: key,
@@ -100,7 +86,6 @@ function AuditLogCard({
   setActorFilter: (value: string) => void;
   setQuery: (value: string) => void;
 }) {
-  
   const changedFields = getChangedFields(log);
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -110,7 +95,7 @@ function AuditLogCard({
           <Badge tone="blue">{log.entityType}</Badge>
           <Badge>{log.actor?.role || "UNKNOWN"}</Badge>
         </div>
-        
+
         <span className="text-xs text-slate-400">
           <LocalDateTime value={log.createdAt} />
         </span>
@@ -123,11 +108,7 @@ function AuditLogCard({
           </p>
           <button
             onClick={() =>
-              setActorFilter(
-                log.actor?.name ||
-                log.actor?.email ||
-                "Unknown"
-              )
+              setActorFilter(log.actor?.name || log.actor?.email || "Unknown")
             }
             className="mt-1 text-left font-semibold text-slate-900 hover:underline"
           >
@@ -175,17 +156,11 @@ function AuditLogCard({
                 key={change.field}
                 className="grid grid-cols-3 gap-2 text-xs"
               >
-                <span className="font-medium">
-                  {change.field}
-                </span>
+                <span className="font-medium">{change.field}</span>
 
-                <span className="text-rose-600">
-                  {String(change.before)}
-                </span>
+                <span className="text-rose-600">{String(change.before)}</span>
 
-                <span className="text-emerald-600">
-                  {String(change.after)}
-                </span>
+                <span className="text-emerald-600">{String(change.after)}</span>
               </div>
             ))}
           </div>
@@ -233,17 +208,11 @@ export default function AuditLogsClient({ initialLogs }: AuditLogsClientProps) {
 
   const actorOptions = [
     "ALL",
-    ...new Set(
-      initialLogs.map(
-        (log) => log.actor?.name || log.actor?.email
-      )
-    ),
+    ...new Set(initialLogs.map((log) => log.actor?.name || log.actor?.email)),
   ];
-  
+
   const filteredLogs = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-
-    
 
     return initialLogs.filter((log) => {
       const searchable = [
@@ -261,91 +230,65 @@ export default function AuditLogsClient({ initialLogs }: AuditLogsClientProps) {
         .toLowerCase();
 
       const matchesAction =
-        actionFilter === "ALL" ||
-        log.action === actionFilter;
+        actionFilter === "ALL" || log.action === actionFilter;
 
       const matchesEntity =
-        entityFilter === "ALL" ||
-        log.entityType === entityFilter;
+        entityFilter === "ALL" || log.entityType === entityFilter;
 
-      const actorName =
-        log.actor?.name ||
-        log.actor?.email ||
-        "Unknown";
+      const actorName = log.actor?.name || log.actor?.email || "Unknown";
 
-      const matchesActor =
-        actorFilter === "ALL" ||
-        actorName === actorFilter;
+      const matchesActor = actorFilter === "ALL" || actorName === actorFilter;
 
       const matchesSearch =
-        !normalizedQuery ||
-        searchable.includes(normalizedQuery);
+        !normalizedQuery || searchable.includes(normalizedQuery);
 
-      return (
-        matchesSearch &&
-        matchesAction &&
-        matchesEntity &&
-        matchesActor
-      );
+      return matchesSearch && matchesAction && matchesEntity && matchesActor;
     });
-  }, [
-    initialLogs,
-    query,
-    actionFilter,
-    entityFilter,
-    actorFilter,
-  ]);
-
+  }, [initialLogs, query, actionFilter, entityFilter, actorFilter]);
 
   const loginCount = initialLogs.filter((log) =>
-    log.action.includes("LOGIN")
+    log.action.includes("LOGIN"),
   ).length;
 
-  const uniqueUsers = new Set(
-    initialLogs.map((log) => log.actorId)
-  ).size;
+  const uniqueUsers = new Set(initialLogs.map((log) => log.actorId)).size;
 
-  const uniqueEntityTypes = new Set(
-    initialLogs.map((log) => log.entityType)
-  ).size;
+  const uniqueEntityTypes = new Set(initialLogs.map((log) => log.entityType))
+    .size;
 
   const actionsLast24Hours = initialLogs.filter((log) => {
     const createdAt = new Date(log.createdAt).getTime();
 
-    return (
-      Date.now() - createdAt <
-      24 * 60 * 60 * 1000
-    );
+    return Date.now() - createdAt < 24 * 60 * 60 * 1000;
   }).length;
 
   const flagsCreated = initialLogs.filter((log) =>
-    log.action.includes("FLAG")
+    log.action.includes("FLAG"),
   ).length;
 
   const commentsCreated = initialLogs.filter((log) =>
-    log.action.includes("COMMENT")
+    log.action.includes("COMMENT"),
   ).length;
 
   const watchlistChanges = initialLogs.filter((log) =>
-    log.action.includes("WATCHLIST")
+    log.action.includes("WATCHLIST"),
   ).length;
 
   const topUsers = (
-  Object.entries(
-    initialLogs.reduce((acc, log) => {
-      const name =
-        log.actor?.name ||
-        log.actor?.email ||
-        "Unknown";
+    Object.entries(
+      initialLogs.reduce(
+        (acc, log) => {
+          const name = log.actor?.name || log.actor?.email || "Unknown";
 
-      acc[name] = (acc[name] || 0) + 1;
+          acc[name] = (acc[name] || 0) + 1;
 
-      return acc;
-    }, {} as Record<string, number>)
-  ) as [string, number][]
-)
-  .sort((a, b) => b[1] - a[1])
-  .slice(0, 5);
+          return acc;
+        },
+        {} as Record<string, number>,
+      ),
+    ) as [string, number][]
+  )
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
   const filteredCount = filteredLogs.length;
 
   const filtersActive =
@@ -353,9 +296,6 @@ export default function AuditLogsClient({ initialLogs }: AuditLogsClientProps) {
     actionFilter !== "ALL" ||
     entityFilter !== "ALL" ||
     actorFilter !== "ALL";
-  
-
-
 
   return (
     <main className="h-screen overflow-hidden bg-slate-100 text-slate-900">
@@ -368,63 +308,57 @@ export default function AuditLogsClient({ initialLogs }: AuditLogsClientProps) {
               <h1 className="font-semibold leading-tight">
                 HCA Central Command
               </h1>
-              <p className="text-xs text-slate-500">
-                Portfolio operations hub
-              </p>
+              <p className="text-xs text-slate-500">Portfolio operations hub</p>
             </div>
           </div>
 
-        <nav className="space-y-2">
-        <a
-            href="/"
-            className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
-        >
-            Home / Positions
-        </a>
+          <nav className="space-y-2">
+            <a
+              href="/"
+              className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
+            >
+              Home / Positions
+            </a>
 
-        <a
-            href="/watchlist"
-            className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
-        >
-            Watchlist
-        </a>
+            <a
+              href="/watchlist"
+              className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
+            >
+              Watchlist
+            </a>
 
-        <a
-            href="/past-positions"
-            className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
-        >
-            Past Positions
-        </a>
+            <a
+              href="/past-positions"
+              className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
+            >
+              Past Positions
+            </a>
 
-        <a
-            href="/comments"
-            className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
-        >
-            Comments
-        </a>
+            <a
+              href="/comments"
+              className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
+            >
+              Comments
+            </a>
 
-        <a
-            href="/alerts"
-            className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
-        >
-            Alerts
-        </a>
+            <a
+              href="/alerts"
+              className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
+            >
+              Alerts
+            </a>
 
-        <a
-            href="/settings"
-            className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
-        >
-            Settings
-        </a>
+            <a
+              href="/settings"
+              className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
+            >
+              Settings
+            </a>
 
-        <a
-            href="/audit-logs"
-            className="block"
-        >
-            Audit-logs
-        </a>
-
-        </nav>
+            <a href="/audit-logs" className="block">
+              Audit-logs
+            </a>
+          </nav>
 
           <div className="mt-auto rounded-3xl bg-slate-50 p-4">
             <div className="mb-2 text-sm font-medium">Compliance Mode</div>
@@ -463,7 +397,6 @@ export default function AuditLogsClient({ initialLogs }: AuditLogsClientProps) {
               </div>
 
               <div className="grid grid-cols-4 gap-4">
-
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                     Total Logs
@@ -481,9 +414,7 @@ export default function AuditLogsClient({ initialLogs }: AuditLogsClientProps) {
 
                   <p
                     className={`mt-2 text-2xl font-semibold ${
-                      filtersActive
-                        ? "text-amber-600"
-                        : "text-slate-900"
+                      filtersActive ? "text-amber-600" : "text-slate-900"
                     }`}
                   >
                     {filteredCount}
@@ -557,9 +488,8 @@ export default function AuditLogsClient({ initialLogs }: AuditLogsClientProps) {
                     {loginCount}
                   </p>
                 </div>
-
               </div>
-          
+
               <div className="rounded-2xl border border-slate-200 bg-white p-3">
                 <input
                   value={query}
@@ -570,10 +500,7 @@ export default function AuditLogsClient({ initialLogs }: AuditLogsClientProps) {
               </div>
 
               <div>
-                
-
                 <div className="grid grid-cols-4 gap-3 items-end">
-
                   <div>
                     <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
                       Action
@@ -633,10 +560,8 @@ export default function AuditLogsClient({ initialLogs }: AuditLogsClientProps) {
                   >
                     Clear Filters
                   </button>
-
                 </div>
               </div>
-
 
               <div className="space-y-3">
                 {filteredLogs.length ? (

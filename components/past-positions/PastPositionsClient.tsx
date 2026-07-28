@@ -23,9 +23,7 @@ function getVisibleTrades(position: any) {
   });
 
   return Array.from(byId.values()).sort((a, b) => {
-    return (
-      new Date(a.dateTraded).getTime() - new Date(b.dateTraded).getTime()
-    );
+    return new Date(a.dateTraded).getTime() - new Date(b.dateTraded).getTime();
   });
 }
 
@@ -53,10 +51,18 @@ function getExitTrade(position: any) {
   const trades = getVisibleTrades(position);
 
   if (position.side === "SHORT") {
-    return [...trades].reverse().find((trade) => isBuyTrade(trade)) ?? trades.at(-1) ?? null;
+    return (
+      [...trades].reverse().find((trade) => isBuyTrade(trade)) ??
+      trades.at(-1) ??
+      null
+    );
   }
 
-  return [...trades].reverse().find((trade) => isSellTrade(trade)) ?? trades.at(-1) ?? null;
+  return (
+    [...trades].reverse().find((trade) => isSellTrade(trade)) ??
+    trades.at(-1) ??
+    null
+  );
 }
 
 function getEntryPrice(position: any) {
@@ -174,7 +180,9 @@ function getLatestComment(position: any) {
 }
 
 function getOpenFlagCount(position: any) {
-  return position.flags?.filter((flag: any) => flag.status === "OPEN").length ?? 0;
+  return (
+    position.flags?.filter((flag: any) => flag.status === "OPEN").length ?? 0
+  );
 }
 
 function formatMoney(value: number | null | undefined) {
@@ -269,7 +277,8 @@ function CommentModal({
               Comment Section
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              {position.security.ticker} • timestamp and author are captured automatically
+              {position.security.ticker} • timestamp and author are captured
+              automatically
             </p>
           </div>
 
@@ -299,7 +308,9 @@ function CommentModal({
 
         <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
           <span className="font-medium text-slate-800">Existing comment:</span>{" "}
-          {latestComment?.content || position.exitRationale || "No comment yet."}
+          {latestComment?.content ||
+            position.exitRationale ||
+            "No comment yet."}
         </div>
 
         <textarea
@@ -347,27 +358,26 @@ function PastPositionsGrid({
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <SectionBar />
 
-      
-    <div className="grid grid-cols-12 border-b bg-slate-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-      <div>Ticker</div>
-      <div className="col-span-2">Company</div>
-      <div>Side</div>
-      <div>Opened</div>
-      <div>Closed</div>
-      <div>Days</div>
-      <div>Entry</div>
-      <div>Exit</div>
-      <div>Total %</div>
-      <div>P&L</div>
-      <div>Review</div>
-    </div>
+      <div className="grid grid-cols-12 border-b bg-slate-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        <div>Ticker</div>
+        <div className="col-span-2">Company</div>
+        <div>Side</div>
+        <div>Opened</div>
+        <div>Closed</div>
+        <div>Days</div>
+        <div>Entry</div>
+        <div>Exit</div>
+        <div>Total %</div>
+        <div>P&L</div>
+        <div>Review</div>
+      </div>
 
       {positions.length === 0 ? (
-          <div className="px-4 py-10 text-center text-sm text-slate-500">
-            No closed positions found. Past positions appear when a Wells position is
-            marked CLOSED during position ingestion.
-          </div>
-        ) : null}
+        <div className="px-4 py-10 text-center text-sm text-slate-500">
+          No closed positions found. Past positions appear when a Wells position
+          is marked CLOSED during position ingestion.
+        </div>
+      ) : null}
       {positions.map((position) => {
         const entryPrice = getEntryPrice(position);
         const exitPrice = getExitPrice(position);
@@ -418,7 +428,9 @@ function PastPositionsGrid({
               </div>
 
               <div className="text-slate-600">
-                {getDaysHeld(position) != null ? `${getDaysHeld(position)}d` : "—"}
+                {getDaysHeld(position) != null
+                  ? `${getDaysHeld(position)}d`
+                  : "—"}
               </div>
 
               <div className="font-medium text-slate-900">
@@ -433,7 +445,9 @@ function PastPositionsGrid({
                 {formatPercent(totalPctChange)}
               </div>
 
-              <div className={`font-semibold ${pnlClass(getRealizedPnl(position))}`}>
+              <div
+                className={`font-semibold ${pnlClass(getRealizedPnl(position))}`}
+              >
                 {formatMoney(getRealizedPnl(position))}
               </div>
               <div className="flex items-center gap-2">
@@ -464,12 +478,16 @@ function PastPositionsGrid({
 
             <div className="mt-2 grid grid-cols-12 gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
               <div className="col-span-3">
-                <span className="font-semibold text-slate-700">Final shares:</span>{" "}
+                <span className="font-semibold text-slate-700">
+                  Final shares:
+                </span>{" "}
                 {formatNumber(position.shares)}
               </div>
 
               <div className="col-span-3">
-                <span className="font-semibold text-slate-700">Cost basis:</span>{" "}
+                <span className="font-semibold text-slate-700">
+                  Cost basis:
+                </span>{" "}
                 {formatMoney(position.costBasis)}
               </div>
 
@@ -485,7 +503,9 @@ function PastPositionsGrid({
               </div>
 
               <div className="col-span-12 pt-1">
-                <span className="font-semibold text-slate-700">Exit rationale:</span>{" "}
+                <span className="font-semibold text-slate-700">
+                  Exit rationale:
+                </span>{" "}
                 {getLatestComment(position) ?? "No exit rationale recorded."}
               </div>
             </div>
@@ -500,51 +520,50 @@ export default function PastPositionsClient({
   initialPositions,
 }: PastPositionsClientProps) {
   const [positions, setPositions] = useState<any[]>(initialPositions);
-const [commentPosition, setCommentPosition] = useState<any | null>(null);
-const [query, setQuery] = useState("");
-const [currentUser, setCurrentUser] = useState<any | null>(null);
+  const [commentPosition, setCommentPosition] = useState<any | null>(null);
+  const [query, setQuery] = useState("");
+  const [currentUser, setCurrentUser] = useState<any | null>(null);
 
-useEffect(() => {
-  async function loadCurrentUser() {
-    const response = await fetch("/api/auth/me");
+  useEffect(() => {
+    async function loadCurrentUser() {
+      const response = await fetch("/api/auth/me");
 
-    if (!response.ok) return;
+      if (!response.ok) return;
 
-    const data = await response.json();
-    setCurrentUser(data.user);
-  }
+      const data = await response.json();
+      setCurrentUser(data.user);
+    }
 
-  loadCurrentUser();
-}, []);
+    loadCurrentUser();
+  }, []);
 
-const closedPositions = useMemo(() => {
-  const normalizedQuery = query.trim().toLowerCase();
+  const closedPositions = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
 
-  return positions
-    .filter((position) => position.status === "CLOSED")
-    .filter((position) => {
-      if (!normalizedQuery) return true;
+    return positions
+      .filter((position) => position.status === "CLOSED")
+      .filter((position) => {
+        if (!normalizedQuery) return true;
 
-      const latestComment = position.comments?.[0]?.content || "";
+        const latestComment = position.comments?.[0]?.content || "";
 
-      const searchable = [
-        position.security?.ticker,
-        position.security?.name,
-        position.security?.sector,
-        position.side,
-        position.exitRationale,
-        latestComment,
-        position.totalPctChange,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
+        const searchable = [
+          position.security?.ticker,
+          position.security?.name,
+          position.security?.sector,
+          position.side,
+          position.exitRationale,
+          latestComment,
+          position.totalPctChange,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
 
-      return searchable.includes(normalizedQuery);
-    });
-}, [positions, query]);
+        return searchable.includes(normalizedQuery);
+      });
+  }, [positions, query]);
 
-  
   const yearToDateRealizedPnl = closedPositions
     .filter((position) => isClosedYearToDate(position))
     .reduce((sum, position) => sum + getRealizedPnl(position), 0);
@@ -552,8 +571,6 @@ const closedPositions = useMemo(() => {
   const last365DaysRealizedPnl = closedPositions
     .filter((position) => isClosedWithinLast365Days(position))
     .reduce((sum, position) => sum + getRealizedPnl(position), 0);
-
-
 
   const userCanCreateComments = canCreateComments(currentUser?.role);
 
@@ -586,7 +603,7 @@ const closedPositions = useMemo(() => {
           ...position,
           comments: [newComment, ...(position.comments || [])],
         };
-      })
+      }),
     );
   }
 
@@ -598,12 +615,15 @@ const closedPositions = useMemo(() => {
         <section className="flex min-w-0 flex-1 flex-col">
           <header className="flex h-20 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
             <div>
-              <p className="text-sm font-medium text-slate-900">Past Positions</p>
-              <p className="text-xs text-slate-500">Closed positions and exit rationale</p>
+              <p className="text-sm font-medium text-slate-900">
+                Past Positions
+              </p>
+              <p className="text-xs text-slate-500">
+                Closed positions and exit rationale
+              </p>
             </div>
 
             <div className="ml-4 flex items-center gap-3">
-             
               <CurrentUserPill />
             </div>
           </header>
@@ -615,7 +635,8 @@ const closedPositions = useMemo(() => {
                   Past Positions
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Closed positions with bought/sold or sold/covered prices, exit rationale, and comment section.
+                  Closed positions with bought/sold or sold/covered prices, exit
+                  rationale, and comment section.
                 </p>
               </div>
 
@@ -636,7 +657,9 @@ const closedPositions = useMemo(() => {
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                     Year to Date Realized P&L
                   </p>
-                  <p className={`mt-2 text-2xl font-semibold ${pnlClass(yearToDateRealizedPnl)}`}>
+                  <p
+                    className={`mt-2 text-2xl font-semibold ${pnlClass(yearToDateRealizedPnl)}`}
+                  >
                     {formatMoney(yearToDateRealizedPnl)}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
@@ -648,7 +671,9 @@ const closedPositions = useMemo(() => {
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                     Last 365 Days Realized P&L
                   </p>
-                  <p className={`mt-2 text-2xl font-semibold ${pnlClass(last365DaysRealizedPnl)}`}>
+                  <p
+                    className={`mt-2 text-2xl font-semibold ${pnlClass(last365DaysRealizedPnl)}`}
+                  >
                     {formatMoney(last365DaysRealizedPnl)}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">

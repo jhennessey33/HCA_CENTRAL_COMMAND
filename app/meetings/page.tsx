@@ -4,11 +4,7 @@ import MeetingsClient from "@/components/meetings/MeetingsClient";
 export const dynamic = "force-dynamic";
 
 export default async function MeetingsPage() {
-  const [
-    meetings,
-    securities,
-    latestFundEquitySnapshot,
-  ] = await Promise.all([
+  const [meetings, securities, latestFundEquitySnapshot] = await Promise.all([
     prisma.meeting.findMany({
       include: {
         comments: {
@@ -94,23 +90,13 @@ export default async function MeetingsPage() {
     }),
   ]);
 
-
-
   return (
     <MeetingsClient
-      initialMeetings={JSON.parse(
-        JSON.stringify(meetings)
-      )}
-      securities={JSON.parse(
-        JSON.stringify(securities)
-      )}
+      initialMeetings={JSON.parse(JSON.stringify(meetings))}
+      securities={JSON.parse(JSON.stringify(securities))}
       fundEquitySnapshot={
         latestFundEquitySnapshot
-          ? JSON.parse(
-              JSON.stringify(
-                latestFundEquitySnapshot
-              )
-            )
+          ? JSON.parse(JSON.stringify(latestFundEquitySnapshot))
           : null
       }
     />

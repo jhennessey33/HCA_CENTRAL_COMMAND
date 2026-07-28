@@ -33,13 +33,8 @@ type FundEquitySnapshot = {
 
 type DashboardClientProps = {
   positions: any[];
-  fundEquitySnapshot:
-    | FundEquitySnapshot
-    | null;
+  fundEquitySnapshot: FundEquitySnapshot | null;
 };
-
-
-
 
 function formatMoney(value: number | null | undefined) {
   if (value == null) return "—";
@@ -55,25 +50,18 @@ function getCapitalIqUrl(ticker: string) {
   const normalizedTicker = ticker.trim().toLowerCase();
 
   return `https://www.capitaliq.spglobal.com/apisv3/spg-webplatform-core/search/searchResults?vertical=&q=${encodeURIComponent(
-    normalizedTicker
+    normalizedTicker,
   )}`;
 }
-
 
 function openCapitalIq(ticker: string) {
   window.open(getCapitalIqUrl(ticker), "_blank");
 }
 
-function getLocalDateTimeInputValue(
-  date = new Date()
-) {
-  const timezoneOffsetMilliseconds =
-    date.getTimezoneOffset() * 60 * 1000;
+function getLocalDateTimeInputValue(date = new Date()) {
+  const timezoneOffsetMilliseconds = date.getTimezoneOffset() * 60 * 1000;
 
-  return new Date(
-    date.getTime() -
-      timezoneOffsetMilliseconds
-  )
+  return new Date(date.getTime() - timezoneOffsetMilliseconds)
     .toISOString()
     .slice(0, 16);
 }
@@ -103,17 +91,10 @@ function formatPercent(value: number | null | undefined) {
   return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
 }
 
-
-
-
-
-
-
 function pnlClass(value: number | null | undefined) {
   if (value == null) return "text-slate-500";
   return value >= 0 ? "text-emerald-600" : "text-rose-600";
 }
-
 
 function DateDisplay({
   value,
@@ -150,17 +131,9 @@ function getDashboardComments(position: any) {
   });
 }
 
-function SectionBar({
-  title,
-  tone,
-}: {
-  title: string;
-  tone: "green" | "red";
-}) {
+function SectionBar({ title, tone }: { title: string; tone: "green" | "red" }) {
   const toneClass =
-    tone === "green"
-      ? "bg-emerald-700 text-white"
-      : "bg-red-600 text-white";
+    tone === "green" ? "bg-emerald-700 text-white" : "bg-red-600 text-white";
 
   return (
     <div
@@ -233,21 +206,15 @@ function PositionGrid({
         </div>
 
         {positions.map((position) => {
-
           const latestComment = getDashboardComments(position).find(
-            (comment: any) => comment.tag !== "PT"
+            (comment: any) => comment.tag !== "PT",
           );
           const openFlag = position.flags?.[0];
           const currentPrice = getDisplayCurrentPrice(position);
           const wap = getDisplayWap(position);
           const totalPctChange = getDisplayTotalPctChange(position);
-          const portfolioPct =
-            getDisplayPortfolioPct(
-              position,
-              netEquity
-            );
+          const portfolioPct = getDisplayPortfolioPct(position, netEquity);
           const dayPctChange = getDisplayDayPctChange(position);
-          
 
           return (
             <div
@@ -256,7 +223,6 @@ function PositionGrid({
                 selectedId === position.id ? "bg-slate-100" : "bg-white"
               }`}
             >
-            
               <button
                 onClick={() => onSelect(position)}
                 className="flex items-center justify-center gap-1 font-semibold text-slate-950 hover:underline"
@@ -273,9 +239,7 @@ function PositionGrid({
                 {position.security.name}
               </div>
 
-              <div className="font-medium">
-                {formatPrice(currentPrice)}
-              </div>
+              <div className="font-medium">{formatPrice(currentPrice)}</div>
 
               <div className={`font-semibold ${pnlClass(dayPctChange)}`}>
                 {formatPercent(dayPctChange)}
@@ -292,13 +256,12 @@ function PositionGrid({
               <div>{formatMoney(position.marketValue)}</div>
 
               <div className={`font-semibold ${pnlClass(totalPctChange)}`}>
-
                 {formatPercent(totalPctChange)}
               </div>
-              
+
               <div>{position.security.sector || "—"}</div>
 
-              <div className="flex justify-center">            
+              <div className="flex justify-center">
                 <button
                   onClick={() => openCapitalIq(position.security.ticker)}
                   className="rounded-xl bg-slate-100 px-2 py-1 font-medium text-slate-700 hover:bg-slate-200"
@@ -358,17 +321,13 @@ function TickerDetailPanel({
   availableSectors: string[];
   onSector: (position: any) => void;
 }) {
-  const [selectedSector, setSelectedSector] =
-  useState("");
+  const [selectedSector, setSelectedSector] = useState("");
 
-  const [isSavingSector, setIsSavingSector] =
-    useState(false);
+  const [isSavingSector, setIsSavingSector] = useState(false);
   const [showAllTrades, setShowAllTrades] = useState(false);
 
   useEffect(() => {
-    setSelectedSector(
-      position?.security?.sector || ""
-      );
+    setSelectedSector(position?.security?.sector || "");
   }, [position]);
 
   useEffect(() => {
@@ -391,20 +350,16 @@ function TickerDetailPanel({
           body: JSON.stringify({
             sector: selectedSector,
           }),
-        }
+        },
       );
 
       if (!response.ok) {
         throw new Error();
       }
 
-      window.alert(
-        "Sector updated successfully."
-      );
+      window.alert("Sector updated successfully.");
     } catch {
-      window.alert(
-        "Failed to update sector."
-      );
+      window.alert("Failed to update sector.");
     } finally {
       setIsSavingSector(false);
     }
@@ -420,14 +375,12 @@ function TickerDetailPanel({
   const currentPrice = getDisplayCurrentPrice(position);
   const wap = getDisplayWap(position);
   const totalPctChange = getDisplayTotalPctChange(position);
- 
 
   const visibleTrades = showAllTrades
     ? position.trades || []
     : (position.trades || []).slice(0, 5);
 
   const hiddenTradeCount = Math.max((position.trades?.length || 0) - 5, 0);
-
 
   return (
     <aside className="flex h-full w-[560px] shrink-0 flex-col border-l border-slate-200 bg-white shadow-xl">
@@ -444,12 +397,12 @@ function TickerDetailPanel({
               </Badge>
 
               {security.sector ? (
-                <Badge tone="blue">
-                  {security.sector}
-                </Badge>
+                <Badge tone="blue">{security.sector}</Badge>
               ) : null}
 
-              {openFlag ? <Badge tone="amber">{openFlag.flagType}</Badge> : null}
+              {openFlag ? (
+                <Badge tone="amber">{openFlag.flagType}</Badge>
+              ) : null}
             </div>
 
             <p className="mt-1 text-sm text-slate-500">
@@ -466,18 +419,16 @@ function TickerDetailPanel({
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-          
           <div className="rounded-2xl bg-slate-50 p-3">
             <p className="text-xs text-slate-500">Current Price</p>
-            
+
             <p className="mt-1 font-semibold text-slate-950">
               {formatPrice(currentPrice)}
             </p>
-
           </div>
 
           <div className="rounded-2xl bg-slate-50 p-3">
-            <p className="text-xs text-slate-500">WAP / Point</p>                      
+            <p className="text-xs text-slate-500">WAP / Point</p>
             <p className="mt-1 font-semibold text-slate-950">
               {formatPrice(wap)}
             </p>
@@ -491,7 +442,7 @@ function TickerDetailPanel({
           </div>
 
           <div className="rounded-2xl bg-slate-50 p-3">
-            <p className="text-xs text-slate-500">Total % Change</p>           
+            <p className="text-xs text-slate-500">Total % Change</p>
             <p className={`mt-1 font-semibold ${pnlClass(totalPctChange)}`}>
               {formatPercent(totalPctChange)}
             </p>
@@ -528,8 +479,8 @@ function TickerDetailPanel({
             >
               Flag
             </button>
-          )}     
-          
+          )}
+
           <button
             onClick={() => openCapitalIq(position.security.ticker)}
             className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -537,7 +488,6 @@ function TickerDetailPanel({
             Capital IQ
           </button>
 
-          
           <button
             onClick={() => onLots(position)}
             className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -562,7 +512,7 @@ function TickerDetailPanel({
           ) : null}
         </div>
       </div>
-      
+
       <div className="flex-1 overflow-auto p-5">
         <section>
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -572,8 +522,7 @@ function TickerDetailPanel({
 
             <div className="flex shrink-0 items-center gap-2">
               <span className="text-xs text-slate-400">
-                {visibleTrades.length} of{" "}
-                {position.trades?.length || 0} trades
+                {visibleTrades.length} of {position.trades?.length || 0} trades
               </span>
 
               <button
@@ -596,10 +545,8 @@ function TickerDetailPanel({
               <span>Note</span>
             </div>
 
-            
             {visibleTrades.length ? (
               visibleTrades.map((trade: any) => (
-
                 <div
                   key={trade.id}
                   className="grid grid-cols-6 items-center gap-2 border-b border-slate-100 px-3 py-3 last:border-b-0"
@@ -612,47 +559,26 @@ function TickerDetailPanel({
 
                   <span>{formatPrice(trade.avgPrice)}</span>
 
-                 <span className="flex flex-col items-start gap-1">
+                  <span className="flex flex-col items-start gap-1">
                     {trade.source === "MANUAL" ? (
-                      <Badge tone="amber">
-                        Manual
-                      </Badge>
-                    ) : trade.source ===
-                      "WELLS_FARGO" ? (
-                      <Badge tone="green">
-                        Wells
-                      </Badge>
+                      <Badge tone="amber">Manual</Badge>
+                    ) : trade.source === "WELLS_FARGO" ? (
+                      <Badge tone="green">Wells</Badge>
                     ) : trade.source === "SYSTEM" ? (
-                      <Badge tone="blue">
-                        System Generated
-                      </Badge>
+                      <Badge tone="blue">System Generated</Badge>
                     ) : (
-                      <Badge tone="slate">
-                        {trade.source || "Unknown"}
-                      </Badge>
+                      <Badge tone="slate">{trade.source || "Unknown"}</Badge>
                     )}
 
                     {trade.source === "SYSTEM" &&
-                    trade.reconciliationStatus ===
-                      "MANUAL_PENDING" ? (
-                      <Badge tone="blue">
-                        Pending Completion
-                      </Badge>
-                    ) : trade.reconciliationStatus ===
-                      "REVIEW_REQUIRED" ? (
-                      <Badge tone="red">
-                        Review
-                      </Badge>
-                    ) : trade.reconciliationStatus ===
-                      "MANUAL_PENDING" ? (
-                      <Badge tone="amber">
-                        Pending
-                      </Badge>
-                    ) : trade.reconciliationStatus ===
-                      "MATCHED" ? (
-                      <Badge tone="blue">
-                        Matched
-                      </Badge>
+                    trade.reconciliationStatus === "MANUAL_PENDING" ? (
+                      <Badge tone="blue">Pending Completion</Badge>
+                    ) : trade.reconciliationStatus === "REVIEW_REQUIRED" ? (
+                      <Badge tone="red">Review</Badge>
+                    ) : trade.reconciliationStatus === "MANUAL_PENDING" ? (
+                      <Badge tone="amber">Pending</Badge>
+                    ) : trade.reconciliationStatus === "MATCHED" ? (
+                      <Badge tone="blue">Matched</Badge>
                     ) : null}
                   </span>
 
@@ -682,10 +608,10 @@ function TickerDetailPanel({
           </div>
         </section>
 
-        
-
         <section className="mt-5">
-          <h3 className="mb-3 font-semibold text-slate-950">Comment Timeline</h3>
+          <h3 className="mb-3 font-semibold text-slate-950">
+            Comment Timeline
+          </h3>
 
           <div className="space-y-3">
             {dashboardComments.length ? (
@@ -711,7 +637,8 @@ function TickerDetailPanel({
                   </p>
 
                   <p className="mt-2 text-xs text-slate-400">
-                    by {comment.author?.name || comment.author?.email || "Unknown"}
+                    by{" "}
+                    {comment.author?.name || comment.author?.email || "Unknown"}
                   </p>
                 </div>
               ))
@@ -818,17 +745,16 @@ function MarketDataModal({
   position: any | null;
   onClose: () => void;
 }) {
-
   if (!position) return null;
 
   const security = position.security;
   const marketData = security.marketData?.[0];
- 
-
 
   const rows = [
-
-    ["VWAP", marketData?.vwap != null ? `$${marketData.vwap.toFixed(2)}` : "N/A"],
+    [
+      "VWAP",
+      marketData?.vwap != null ? `$${marketData.vwap.toFixed(2)}` : "N/A",
+    ],
     [
       "52 Week High",
       marketData?.high52w != null ? `$${marketData.high52w.toFixed(2)}` : "N/A",
@@ -854,14 +780,20 @@ function MarketDataModal({
       "Market Cap",
       marketData?.marketCap != null ? formatMoney(marketData.marketCap) : "N/A",
     ],
-    ["P/LTM EPS", marketData?.peLtm != null ? `${marketData.peLtm.toFixed(1)}x` : "N/A"],
+    [
+      "P/LTM EPS",
+      marketData?.peLtm != null ? `${marketData.peLtm.toFixed(1)}x` : "N/A",
+    ],
     [
       "Price/Tang Book",
       marketData?.priceToTangBook != null
         ? `${marketData.priceToTangBook.toFixed(1)}x`
         : "N/A",
     ],
-    ["P/NTM EPS", marketData?.peNtm != null ? `${marketData.peNtm.toFixed(1)}x` : "N/A"],
+    [
+      "P/NTM EPS",
+      marketData?.peNtm != null ? `${marketData.peNtm.toFixed(1)}x` : "N/A",
+    ],
     [
       "Price/Book",
       marketData?.priceToBook != null
@@ -915,19 +847,25 @@ function MarketDataModal({
         </div>
         <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-slate-500">
-            <span className="font-medium text-slate-700">Market Data Source</span>
+            <span className="font-medium text-slate-700">
+              Market Data Source
+            </span>
             <span className="text-right font-semibold text-slate-950">
               {marketData?.marketDataSource ?? "N/A"}
             </span>
-            <span className="font-medium text-slate-700">Fundamentals Source</span>
+            <span className="font-medium text-slate-700">
+              Fundamentals Source
+            </span>
             <span className="text-right font-semibold text-slate-950">
               {marketData?.fundamentalsSource ?? "N/A"}
             </span>
             <span className="font-medium text-slate-700">Data Quality</span>
             <span className="text-right font-semibold text-slate-950">
               {marketData?.dataQuality ?? "N/A"}
-            </span>           
-            <span className="font-medium text-slate-700">Last Market Refresh</span>
+            </span>
+            <span className="font-medium text-slate-700">
+              Last Market Refresh
+            </span>
             <span className="text-right font-semibold text-slate-950">
               {marketData?.lastMarketDataRefreshAt ? (
                 <LocalDateTime value={marketData.lastMarketDataRefreshAt} />
@@ -935,7 +873,9 @@ function MarketDataModal({
                 "N/A"
               )}
             </span>
-            <span className="font-medium text-slate-700">Last Fundamentals Refresh</span>
+            <span className="font-medium text-slate-700">
+              Last Fundamentals Refresh
+            </span>
             <span className="text-right font-semibold text-slate-950">
               {marketData?.lastFundamentalsRefreshAt ? (
                 <LocalDateTime value={marketData.lastFundamentalsRefreshAt} />
@@ -943,7 +883,6 @@ function MarketDataModal({
                 "N/A"
               )}
             </span>
-
           </div>
         </div>
       </div>
@@ -975,40 +914,29 @@ function AddTradeModal({
   const [avgPrice, setAvgPrice] = useState("");
   const [comment, setComment] = useState("");
 
-  const [
-    shortLocateNumber,
-    setShortLocateNumber,
-  ] = useState("");
+  const [shortLocateNumber, setShortLocateNumber] = useState("");
 
-const [isSaving, setIsSaving] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
-  const [confirmingSave, setConfirmingSave] =
-  useState(false);
+  const [confirmingSave, setConfirmingSave] = useState(false);
   useEffect(() => {
-  if (!confirmingSave) {
-    return;
-  }
+    if (!confirmingSave) {
+      return;
+    }
 
-  const timeout = setTimeout(() => {
-    setConfirmingSave(false);
-  }, 5000);
+    const timeout = setTimeout(() => {
+      setConfirmingSave(false);
+    }, 5000);
 
-  return () => clearTimeout(timeout);
-}, [confirmingSave]);
+    return () => clearTimeout(timeout);
+  }, [confirmingSave]);
 
-
-    useEffect(() => {
+  useEffect(() => {
     if (!position) return;
 
-    setDateTraded(
-      getLocalDateTimeInputValue()
-    );
+    setDateTraded(getLocalDateTimeInputValue());
 
-    setTradeType(
-      position.side === "SHORT"
-        ? "SHORT"
-        : "BUY"
-    );
+    setTradeType(position.side === "SHORT" ? "SHORT" : "BUY");
 
     setShares("");
     setAvgPrice("");
@@ -1032,63 +960,46 @@ const [isSaving, setIsSaving] = useState(false);
       return;
     }
 
-        if (!avgPrice.trim()) {
+    if (!avgPrice.trim()) {
       setError("Average price is required.");
       return;
     }
-    if (
-      tradeType === "SHORT" &&
-      !shortLocateNumber.trim()
-    ) {
-      setError(
-        "Short Locate Number is required for a short trade."
-      );
+    if (tradeType === "SHORT" && !shortLocateNumber.trim()) {
+      setError("Short Locate Number is required for a short trade.");
       return;
     }
 
     if (!dateTraded) {
-      setError(
-        "Trade date and time are required."
-      );
+      setError("Trade date and time are required.");
       return;
     }
 
-    const parsedDateTraded =
-      new Date(dateTraded);
+    const parsedDateTraded = new Date(dateTraded);
 
-    if (
-      Number.isNaN(
-        parsedDateTraded.getTime()
-      )
-    ) {
-      setError(
-        "Enter a valid trade date and time."
-      );
+    if (Number.isNaN(parsedDateTraded.getTime())) {
+      setError("Enter a valid trade date and time.");
       return;
     }
 
-    const serializedDateTraded =
-      parsedDateTraded.toISOString();
+    const serializedDateTraded = parsedDateTraded.toISOString();
 
     setIsSaving(true);
 
     try {
-        await onSave({
+      await onSave({
         securityId: position.securityId,
         positionId: position.id,
         tradeType,
-        dateTraded:
-          serializedDateTraded,
+        dateTraded: serializedDateTraded,
         shares,
         avgPrice,
         comment,
-        shortLocateNumber:
-          shortLocateNumber.trim(),
-        });
+        shortLocateNumber: shortLocateNumber.trim(),
+      });
       onClose();
     } catch (error) {
       setError(
-        error instanceof Error ? error.message : "Failed to add manual trade."
+        error instanceof Error ? error.message : "Failed to add manual trade.",
       );
     } finally {
       setIsSaving(false);
@@ -1128,7 +1039,7 @@ const [isSaving, setIsSaving] = useState(false);
             <option value="COVER">Cover Short</option>
           </select>
 
-            <div>
+          <div>
             <label className="text-sm font-medium text-slate-700">
               Trade Date and Time
             </label>
@@ -1136,20 +1047,15 @@ const [isSaving, setIsSaving] = useState(false);
             <input
               type="datetime-local"
               value={dateTraded}
-              onChange={(event) =>
-                setDateTraded(
-                  event.target.value
-                )
-              }
+              onChange={(event) => setDateTraded(event.target.value)}
               step="60"
               required
               className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
             />
 
             <p className="mt-1 text-xs text-slate-500">
-              Defaults to the current local date
-              and time. An earlier trade timestamp
-              may be selected.
+              Defaults to the current local date and time. An earlier trade
+              timestamp may be selected.
             </p>
           </div>
 
@@ -1170,18 +1076,12 @@ const [isSaving, setIsSaving] = useState(false);
             <div>
               <label className="text-sm font-medium text-slate-700">
                 Short Locate Number
-                <span className="ml-1 text-rose-600">
-                  *
-                </span>
+                <span className="ml-1 text-rose-600">*</span>
               </label>
 
               <input
                 value={shortLocateNumber}
-                onChange={(event) =>
-                  setShortLocateNumber(
-                    event.target.value
-                  )
-                }
+                onChange={(event) => setShortLocateNumber(event.target.value)}
                 required
                 autoComplete="off"
                 placeholder="Enter short locate number"
@@ -1189,8 +1089,7 @@ const [isSaving, setIsSaving] = useState(false);
               />
 
               <p className="mt-1 text-xs text-slate-500">
-                Required for short trades and appended
-                to the saved trade note.
+                Required for short trades and appended to the saved trade note.
               </p>
             </div>
           ) : null}
@@ -1308,7 +1207,6 @@ function CommentModal({
     ["CATALYST", "Catalyst"],
     ["TRADE", "Trade"],
     ["EXIT", "Exit"],
-    
   ];
 
   return (
@@ -1393,7 +1291,7 @@ function FlagModal({
 }: {
   position: any | null;
   onClose: () => void;
-    onSave: (payload: {
+  onSave: (payload: {
     securityId: string;
     positionId: string;
     flagType: string;
@@ -1402,7 +1300,7 @@ function FlagModal({
     reminderAt: string | null;
   }) => Promise<void>;
 }) {
-    const [flagType, setFlagType] = useState("Risk Review");
+  const [flagType, setFlagType] = useState("Risk Review");
   const [priority, setPriority] = useState("MEDIUM");
   const [description, setDescription] = useState("");
   const [reminderAt, setReminderAt] = useState("");
@@ -1426,8 +1324,7 @@ function FlagModal({
     "Custom",
   ];
 
-  const isReminder =
-    flagType.trim().toUpperCase() === "REMINDER";
+  const isReminder = flagType.trim().toUpperCase() === "REMINDER";
 
   async function handleSave() {
     setError("");
@@ -1438,16 +1335,12 @@ function FlagModal({
     }
 
     if (isReminder && !description.trim()) {
-      setError(
-        "A description is required for reminders."
-      );
+      setError("A description is required for reminders.");
       return;
     }
 
     if (isReminder && !reminderAt) {
-      setError(
-        "A reminder date and time are required."
-      );
+      setError("A reminder date and time are required.");
       return;
     }
 
@@ -1457,14 +1350,11 @@ function FlagModal({
       const parsedReminderAt = new Date(reminderAt);
 
       if (Number.isNaN(parsedReminderAt.getTime())) {
-        setError(
-          "Enter a valid reminder date and time."
-        );
+        setError("Enter a valid reminder date and time.");
         return;
       }
 
-      serializedReminderAt =
-        parsedReminderAt.toISOString();
+      serializedReminderAt = parsedReminderAt.toISOString();
     }
 
     setIsSaving(true);
@@ -1490,7 +1380,7 @@ function FlagModal({
       setError(
         error instanceof Error
           ? error.message
-          : "Failed to create flag. Please try again."
+          : "Failed to create flag. Please try again.",
       );
     } finally {
       setIsSaving(false);
@@ -1529,9 +1419,7 @@ function FlagModal({
             >
               {flagTypes.map((type) => (
                 <option key={type} value={type}>
-                  {type === "REMINDER"
-                    ? "Reminder"
-                    : type}
+                  {type === "REMINDER" ? "Reminder" : type}
                 </option>
               ))}
             </select>
@@ -1555,21 +1443,15 @@ function FlagModal({
             <label className="text-sm font-medium text-slate-700">
               Date and Time{" "}
               {isReminder ? (
-                <span className="text-rose-600">
-                  *
-                </span>
+                <span className="text-rose-600">*</span>
               ) : (
-                <span className="font-normal text-slate-400">
-                  — Optional
-                </span>
+                <span className="font-normal text-slate-400">— Optional</span>
               )}
             </label>
 
             <input
               value={reminderAt}
-              onChange={(event) =>
-                setReminderAt(event.target.value)
-              }
+              onChange={(event) => setReminderAt(event.target.value)}
               type="datetime-local"
               required={isReminder}
               disabled={isSaving}
@@ -1585,11 +1467,7 @@ function FlagModal({
           <div>
             <label className="text-sm font-medium text-slate-700">
               Description{" "}
-              {isReminder ? (
-                <span className="text-rose-600">
-                  *
-                </span>
-              ) : null}
+              {isReminder ? <span className="text-rose-600">*</span> : null}
             </label>
             <textarea
               value={description}
@@ -1643,20 +1521,14 @@ function SectorModal({
   position: any | null;
   availableSectors: string[];
   onClose: () => void;
-  onSectorUpdated: (
-  securityId: string,
-  sector: string
-) => void;
+  onSectorUpdated: (securityId: string, sector: string) => void;
 }) {
   const [sector, setSector] = useState("");
 
-  const [isSaving, setIsSaving] =
-    useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    setSector(
-      position?.security?.sector || ""
-    );
+    setSector(position?.security?.sector || "");
   }, [position]);
 
   if (!position) return null;
@@ -1675,24 +1547,18 @@ function SectorModal({
           body: JSON.stringify({
             sector,
           }),
-        }
+        },
       );
 
       if (!response.ok) {
         throw new Error();
       }
 
-      onSectorUpdated(
-        position.security.id,
-        sector
-      );
+      onSectorUpdated(position.security.id, sector);
 
       onClose();
-            
     } catch {
-      window.alert(
-        "Failed to update sector."
-      );
+      window.alert("Failed to update sector.");
     } finally {
       setIsSaving(false);
     }
@@ -1721,22 +1587,15 @@ function SectorModal({
         </div>
 
         <div className="mt-5">
-          <label className="text-sm font-medium text-slate-700">
-            Sector
-          </label>
+          <label className="text-sm font-medium text-slate-700">Sector</label>
 
           <select
             value={sector}
-            onChange={(event) =>
-              setSector(event.target.value)
-            }
+            onChange={(event) => setSector(event.target.value)}
             className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
           >
             {availableSectors.map((value) => (
-              <option
-                key={value}
-                value={value}
-              >
+              <option key={value} value={value}>
                 {value}
               </option>
             ))}
@@ -1756,9 +1615,7 @@ function SectorModal({
             disabled={isSaving}
             className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
           >
-            {isSaving
-              ? "Saving..."
-              : "Save Sector"}
+            {isSaving ? "Saving..." : "Save Sector"}
           </button>
         </div>
       </div>
@@ -1771,45 +1628,36 @@ export default function DashboardClient({
   fundEquitySnapshot,
 }: DashboardClientProps) {
   const [localPositions, setLocalPositions] = useState<any[]>(positions);
- const dashboardNetEquity = Number(
-    fundEquitySnapshot?.netEquity
-  );
+  const dashboardNetEquity = Number(fundEquitySnapshot?.netEquity);
 
   const validDashboardNetEquity =
-    Number.isFinite(
-      dashboardNetEquity
-    ) &&
-    dashboardNetEquity > 0
+    Number.isFinite(dashboardNetEquity) && dashboardNetEquity > 0
       ? dashboardNetEquity
       : null;
 
-
   const [selectedPosition, setSelectedPosition] = useState<any | null>(null);
 
-  const [marketDataPosition, setMarketDataPosition] = useState<any | null>(null);
+  const [marketDataPosition, setMarketDataPosition] = useState<any | null>(
+    null,
+  );
   const [commentPosition, setCommentPosition] = useState<any | null>(null);
   const [flagPosition, setFlagPosition] = useState<any | null>(null);
-  const [availableSectors, setAvailableSectors] =
-  useState<string[]>([]);
-  const [sectorPosition, setSectorPosition] =
-  useState<any | null>(null);
+  const [availableSectors, setAvailableSectors] = useState<string[]>([]);
+  const [sectorPosition, setSectorPosition] = useState<any | null>(null);
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
   const [taxLotsPosition, setTaxLotsPosition] = useState<any | null>(null);
-  const [manualTradePosition, setManualTradePosition] = useState<any | null>(null);
-  const [
-    expandedTradeHistoryPosition,
-    setExpandedTradeHistoryPosition,
-  ] = useState<any | null>(null);
-  const [showSummaryModal, setShowSummaryModal] =
-  useState(false);
+  const [manualTradePosition, setManualTradePosition] = useState<any | null>(
+    null,
+  );
+  const [expandedTradeHistoryPosition, setExpandedTradeHistoryPosition] =
+    useState<any | null>(null);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
 
   const userCanCreateComments = canCreateComments(currentUser?.role);
   const userCanCreateFlags = canCreateFlags(currentUser?.role);
-  const userCanEditSectors =
-  canEditSectors(currentUser?.role);
-
+  const userCanEditSectors = canEditSectors(currentUser?.role);
 
   useEffect(() => {
     async function loadCurrentUser() {
@@ -1825,178 +1673,161 @@ export default function DashboardClient({
   }, []);
 
   useEffect(() => {
-  async function loadSectors() {
-    try {
-      const response = await fetch("/api/sectors");
+    async function loadSectors() {
+      try {
+        const response = await fetch("/api/sectors");
 
-      if (!response.ok) {
+        if (!response.ok) {
+          return;
+        }
+
+        const data = await response.json();
+
+        setAvailableSectors(
+          (data.sectors || []).map((sector: any) => sector.name ?? sector),
+        );
+      } catch (error) {
+        console.error("Failed to load sectors.", error);
+      }
+    }
+
+    loadSectors();
+  }, []);
+
+  useEffect(() => {
+    const konamiCode = [
+      "ArrowUp",
+      "ArrowUp",
+      "ArrowDown",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowLeft",
+      "ArrowRight",
+      "b",
+      "a",
+    ];
+
+    const themeStorageKey = "hca-dashboard-theme";
+    let currentIndex = 0;
+
+    // Restore the saved dashboard theme when the page loads.
+    const savedTheme = window.localStorage.getItem(themeStorageKey);
+
+    document.documentElement.classList.toggle(
+      "hca-pink-theme",
+      savedTheme === "pink",
+    );
+
+    function handleKeyDown(event: KeyboardEvent) {
+      const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+
+      if (key === konamiCode[currentIndex]) {
+        currentIndex += 1;
+
+        if (currentIndex === konamiCode.length) {
+          const currentTheme = window.localStorage.getItem(themeStorageKey);
+
+          const shouldEnablePinkTheme = currentTheme !== "pink";
+
+          window.localStorage.setItem(
+            themeStorageKey,
+            shouldEnablePinkTheme ? "pink" : "default",
+          );
+
+          document.documentElement.classList.toggle(
+            "hca-pink-theme",
+            shouldEnablePinkTheme,
+          );
+
+          currentIndex = 0;
+        }
+
         return;
       }
 
-      const data = await response.json();
-
-      setAvailableSectors(
-        (data.sectors || []).map(
-          (sector: any) => sector.name ?? sector
-        )
-      );
-    } catch (error) {
-      console.error(
-        "Failed to load sectors.",
-        error
-      );
-    }
-  }
-
-  loadSectors();
-}, []);
-
-useEffect(() => {
-  const konamiCode = [
-    "ArrowUp",
-    "ArrowUp",
-    "ArrowDown",
-    "ArrowDown",
-    "ArrowLeft",
-    "ArrowRight",
-    "ArrowLeft",
-    "ArrowRight",
-    "b",
-    "a",
-  ];
-
-  const themeStorageKey = "hca-dashboard-theme";
-  let currentIndex = 0;
-
-  // Restore the saved dashboard theme when the page loads.
-  const savedTheme = window.localStorage.getItem(themeStorageKey);
-
-  document.documentElement.classList.toggle(
-    "hca-pink-theme",
-    savedTheme === "pink"
-  );
-
-  function handleKeyDown(event: KeyboardEvent) {
-    const key =
-      event.key.length === 1
-        ? event.key.toLowerCase()
-        : event.key;
-
-    if (key === konamiCode[currentIndex]) {
-      currentIndex += 1;
-
-      if (currentIndex === konamiCode.length) {
-        const currentTheme =
-          window.localStorage.getItem(themeStorageKey);
-
-        const shouldEnablePinkTheme = currentTheme !== "pink";
-
-        window.localStorage.setItem(
-          themeStorageKey,
-          shouldEnablePinkTheme ? "pink" : "default"
-        );
-
-        document.documentElement.classList.toggle(
-          "hca-pink-theme",
-          shouldEnablePinkTheme
-        );
-
-        currentIndex = 0;
-      }
-
-      return;
+      // Restart at 1 if this key could be the first key
+      // of a new Konami sequence.
+      currentIndex = key === konamiCode[0] ? 1 : 0;
     }
 
-    // Restart at 1 if this key could be the first key
-    // of a new Konami sequence.
-    currentIndex = key === konamiCode[0] ? 1 : 0;
-  }
+    window.addEventListener("keydown", handleKeyDown);
 
-  window.addEventListener("keydown", handleKeyDown);
-
-  return () => {
-    window.removeEventListener("keydown", handleKeyDown);
-  };
-}, []);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   const filteredPositions = useMemo(() => {
-  const normalizedQuery = query.trim().toLowerCase();
+    const normalizedQuery = query.trim().toLowerCase();
 
-  return localPositions
-    .filter((position) => {
-      
+    return localPositions
+      .filter((position) => {
+        const flagText =
+          position.flags?.map((flag: any) => flag.flagType).join(" ") || "";
 
-          
-      const flagText = position.flags?.map((flag: any) => flag.flagType).join(" ") || "";
+        const searchable = [
+          position.security?.ticker,
+          position.security?.name,
+          position.security?.sector,
+          position.side,
 
-      const searchable = [
-        position.security?.ticker,
-        position.security?.name,
-        position.security?.sector,
-        position.side,
-        
-        flagText,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
+          flagText,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
 
-      const matchesQuery = !normalizedQuery || searchable.includes(normalizedQuery);
+        const matchesQuery =
+          !normalizedQuery || searchable.includes(normalizedQuery);
 
-      const matchesFilter =
-        activeFilter === "All" ||
-        (activeFilter === "Long" && position.side === "LONG") ||
-        (activeFilter === "Short" && position.side === "SHORT") ||
-        (activeFilter === "Winners" &&
-          (getDisplayTotalPctChange(position) ?? 0) >= 0) ||
-        (activeFilter === "Losers" &&
-          (getDisplayTotalPctChange(position) ?? 0) < 0) ||
-        (activeFilter === "Flagged" && position.flags?.length > 0) ||
-        position.security?.sector?.toLowerCase().includes(activeFilter.toLowerCase());
+        const matchesFilter =
+          activeFilter === "All" ||
+          (activeFilter === "Long" && position.side === "LONG") ||
+          (activeFilter === "Short" && position.side === "SHORT") ||
+          (activeFilter === "Winners" &&
+            (getDisplayTotalPctChange(position) ?? 0) >= 0) ||
+          (activeFilter === "Losers" &&
+            (getDisplayTotalPctChange(position) ?? 0) < 0) ||
+          (activeFilter === "Flagged" && position.flags?.length > 0) ||
+          position.security?.sector
+            ?.toLowerCase()
+            .includes(activeFilter.toLowerCase());
 
-      return matchesQuery && matchesFilter;
-    })
-    
-    .sort((a, b) => {
-      const aTotalPctChange = getDisplayTotalPctChange(a);
-      const bTotalPctChange = getDisplayTotalPctChange(b);
+        return matchesQuery && matchesFilter;
+      })
 
-      if (activeFilter === "Winners") {
-        return (bTotalPctChange ?? 0) - (aTotalPctChange ?? 0);
-      }
+      .sort((a, b) => {
+        const aTotalPctChange = getDisplayTotalPctChange(a);
+        const bTotalPctChange = getDisplayTotalPctChange(b);
 
-      if (activeFilter === "Losers") {
-        return (aTotalPctChange ?? 0) - (bTotalPctChange ?? 0);
-      }
+        if (activeFilter === "Winners") {
+          return (bTotalPctChange ?? 0) - (aTotalPctChange ?? 0);
+        }
 
-  return (
-    (getDisplayPortfolioPct(b, validDashboardNetEquity) ?? 0) - (getDisplayPortfolioPct(a,validDashboardNetEquity) ?? 0)
+        if (activeFilter === "Losers") {
+          return (aTotalPctChange ?? 0) - (bTotalPctChange ?? 0);
+        }
+
+        return (
+          (getDisplayPortfolioPct(b, validDashboardNetEquity) ?? 0) -
+          (getDisplayPortfolioPct(a, validDashboardNetEquity) ?? 0)
+        );
+      });
+  }, [localPositions, query, activeFilter, validDashboardNetEquity]);
+
+  const longPositions = useMemo(
+    () => filteredPositions.filter((position) => position.side === "LONG"),
+    [filteredPositions],
   );
-    });
 
-}, [
-  localPositions,
-  query,
-  activeFilter,
-  validDashboardNetEquity,
-]);
+  const shortPositions = useMemo(
+    () => filteredPositions.filter((position) => position.side === "SHORT"),
+    [filteredPositions],
+  );
 
-const longPositions = useMemo(
-  () => filteredPositions.filter((position) => position.side === "LONG"),
-  [filteredPositions]
-);
-
-const shortPositions = useMemo(
-  () => filteredPositions.filter((position) => position.side === "SHORT"),
-  [filteredPositions]
-);
-
-const {
-  totalMarketValue,
-  netMarketValue,
-  totalUnrealizedPnl,
-  dayPnl,
-} = getDashboardStats(localPositions);
+  const { totalMarketValue, netMarketValue, totalUnrealizedPnl, dayPnl } =
+    getDashboardStats(localPositions);
 
   async function handleSaveManualTrade(payload: {
     securityId: string;
@@ -2032,7 +1863,7 @@ const {
           ...position,
           trades: [newTrade, ...(position.trades || [])],
         };
-      })
+      }),
     );
 
     setSelectedPosition((currentPosition: any | null) => {
@@ -2048,296 +1879,246 @@ const {
   }
 
   async function handleSaveComment(payload: {
-  securityId: string;
-  positionId: string;
-  tag: string;
-  content: string;
-}) {
-  const response = await fetch("/api/comments", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+    securityId: string;
+    positionId: string;
+    tag: string;
+    content: string;
+  }) {
+    const response = await fetch("/api/comments", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
 
-  if (!response.ok) {
-    throw new Error("Failed to save comment.");
-  }
-
-  const data = await response.json();
-  const newComment = data.comment;
-
-  setLocalPositions((currentPositions) =>
-  currentPositions.map((position) => {
-    if (position.securityId !== payload.securityId) return position;
-
-    const updatedSecurity = {
-      ...position.security,
-      comments: [newComment, ...(position.security?.comments || [])],
-    };
-
-    if (position.id !== payload.positionId) {
-      return {
-        ...position,
-        security: updatedSecurity,
-      };
+    if (!response.ok) {
+      throw new Error("Failed to save comment.");
     }
 
-    return {
-      ...position,
-      security: updatedSecurity,
-      comments: [newComment, ...(position.comments || [])],
-    };
-  })
-);
+    const data = await response.json();
+    const newComment = data.comment;
 
-setSelectedPosition((currentPosition: any | null) => {
-  if (!currentPosition || currentPosition.securityId !== payload.securityId) {
-    return currentPosition;
-  }
+    setLocalPositions((currentPositions) =>
+      currentPositions.map((position) => {
+        if (position.securityId !== payload.securityId) return position;
 
-  const updatedSecurity = {
-    ...currentPosition.security,
-    comments: [newComment, ...(currentPosition.security?.comments || [])],
-  };
-
-  if (currentPosition.id !== payload.positionId) {
-    return {
-      ...currentPosition,
-      security: updatedSecurity,
-    };
-  }
-
-  return {
-    ...currentPosition,
-    security: updatedSecurity,
-    comments: [newComment, ...(currentPosition.comments || [])],
-  };
-});
-}
-
-function handleTradeDeleted(
-  positionId: string,
-  tradeId: string
-) {
-  setLocalPositions((currentPositions) =>
-    currentPositions.map((position) => {
-      if (position.id !== positionId) {
-        return position;
-      }
-
-      return {
-        ...position,
-        trades: (position.trades || []).filter(
-          (trade: any) =>
-            trade.id !== tradeId
-        ),
-      };
-    })
-  );
-
-  setSelectedPosition(
-    (currentPosition: any) => {
-      if (
-        !currentPosition ||
-        currentPosition.id !==
-          positionId
-      ) {
-        return currentPosition;
-      }
-
-      return {
-        ...currentPosition,
-        trades: (
-          currentPosition.trades || []
-        ).filter(
-          (trade: any) =>
-            trade.id !== tradeId
-        ),
-      };
-    }
-  );
-
-  setExpandedTradeHistoryPosition(
-    (currentPosition: any) => {
-      if (
-        !currentPosition ||
-        currentPosition.id !==
-          positionId
-      ) {
-        return currentPosition;
-      }
-
-      return {
-        ...currentPosition,
-        trades: (
-          currentPosition.trades || []
-        ).filter(
-          (trade: any) =>
-            trade.id !== tradeId
-        ),
-      };
-    }
-  );
-}
-
-function handleTradeNoteUpdated(
-  positionId: string,
-  tradeId: string,
-  comment: string | null
-) {
-  function updateTrade(
-    position: any
-  ) {
-    return {
-      ...position,
-      trades: (
-        position.trades || []
-      ).map((trade: any) =>
-        trade.id === tradeId
-          ? {
-              ...trade,
-              comment,
-            }
-          : trade
-      ),
-    };
-  }
-
-  setLocalPositions((currentPositions) =>
-    currentPositions.map((position) =>
-      position.id === positionId
-        ? updateTrade(position)
-        : position
-    )
-  );
-
-  setSelectedPosition(
-    (currentPosition: any) => {
-      if (
-        !currentPosition ||
-        currentPosition.id !==
-          positionId
-      ) {
-        return currentPosition;
-      }
-
-      return updateTrade(
-        currentPosition
-      );
-    }
-  );
-
-  setExpandedTradeHistoryPosition(
-    (currentPosition: any) => {
-      if (
-        !currentPosition ||
-        currentPosition.id !==
-          positionId
-      ) {
-        return currentPosition;
-      }
-
-      return updateTrade(
-        currentPosition
-      );
-    }
-  );
-}
-
-function handleSectorUpdated(
-  securityId: string,
-  sector: string
-) {
-  setLocalPositions((currentPositions) =>
-    currentPositions.map((position) => {
-      if (position.security.id !== securityId) {
-        return position;
-      }
-
-      return {
-        ...position,
-        security: {
+        const updatedSecurity = {
           ...position.security,
+          comments: [newComment, ...(position.security?.comments || [])],
+        };
+
+        if (position.id !== payload.positionId) {
+          return {
+            ...position,
+            security: updatedSecurity,
+          };
+        }
+
+        return {
+          ...position,
+          security: updatedSecurity,
+          comments: [newComment, ...(position.comments || [])],
+        };
+      }),
+    );
+
+    setSelectedPosition((currentPosition: any | null) => {
+      if (
+        !currentPosition ||
+        currentPosition.securityId !== payload.securityId
+      ) {
+        return currentPosition;
+      }
+
+      const updatedSecurity = {
+        ...currentPosition.security,
+        comments: [newComment, ...(currentPosition.security?.comments || [])],
+      };
+
+      if (currentPosition.id !== payload.positionId) {
+        return {
+          ...currentPosition,
+          security: updatedSecurity,
+        };
+      }
+
+      return {
+        ...currentPosition,
+        security: updatedSecurity,
+        comments: [newComment, ...(currentPosition.comments || [])],
+      };
+    });
+  }
+
+  function handleTradeDeleted(positionId: string, tradeId: string) {
+    setLocalPositions((currentPositions) =>
+      currentPositions.map((position) => {
+        if (position.id !== positionId) {
+          return position;
+        }
+
+        return {
+          ...position,
+          trades: (position.trades || []).filter(
+            (trade: any) => trade.id !== tradeId,
+          ),
+        };
+      }),
+    );
+
+    setSelectedPosition((currentPosition: any) => {
+      if (!currentPosition || currentPosition.id !== positionId) {
+        return currentPosition;
+      }
+
+      return {
+        ...currentPosition,
+        trades: (currentPosition.trades || []).filter(
+          (trade: any) => trade.id !== tradeId,
+        ),
+      };
+    });
+
+    setExpandedTradeHistoryPosition((currentPosition: any) => {
+      if (!currentPosition || currentPosition.id !== positionId) {
+        return currentPosition;
+      }
+
+      return {
+        ...currentPosition,
+        trades: (currentPosition.trades || []).filter(
+          (trade: any) => trade.id !== tradeId,
+        ),
+      };
+    });
+  }
+
+  function handleTradeNoteUpdated(
+    positionId: string,
+    tradeId: string,
+    comment: string | null,
+  ) {
+    function updateTrade(position: any) {
+      return {
+        ...position,
+        trades: (position.trades || []).map((trade: any) =>
+          trade.id === tradeId
+            ? {
+                ...trade,
+                comment,
+              }
+            : trade,
+        ),
+      };
+    }
+
+    setLocalPositions((currentPositions) =>
+      currentPositions.map((position) =>
+        position.id === positionId ? updateTrade(position) : position,
+      ),
+    );
+
+    setSelectedPosition((currentPosition: any) => {
+      if (!currentPosition || currentPosition.id !== positionId) {
+        return currentPosition;
+      }
+
+      return updateTrade(currentPosition);
+    });
+
+    setExpandedTradeHistoryPosition((currentPosition: any) => {
+      if (!currentPosition || currentPosition.id !== positionId) {
+        return currentPosition;
+      }
+
+      return updateTrade(currentPosition);
+    });
+  }
+
+  function handleSectorUpdated(securityId: string, sector: string) {
+    setLocalPositions((currentPositions) =>
+      currentPositions.map((position) => {
+        if (position.security.id !== securityId) {
+          return position;
+        }
+
+        return {
+          ...position,
+          security: {
+            ...position.security,
+            sector,
+          },
+        };
+      }),
+    );
+
+    setSelectedPosition((currentPosition: any) => {
+      if (!currentPosition || currentPosition.security.id !== securityId) {
+        return currentPosition;
+      }
+
+      return {
+        ...currentPosition,
+        security: {
+          ...currentPosition.security,
           sector,
         },
       };
-    })
-  );
-
-  setSelectedPosition((currentPosition: any) => {
-    if (
-      !currentPosition ||
-      currentPosition.security.id !== securityId
-    ) {
-      return currentPosition;
-    }
-
-    return {
-      ...currentPosition,
-      security: {
-        ...currentPosition.security,
-        sector,
-      },
-    };
-  });
-}
-
-
-function handleOpenComment(position: any) {
-  setSelectedPosition(position);
-  setCommentPosition(position);
-}
-
-async function handleSaveFlag(payload: {
-  securityId: string;
-  positionId: string;
-  flagType: string;
-  priority: string;
-  description: string;
-  reminderAt: string | null;
-}) {
-  const response = await fetch("/api/flags", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      data.error || "Failed to create flag."
-    );
+    });
   }
 
-  const newFlag = data.flag;
+  function handleOpenComment(position: any) {
+    setSelectedPosition(position);
+    setCommentPosition(position);
+  }
 
-  setLocalPositions((currentPositions) =>
-    currentPositions.map((position) => {
-      if (position.id !== payload.positionId) return position;
+  async function handleSaveFlag(payload: {
+    securityId: string;
+    positionId: string;
+    flagType: string;
+    priority: string;
+    description: string;
+    reminderAt: string | null;
+  }) {
+    const response = await fetch("/api/flags", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
 
-      return {
-        ...position,
-        flags: [newFlag, ...(position.flags || [])],
-      };
-    })
-  );
+    const data = await response.json();
 
-  setSelectedPosition((currentPosition: any | null) => {
-    if (!currentPosition || currentPosition.id !== payload.positionId) {
-      return currentPosition;
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to create flag.");
     }
 
-    return {
-      ...currentPosition,
-      flags: [newFlag, ...(currentPosition.flags || [])],
-    };
-  });
-}
+    const newFlag = data.flag;
+
+    setLocalPositions((currentPositions) =>
+      currentPositions.map((position) => {
+        if (position.id !== payload.positionId) return position;
+
+        return {
+          ...position,
+          flags: [newFlag, ...(position.flags || [])],
+        };
+      }),
+    );
+
+    setSelectedPosition((currentPosition: any | null) => {
+      if (!currentPosition || currentPosition.id !== payload.positionId) {
+        return currentPosition;
+      }
+
+      return {
+        ...currentPosition,
+        flags: [newFlag, ...(currentPosition.flags || [])],
+      };
+    });
+  }
   return (
     <main className="h-screen overflow-hidden bg-slate-100 text-slate-900">
       <div className="flex h-full">
@@ -2346,12 +2127,15 @@ async function handleSaveFlag(payload: {
         <section className="flex min-w-0 flex-1 flex-col">
           <header className="flex h-20 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
             <div>
-              <p className="text-sm font-medium text-slate-900">Home / Positions</p>
-              <p className="text-xs text-slate-500">Active portfolio dashboard</p>
+              <p className="text-sm font-medium text-slate-900">
+                Home / Positions
+              </p>
+              <p className="text-xs text-slate-500">
+                Active portfolio dashboard
+              </p>
             </div>
 
             <div className="ml-4 flex items-center gap-3">
-              
               <CurrentUserPill />
             </div>
           </header>
@@ -2366,51 +2150,43 @@ async function handleSaveFlag(payload: {
                     </h2>
                     <p className="mt-1 text-sm text-slate-500">
                       Long and short positions with prices, daily move, market
-                      value, portfolio %, shares, WAP, total change, market data,
-                      flags, and comments.
+                      value, portfolio %, shares, WAP, total change, market
+                      data, flags, and comments.
                     </p>
                   </div>
                   <button
                     type="button"
-                    onClick={() =>
-                      setShowSummaryModal(true)
-                    }
+                    onClick={() => setShowSummaryModal(true)}
                     className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
                   >
                     Summaries
                   </button>
-                 
                 </div>
 
                 <div className="grid grid-cols-4 gap-4">
-                  
                   <StatCard
                     label="Gross Investments"
                     value={formatMoney(totalMarketValue)}
                     sub={`${localPositions.length} active positions from Wells`}
                   />
- 
-                   <StatCard
-                      label="Net Investments"
-                      value={formatMoney(netMarketValue)}
-                      sub="Long exposure less short exposure"
-                    />
 
-                  
+                  <StatCard
+                    label="Net Investments"
+                    value={formatMoney(netMarketValue)}
+                    sub="Long exposure less short exposure"
+                  />
+
                   <StatCard
                     label="Unrealized P&L"
                     value={formatMoney(totalUnrealizedPnl)}
                     sub="From Wells tax lot data"
                   />
 
-                 <StatCard
+                  <StatCard
                     label="Day P&L"
                     value={formatMoney(dayPnl)}
                     sub="Estimated from Finnhub day change"
                   />
-                
-                  
-
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-white p-3">
                   <input
@@ -2429,12 +2205,9 @@ async function handleSaveFlag(payload: {
                     ...Array.from(
                       new Set(
                         localPositions
-                          .map(
-                            (position) =>
-                              position.security?.sector
-                          )
-                          .filter(Boolean)
-                      )
+                          .map((position) => position.security?.sector)
+                          .filter(Boolean),
+                      ),
                     ).sort(),
                   ].map((filter) => (
                     <button
@@ -2450,35 +2223,30 @@ async function handleSaveFlag(payload: {
                     </button>
                   ))}
 
-                <div className="ml-auto flex items-center gap-3">
-                  <span className="text-sm text-slate-500">
-                    Showing {filteredPositions.length} of {localPositions.length}
-                  </span>
-
-                  
-                </div>
+                  <div className="ml-auto flex items-center gap-3">
+                    <span className="text-sm text-slate-500">
+                      Showing {filteredPositions.length} of{" "}
+                      {localPositions.length}
+                    </span>
+                  </div>
                 </div>
                 <PositionGrid
                   title="Long Positions"
                   tone="green"
                   positions={longPositions}
-                  netEquity={
-                    validDashboardNetEquity
-                  }
+                  netEquity={validDashboardNetEquity}
                   selectedId={selectedPosition?.id}
                   onSelect={setSelectedPosition}
                   onMarketData={setMarketDataPosition}
                   onComment={handleOpenComment}
                   canComment={userCanCreateComments}
                 />
-                                
+
                 <PositionGrid
                   title="Short Positions"
                   tone="red"
                   positions={shortPositions}
-                  netEquity={
-                    validDashboardNetEquity
-                  }
+                  netEquity={validDashboardNetEquity}
                   selectedId={selectedPosition?.id}
                   onSelect={setSelectedPosition}
                   onMarketData={setMarketDataPosition}
@@ -2488,9 +2256,6 @@ async function handleSaveFlag(payload: {
               </div>
             </div>
 
-            
-           
-            
             <TickerDetailPanel
               position={selectedPosition}
               onClose={() => setSelectedPosition(null)}
@@ -2507,19 +2272,16 @@ async function handleSaveFlag(payload: {
               onSector={setSectorPosition}
             />
 
-                          
             <AddTradeModal
               position={manualTradePosition}
               onClose={() => setManualTradePosition(null)}
               onSave={handleSaveManualTrade}
             />
 
-                  
             <MarketDataModal
               position={marketDataPosition}
               onClose={() => setMarketDataPosition(null)}
             />
-
 
             <CommentModal
               position={commentPosition}
@@ -2533,25 +2295,15 @@ async function handleSaveFlag(payload: {
 
             <ExpandedTradeHistoryModal
               position={expandedTradeHistoryPosition}
-              onClose={() =>
-                setExpandedTradeHistoryPosition(null)
-              }
-              onTradeDeleted={
-                handleTradeDeleted
-              }
-              onTradeNoteUpdated={
-                handleTradeNoteUpdated
-              }
+              onClose={() => setExpandedTradeHistoryPosition(null)}
+              onTradeDeleted={handleTradeDeleted}
+              onTradeNoteUpdated={handleTradeNoteUpdated}
             />
             <SummaryModal
               open={showSummaryModal}
-              onClose={() =>
-                setShowSummaryModal(false)
-              }
+              onClose={() => setShowSummaryModal(false)}
               positions={localPositions}
-              fundEquitySnapshot={
-                fundEquitySnapshot
-              }
+              fundEquitySnapshot={fundEquitySnapshot}
             />
             <FlagModal
               position={flagPosition}
@@ -2562,12 +2314,8 @@ async function handleSaveFlag(payload: {
             <SectorModal
               position={sectorPosition}
               availableSectors={availableSectors}
-              onClose={() =>
-                setSectorPosition(null)
-              }
-              onSectorUpdated={
-                handleSectorUpdated
-              }
+              onClose={() => setSectorPosition(null)}
+              onSectorUpdated={handleSectorUpdated}
             />
           </div>
         </section>

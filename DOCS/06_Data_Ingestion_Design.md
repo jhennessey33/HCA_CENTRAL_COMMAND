@@ -1,4 +1,3 @@
-
 Data Ingestion Design
 Wells Fargo Data
 Wells reports should become the official source for positions, trades, and past positions.
@@ -10,7 +9,6 @@ Ingestion Pipeline
 
 Retrieve → Store Raw → Validate → Parse → Normalize → Reconcile → Load → Audit → Alert
 
-
 Failure Handling
 If ingestion fails:
 
@@ -19,9 +17,9 @@ If ingestion fails:
 - Error message stored.
 - Admin alert generated.
 - Failed rows captured when possible.
-Bloomberg Data
-Bloomberg should power market/reference fields.
-Bloomberg Failure Handling
+  Bloomberg Data
+  Bloomberg should power market/reference fields.
+  Bloomberg Failure Handling
 
 - Show cached values when available.
 - Display timestamp.

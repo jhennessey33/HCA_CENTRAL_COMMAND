@@ -60,16 +60,30 @@ function parseHeaderColumns(content: string): string[] {
 export function detectWellsReportType(content: string): WellsReportType {
   const columns = parseHeaderColumns(content);
 
-  const hasColumn = (value: string) => columns.some((column) => column === value || column.startsWith(value));
+  const hasColumn = (value: string) =>
+    columns.some((column) => column === value || column.startsWith(value));
   const hasAnyColumn = (...values: string[]) => values.some(hasColumn);
   const text = content.toLowerCase();
 
-  if (hasColumn("equityvalues") || hasAnyColumn("gross rate of return", "net rate of return")) {
+  if (
+    hasColumn("equityvalues") ||
+    hasAnyColumn("gross rate of return", "net rate of return")
+  ) {
     return "CHANGE_IN_EQUITY_PERFORMANCE";
   }
 
   if (
-    hasAnyColumn("unrealizedpricegainloss", "unrealizedfxgainloss", "costbasis", "unitcost", "holdingperiod", "daystolongterm", "roi", "taxlotid", "taxlotdate")
+    hasAnyColumn(
+      "unrealizedpricegainloss",
+      "unrealizedfxgainloss",
+      "costbasis",
+      "unitcost",
+      "holdingperiod",
+      "daystolongterm",
+      "roi",
+      "taxlotid",
+      "taxlotdate",
+    )
   ) {
     return "TAX_LOT_POSITION_PNL";
   }
@@ -84,11 +98,19 @@ export function detectWellsReportType(content: string): WellsReportType {
     return "TRANSACTION_ACTIVITY";
   }
 
-  if (hasColumn("risk exposure") || hasColumn("risk") || text.includes("rskexp")) {
+  if (
+    hasColumn("risk exposure") ||
+    hasColumn("risk") ||
+    text.includes("rskexp")
+  ) {
     return "PORTFOLIO_RISK_EXPOSURE";
   }
 
-  if (text.includes("change in equity") || text.includes("equityvalues") || text.includes("chgeqprf")) {
+  if (
+    text.includes("change in equity") ||
+    text.includes("equityvalues") ||
+    text.includes("chgeqprf")
+  ) {
     return "CHANGE_IN_EQUITY_PERFORMANCE";
   }
 
@@ -100,13 +122,19 @@ export function detectWellsReportType(content: string): WellsReportType {
     return "TAX_LOT_POSITION_PNL";
   }
 
-  if (text.includes("activity") && text.includes("securityid") && text.includes("netamount")) {
+  if (
+    text.includes("activity") &&
+    text.includes("securityid") &&
+    text.includes("netamount")
+  ) {
     return "TRANSACTION_ACTIVITY";
   }
 
   return "UNKNOWN";
 }
 
-export async function readUploadedFileContent(file: File | Blob): Promise<string> {
+export async function readUploadedFileContent(
+  file: File | Blob,
+): Promise<string> {
   return await file.text();
 }

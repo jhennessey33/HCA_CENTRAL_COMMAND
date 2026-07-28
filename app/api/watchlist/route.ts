@@ -34,24 +34,18 @@ function parseTargetPrice(value: unknown) {
 }
 
 function getAllowedTargetTypes(side: string) {
-  return side === "LONG"
-    ? ["BUY", "SELL"]
-    : ["SELL", "COVER"];
+  return side === "LONG" ? ["BUY", "SELL"] : ["SELL", "COVER"];
 }
 
 function getTargetField(
   side: string,
-  targetType: string
+  targetType: string,
 ): "entryTargetPrice" | "exitTargetPrice" {
   if (side === "LONG") {
-    return targetType === "BUY"
-      ? "entryTargetPrice"
-      : "exitTargetPrice";
+    return targetType === "BUY" ? "entryTargetPrice" : "exitTargetPrice";
   }
 
-  return targetType === "SELL"
-    ? "entryTargetPrice"
-    : "exitTargetPrice";
+  return targetType === "SELL" ? "entryTargetPrice" : "exitTargetPrice";
 }
 
 function getTargetLabel(side: string, targetType: string) {
@@ -142,7 +136,7 @@ export async function GET() {
 
     return NextResponse.json(
       { error: "Failed to load watchlist." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -154,17 +148,16 @@ export async function POST(request: Request) {
     if (!author) {
       return NextResponse.json(
         { error: "Authentication required." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     if (!canEditWatchlist(author.role)) {
       return NextResponse.json(
         {
-          error:
-            "You do not have permission to edit the watchlist.",
+          error: "You do not have permission to edit the watchlist.",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -187,14 +180,14 @@ export async function POST(request: Request) {
     if (!ticker) {
       return NextResponse.json(
         { error: "Ticker is required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!["LONG", "SHORT"].includes(side)) {
       return NextResponse.json(
         { error: "Side must be LONG or SHORT." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -208,7 +201,7 @@ export async function POST(request: Request) {
               ? "Long target type must be BUY or SELL."
               : "Short target type must be SELL or COVER.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -220,11 +213,9 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            error instanceof Error
-              ? error.message
-              : "Invalid target price.",
+            error instanceof Error ? error.message : "Invalid target price.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -245,22 +236,20 @@ export async function POST(request: Request) {
           },
         });
 
-        const existingEntry =
-          await tx.watchlistEntry.findFirst({
-            where: {
-              securityId: security.id,
-              side,
-              archivedAt: null,
-            },
-            orderBy: {
-              createdAt: "asc",
-            },
-          });
+        const existingEntry = await tx.watchlistEntry.findFirst({
+          where: {
+            securityId: security.id,
+            side,
+            archivedAt: null,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        });
 
         if (existingEntry) {
           const existingEntryTarget =
-            existingEntry.entryTargetPrice ??
-            existingEntry.targetPrice;
+            existingEntry.entryTargetPrice ?? existingEntry.targetPrice;
 
           const previousTargetPrice =
             targetField === "entryTargetPrice"
@@ -281,24 +270,23 @@ export async function POST(request: Request) {
             }
           }
 
-          const updatedEntry =
-            await tx.watchlistEntry.update({
-              where: {
-                id: existingEntry.id,
-              },
-              data: updateData,
-            });
+          const updatedEntry = await tx.watchlistEntry.update({
+            where: {
+              id: existingEntry.id,
+            },
+            data: updateData,
+          });
 
           if (parsedTargetPrice != null) {
             const commentPrefix =
               previousTargetPrice == null
                 ? `${targetLabel[0].toUpperCase()}${targetLabel.slice(
-                    1
+                    1,
                   )} price target set to`
                 : `${targetLabel[0].toUpperCase()}${targetLabel.slice(
-                    1
+                    1,
                   )} price target changed from ${formatPriceForComment(
-                    previousTargetPrice
+                    previousTargetPrice,
                   )} to`;
 
             await tx.comment.create({
@@ -308,7 +296,7 @@ export async function POST(request: Request) {
                 authorId: author.id,
                 tag: "PT",
                 content: `${commentPrefix} ${formatPriceForComment(
-                  parsedTargetPrice
+                  parsedTargetPrice,
                 )}.`,
               },
             });
@@ -336,21 +324,17 @@ export async function POST(request: Request) {
                 ticker,
                 side: existingEntry.side,
                 entryTargetPrice: existingEntryTarget,
-                exitTargetPrice:
-                  existingEntry.exitTargetPrice,
+                exitTargetPrice: existingEntry.exitTargetPrice,
               }),
               newValueJson: JSON.stringify({
                 ticker,
                 side: updatedEntry.side,
                 targetType,
                 entryTargetPrice:
-                  updatedEntry.entryTargetPrice ??
-                  updatedEntry.targetPrice,
-                exitTargetPrice:
-                  updatedEntry.exitTargetPrice,
+                  updatedEntry.entryTargetPrice ?? updatedEntry.targetPrice,
+                exitTargetPrice: updatedEntry.exitTargetPrice,
                 comment: comment || null,
-                updateMethod:
-                  "ADD_MODAL_EXISTING_ENTRY",
+                updateMethod: "ADD_MODAL_EXISTING_ENTRY",
               }),
             },
           });
@@ -362,26 +346,21 @@ export async function POST(request: Request) {
         }
 
         const entryTargetPrice =
-          targetField === "entryTargetPrice"
-            ? parsedTargetPrice
-            : null;
+          targetField === "entryTargetPrice" ? parsedTargetPrice : null;
 
         const exitTargetPrice =
-          targetField === "exitTargetPrice"
-            ? parsedTargetPrice
-            : null;
+          targetField === "exitTargetPrice" ? parsedTargetPrice : null;
 
-        const createdEntry =
-          await tx.watchlistEntry.create({
-            data: {
-              securityId: security.id,
-              side,
-              targetPrice: entryTargetPrice,
-              entryTargetPrice,
-              exitTargetPrice,
-              notes: comment || null,
-            },
-          });
+        const createdEntry = await tx.watchlistEntry.create({
+          data: {
+            securityId: security.id,
+            side,
+            targetPrice: entryTargetPrice,
+            entryTargetPrice,
+            exitTargetPrice,
+            notes: comment || null,
+          },
+        });
 
         if (parsedTargetPrice != null) {
           await tx.comment.create({
@@ -391,7 +370,7 @@ export async function POST(request: Request) {
               authorId: author.id,
               tag: "PT",
               content: `Original ${targetLabel} price target set to ${formatPriceForComment(
-                parsedTargetPrice
+                parsedTargetPrice,
               )}.`,
             },
           });
@@ -430,7 +409,7 @@ export async function POST(request: Request) {
           id: createdEntry.id,
           created: true,
         };
-      }
+      },
     );
 
     const entry = await prisma.watchlistEntry.findUniqueOrThrow({
@@ -447,14 +426,14 @@ export async function POST(request: Request) {
       },
       {
         status: result.created ? 201 : 200,
-      }
+      },
     );
   } catch (error) {
     console.error("POST /api/watchlist failed", error);
 
     return NextResponse.json(
       { error: "Failed to create or update watchlist entry." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

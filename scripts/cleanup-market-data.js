@@ -1,5 +1,8 @@
 const { PrismaClient } = require("@prisma/client");
-const { placeholderCleanupWhere, placeholderNullData } = require("@/lib/market-data-cleanup.js");
+const {
+  placeholderCleanupWhere,
+  placeholderNullData,
+} = require("@/lib/market-data-cleanup.js");
 
 const prisma = new PrismaClient();
 

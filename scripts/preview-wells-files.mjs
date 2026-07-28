@@ -2,11 +2,16 @@ import fs from "node:fs";
 import path from "node:path";
 
 const extractedDir = path.join(process.cwd(), "docs", "wells-extracted");
-const docsDir = fs.existsSync(extractedDir) ? extractedDir : path.join(process.cwd(), "docs");
+const docsDir = fs.existsSync(extractedDir)
+  ? extractedDir
+  : path.join(process.cwd(), "docs");
 
 function toNumber(value) {
   if (value === null || value === undefined) return null;
-  const cleaned = String(value).trim().replace(/,/g, "").replace(/^\((.*)\)$/, "-$1");
+  const cleaned = String(value)
+    .trim()
+    .replace(/,/g, "")
+    .replace(/^\((.*)\)$/, "-$1");
   if (cleaned.length === 0) return null;
   const parsed = Number(cleaned);
   return Number.isFinite(parsed) ? parsed : null;
@@ -15,7 +20,9 @@ function toNumber(value) {
 function firstNonEmptyLines(content, count = 5) {
   return content
     .split(/\r?\n/)
-    .map(function (line) { return line.trim(); })
+    .map(function (line) {
+      return line.trim();
+    })
     .filter(Boolean)
     .slice(0, count);
 }
@@ -23,7 +30,10 @@ function firstNonEmptyLines(content, count = 5) {
 function detectReportType(content) {
   const text = content.toLowerCase();
 
-  if (text.includes("tax lot position and p&l") || text.includes("investment total:")) {
+  if (
+    text.includes("tax lot position and p&l") ||
+    text.includes("investment total:")
+  ) {
     return "TAX_LOT_POSITION_PNL";
   }
 
@@ -35,11 +45,19 @@ function detectReportType(content) {
     return "TRANSACTION_ACTIVITY";
   }
 
-  if (text.includes("change in equity") || text.includes("gross rate of return") || text.includes("equity values")) {
+  if (
+    text.includes("change in equity") ||
+    text.includes("gross rate of return") ||
+    text.includes("equity values")
+  ) {
     return "CHANGE_IN_EQUITY_PERFORMANCE";
   }
 
-  if (text.includes("portfolio risk exposure detail") || text.includes("delta adjusted exposure") || text.includes("beta adjusted exposure")) {
+  if (
+    text.includes("portfolio risk exposure detail") ||
+    text.includes("delta adjusted exposure") ||
+    text.includes("beta adjusted exposure")
+  ) {
     return "PORTFOLIO_RISK_EXPOSURE";
   }
 
@@ -49,7 +67,9 @@ function detectReportType(content) {
 function previewTaxLotInvestmentTotals(content) {
   const lines = content
     .split(/\r?\n/)
-    .map(function (line) { return line.trim(); })
+    .map(function (line) {
+      return line.trim();
+    })
     .filter(Boolean);
 
   const previews = [];
@@ -73,22 +93,20 @@ function previewTaxLotInvestmentTotals(content) {
       continue;
     }
 
-    
     const looksLikeTaxLotRow = /^\d{2}\/\d{2}\/\d{4}/.test(line);
     const securityHeader = line.match(/^(.+?)\s+\(([^)]+)\)$/);
 
     if (
-        securityHeader &&
-        !looksLikeTaxLotRow &&
-        !line.includes("Investment Total") &&
-        !line.includes("Total") &&
-        !line.includes("Custodian")
-        ) {
-        currentSecurityName = securityHeader[1].trim();
-        currentTicker = securityHeader[2].trim();
-        continue;
-     }
-
+      securityHeader &&
+      !looksLikeTaxLotRow &&
+      !line.includes("Investment Total") &&
+      !line.includes("Total") &&
+      !line.includes("Custodian")
+    ) {
+      currentSecurityName = securityHeader[1].trim();
+      currentTicker = securityHeader[2].trim();
+      continue;
+    }
 
     if (!line.includes("Investment Total:")) continue;
 
@@ -112,7 +130,8 @@ function previewTaxLotInvestmentTotals(content) {
     const marketValue = toNumber(tokens[2]);
     const unrealizedPrice = toNumber(tokens[5]);
     const unrealizedFx = toNumber(tokens[6]) || 0;
-    const unrealizedPnl = unrealizedPrice === null ? null : unrealizedPrice + unrealizedFx;
+    const unrealizedPnl =
+      unrealizedPrice === null ? null : unrealizedPrice + unrealizedFx;
 
     previews.push({
       parsed: true,
@@ -136,7 +155,9 @@ function previewTaxLotInvestmentTotals(content) {
 function previewTransactionActivity(content) {
   const lines = content
     .split(/\r?\n/)
-    .map(function (line) { return line.trimEnd(); })
+    .map(function (line) {
+      return line.trimEnd();
+    })
     .filter(Boolean);
 
   const activityWords = [
@@ -151,7 +172,9 @@ function previewTransactionActivity(content) {
   ];
 
   const candidates = lines.filter(function (line) {
-    return activityWords.some(function (word) { return line.includes(word); });
+    return activityWords.some(function (word) {
+      return line.includes(word);
+    });
   });
 
   return candidates.slice(0, 12).map(function (line) {
@@ -162,7 +185,9 @@ function previewTransactionActivity(content) {
 function previewChangeInEquity(content) {
   const lines = content
     .split(/\r?\n/)
-    .map(function (line) { return line.trim(); })
+    .map(function (line) {
+      return line.trim();
+    })
     .filter(Boolean);
 
   const keyMetrics = [
@@ -180,16 +205,22 @@ function previewChangeInEquity(content) {
 
   return lines
     .filter(function (line) {
-      return keyMetrics.some(function (metric) { return line.includes(metric); });
+      return keyMetrics.some(function (metric) {
+        return line.includes(metric);
+      });
     })
     .slice(0, 30)
-    .map(function (line) { return { rawLine: line }; });
+    .map(function (line) {
+      return { rawLine: line };
+    });
 }
 
 function previewRiskExposure(content) {
   const lines = content
     .split(/\r?\n/)
-    .map(function (line) { return line.trim(); })
+    .map(function (line) {
+      return line.trim();
+    })
     .filter(Boolean);
 
   return lines
@@ -204,14 +235,20 @@ function previewRiskExposure(content) {
       );
     })
     .slice(0, 20)
-    .map(function (line) { return { rawLine: line }; });
+    .map(function (line) {
+      return { rawLine: line };
+    });
 }
 
 function getWellsFiles() {
   return fs
     .readdirSync(docsDir)
-    .filter(function (file) { return /\.(txt|pdf|csv)$/i.test(file); })
-    .map(function (file) { return path.join(docsDir, file); });
+    .filter(function (file) {
+      return /\.(txt|pdf|csv)$/i.test(file);
+    })
+    .map(function (file) {
+      return path.join(docsDir, file);
+    });
 }
 
 const files = getWellsFiles();

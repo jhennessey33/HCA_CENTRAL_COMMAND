@@ -12,8 +12,7 @@ export type TradeHistorySource = {
 };
 
 export type TradeCalculationBasis =
-  | "AUTHORITATIVE_HISTORY"
-  | "PENDING_PROJECTION";
+  "AUTHORITATIVE_HISTORY" | "PENDING_PROJECTION";
 
 export type TradeHistoryRow = {
   trade: TradeHistorySource;
@@ -77,9 +76,7 @@ const POSITION_TOLERANCE = 0.000001;
 function toFiniteNumber(value: unknown) {
   const numberValue = Number(value);
 
-  return Number.isFinite(numberValue)
-    ? numberValue
-    : null;
+  return Number.isFinite(numberValue) ? numberValue : null;
 }
 
 function normalizeTradeType(value: unknown) {
@@ -100,48 +97,26 @@ function normalizeSource(value: unknown) {
     .toUpperCase();
 }
 
-function isPendingManualTrade(
-  trade: TradeHistorySource
-) {
-  const source =
-    normalizeSource(
-      trade.source
-    );
+function isPendingManualTrade(trade: TradeHistorySource) {
+  const source = normalizeSource(trade.source);
 
   return (
-    (
-      source === "MANUAL" ||
-      source === "SYSTEM"
-    ) &&
-    normalizeStatus(
-      trade.reconciliationStatus
-    ) === "MANUAL_PENDING"
+    (source === "MANUAL" || source === "SYSTEM") &&
+    normalizeStatus(trade.reconciliationStatus) === "MANUAL_PENDING"
   );
 }
 
-function isEntryTrade(
-  positionSide: string,
-  tradeType: string
-) {
+function isEntryTrade(positionSide: string, tradeType: string) {
   if (positionSide === "SHORT") {
-    return (
-      tradeType === "SHORT" ||
-      tradeType === "SELL"
-    );
+    return tradeType === "SHORT" || tradeType === "SELL";
   }
 
   return tradeType === "BUY";
 }
 
-function isExitTrade(
-  positionSide: string,
-  tradeType: string
-) {
+function isExitTrade(positionSide: string, tradeType: string) {
   if (positionSide === "SHORT") {
-    return (
-      tradeType === "COVER" ||
-      tradeType === "BUY"
-    );
+    return tradeType === "COVER" || tradeType === "BUY";
   }
 
   return tradeType === "SELL";
@@ -150,7 +125,7 @@ function isExitTrade(
 function getExposureDelta(
   positionSide: string,
   tradeType: string,
-  storedShares: number
+  storedShares: number,
 ) {
   const absoluteShares = Math.abs(storedShares);
 
@@ -163,19 +138,13 @@ function getExposureDelta(
   }
 
   if (positionSide === "SHORT") {
-    return storedShares < 0
-      ? absoluteShares
-      : -absoluteShares;
+    return storedShares < 0 ? absoluteShares : -absoluteShares;
   }
 
-  return storedShares >= 0
-    ? absoluteShares
-    : -absoluteShares;
+  return storedShares >= 0 ? absoluteShares : -absoluteShares;
 }
 
-function calculateDaysSince(
-  value: string | Date | null | undefined
-) {
+function calculateDaysSince(value: string | Date | null | undefined) {
   if (!value) {
     return null;
   }
@@ -186,25 +155,18 @@ function calculateDaysSince(
     return null;
   }
 
-  const millisecondsPerDay =
-    24 * 60 * 60 * 1000;
+  const millisecondsPerDay = 24 * 60 * 60 * 1000;
 
-  const elapsedMilliseconds =
-    Date.now() - dateValue.getTime();
+  const elapsedMilliseconds = Date.now() - dateValue.getTime();
 
-  return Math.max(
-    0,
-    Math.floor(
-      elapsedMilliseconds / millisecondsPerDay
-    )
-  );
+  return Math.max(0, Math.floor(elapsedMilliseconds / millisecondsPerDay));
 }
 
 function calculateExecutionVsCurrent(
   positionSide: string,
   entryTrade: boolean,
   executionPrice: number | null,
-  currentPrice: number | null
+  currentPrice: number | null,
 ) {
   if (
     !entryTrade ||
@@ -216,35 +178,23 @@ function calculateExecutionVsCurrent(
   }
 
   if (positionSide === "SHORT") {
-    return (
-      ((executionPrice - currentPrice) /
-        executionPrice) *
-      100
-    );
+    return ((executionPrice - currentPrice) / executionPrice) * 100;
   }
 
-  return (
-    ((currentPrice - executionPrice) /
-      executionPrice) *
-    100
-  );
+  return ((currentPrice - executionPrice) / executionPrice) * 100;
 }
 
 function createPositionCalculation(
   positionBefore: number,
-  exposureDelta: number
+  exposureDelta: number,
 ): PositionCalculation {
-  const calculatedPositionAfter =
-    positionBefore + exposureDelta;
+  const calculatedPositionAfter = positionBefore + exposureDelta;
 
   const isValid =
     positionBefore >= -POSITION_TOLERANCE &&
-    calculatedPositionAfter >=
-      -POSITION_TOLERANCE;
+    calculatedPositionAfter >= -POSITION_TOLERANCE;
 
-  const normalizedPositionBefore = isValid
-    ? Math.max(0, positionBefore)
-    : null;
+  const normalizedPositionBefore = isValid ? Math.max(0, positionBefore) : null;
 
   const normalizedPositionAfter = isValid
     ? Math.max(0, calculatedPositionAfter)
@@ -253,19 +203,10 @@ function createPositionCalculation(
   let positionChangePct: number | null = null;
   let positionChangeLabel = "—";
 
-  if (
-    normalizedPositionBefore === 0 &&
-    exposureDelta > 0
-  ) {
+  if (normalizedPositionBefore === 0 && exposureDelta > 0) {
     positionChangeLabel = "New Position";
-  } else if (
-    normalizedPositionBefore != null &&
-    normalizedPositionBefore > 0
-  ) {
-    positionChangePct =
-      (exposureDelta /
-        normalizedPositionBefore) *
-      100;
+  } else if (normalizedPositionBefore != null && normalizedPositionBefore > 0) {
+    positionChangePct = (exposureDelta / normalizedPositionBefore) * 100;
 
     positionChangeLabel = `${
       positionChangePct >= 0 ? "+" : ""
@@ -283,78 +224,55 @@ function createPositionCalculation(
 
 function calculateWeightedTradePrice(
   rows: TradeHistoryRow[],
-  tradeKind: "ENTRY" | "EXIT"
+  tradeKind: "ENTRY" | "EXIT",
 ) {
   const pricedRows = rows.filter((row) => {
-    const matchesKind =
-      tradeKind === "ENTRY"
-        ? row.isEntry
-        : row.isExit;
+    const matchesKind = tradeKind === "ENTRY" ? row.isEntry : row.isExit;
 
     return (
       matchesKind &&
-      toFiniteNumber(row.trade.avgPrice) !=
-        null &&
+      toFiniteNumber(row.trade.avgPrice) != null &&
       row.absoluteShares > 0
     );
   });
 
   const totalShares = pricedRows.reduce(
-    (total, row) =>
-      total + row.absoluteShares,
-    0
+    (total, row) => total + row.absoluteShares,
+    0,
   );
 
   if (totalShares === 0) {
     return null;
   }
 
-  const weightedValue = pricedRows.reduce(
-    (total, row) => {
-      const price =
-        toFiniteNumber(
-          row.trade.avgPrice
-        ) ?? 0;
+  const weightedValue = pricedRows.reduce((total, row) => {
+    const price = toFiniteNumber(row.trade.avgPrice) ?? 0;
 
-      return (
-        total +
-        row.absoluteShares * price
-      );
-    },
-    0
-  );
+    return total + row.absoluteShares * price;
+  }, 0);
 
   return weightedValue / totalShares;
 }
 
 function compareTradesNewestFirst(
   firstTrade: TradeHistorySource,
-  secondTrade: TradeHistorySource
+  secondTrade: TradeHistorySource,
 ) {
   const dateDifference =
-    new Date(
-      secondTrade.dateTraded
-    ).getTime() -
-    new Date(
-      firstTrade.dateTraded
-    ).getTime();
+    new Date(secondTrade.dateTraded).getTime() -
+    new Date(firstTrade.dateTraded).getTime();
 
   if (dateDifference !== 0) {
     return dateDifference;
   }
 
   const firstCreatedAt = firstTrade.createdAt
-    ? new Date(
-        firstTrade.createdAt
-      ).getTime()
+    ? new Date(firstTrade.createdAt).getTime()
     : 0;
 
-  const secondCreatedAt =
-    secondTrade.createdAt
-      ? new Date(
-          secondTrade.createdAt
-        ).getTime()
-      : 0;
+  const secondCreatedAt = secondTrade.createdAt
+    ? new Date(secondTrade.createdAt).getTime()
+    : 0;
 
   return secondCreatedAt - firstCreatedAt;
 }
@@ -362,32 +280,21 @@ function compareTradesNewestFirst(
 function buildCommonRowValues(
   trade: TradeHistorySource,
   positionSide: string,
-  currentPrice: number | null
+  currentPrice: number | null,
 ) {
-  const tradeType =
-    normalizeTradeType(trade.tradeType);
+  const tradeType = normalizeTradeType(trade.tradeType);
 
-  const storedShares =
-    toFiniteNumber(trade.shares) ?? 0;
+  const storedShares = toFiniteNumber(trade.shares) ?? 0;
 
-  const absoluteShares =
-    Math.abs(storedShares);
+  const absoluteShares = Math.abs(storedShares);
 
-  const entryTrade = isEntryTrade(
-    positionSide,
-    tradeType
-  );
+  const entryTrade = isEntryTrade(positionSide, tradeType);
 
-  const exitTrade = isExitTrade(
-    positionSide,
-    tradeType
-  );
+  const exitTrade = isExitTrade(positionSide, tradeType);
 
-  const averagePrice =
-    toFiniteNumber(trade.avgPrice);
+  const averagePrice = toFiniteNumber(trade.avgPrice);
 
-  const storedNotional =
-    toFiniteNumber(trade.notional);
+  const storedNotional = toFiniteNumber(trade.notional);
 
   const notional =
     storedNotional != null
@@ -404,13 +311,12 @@ function buildCommonRowValues(
     exitTrade,
     averagePrice,
     notional,
-    executionVsCurrentPct:
-      calculateExecutionVsCurrent(
-        positionSide,
-        entryTrade,
-        averagePrice,
-        currentPrice
-      ),
+    executionVsCurrentPct: calculateExecutionVsCurrent(
+      positionSide,
+      entryTrade,
+      averagePrice,
+      currentPrice,
+    ),
   };
 }
 
@@ -420,309 +326,195 @@ export function buildTradeHistoryAnalytics({
   currentPrice,
   trades,
 }: BuildTradeHistoryAnalyticsInput): TradeHistoryAnalytics {
-  const normalizedPositionSide =
-    positionSide === "SHORT"
-      ? "SHORT"
-      : "LONG";
+  const normalizedPositionSide = positionSide === "SHORT" ? "SHORT" : "LONG";
 
-  const normalizedCurrentShares =
-    toFiniteNumber(currentShares);
+  const normalizedCurrentShares = toFiniteNumber(currentShares);
 
   const wellsExposure =
-    normalizedCurrentShares == null
-      ? 0
-      : Math.abs(normalizedCurrentShares);
+    normalizedCurrentShares == null ? 0 : Math.abs(normalizedCurrentShares);
 
-  const normalizedCurrentPrice =
-    toFiniteNumber(currentPrice);
+  const normalizedCurrentPrice = toFiniteNumber(currentPrice);
 
-  const newestFirstTrades = [...trades].sort(
-    compareTradesNewestFirst
+  const newestFirstTrades = [...trades].sort(compareTradesNewestFirst);
+
+  const pendingTrades = newestFirstTrades.filter(isPendingManualTrade);
+
+  const authoritativeTrades = newestFirstTrades.filter(
+    (trade) => !isPendingManualTrade(trade),
   );
 
-  const pendingTrades =
-    newestFirstTrades.filter(
-      isPendingManualTrade
-    );
+  const pendingCalculations = new Map<string, PositionCalculation>();
 
-  const authoritativeTrades =
-    newestFirstTrades.filter(
-      (trade) =>
-        !isPendingManualTrade(trade)
-    );
-
-  const pendingCalculations =
-    new Map<string, PositionCalculation>();
-
-  let runningProjectedExposure =
-    wellsExposure;
+  let runningProjectedExposure = wellsExposure;
 
   let pendingManualDelta = 0;
   let pendingProjectionIsValid = true;
 
-  const oldestFirstPendingTrades = [
-    ...pendingTrades,
-  ].reverse();
+  const oldestFirstPendingTrades = [...pendingTrades].reverse();
 
-  oldestFirstPendingTrades.forEach(
-    (trade) => {
-      const commonValues =
-        buildCommonRowValues(
-          trade,
-          normalizedPositionSide,
-          normalizedCurrentPrice
-        );
+  oldestFirstPendingTrades.forEach((trade) => {
+    const commonValues = buildCommonRowValues(
+      trade,
+      normalizedPositionSide,
+      normalizedCurrentPrice,
+    );
 
-      const exposureDelta =
-        getExposureDelta(
-          normalizedPositionSide,
-          commonValues.tradeType,
-          commonValues.storedShares
-        );
+    const exposureDelta = getExposureDelta(
+      normalizedPositionSide,
+      commonValues.tradeType,
+      commonValues.storedShares,
+    );
 
-      const calculation =
-        createPositionCalculation(
-          runningProjectedExposure,
-          exposureDelta
-        );
+    const calculation = createPositionCalculation(
+      runningProjectedExposure,
+      exposureDelta,
+    );
 
-      pendingCalculations.set(
-        trade.id,
-        calculation
-      );
+    pendingCalculations.set(trade.id, calculation);
 
-      pendingManualDelta += exposureDelta;
+    pendingManualDelta += exposureDelta;
 
-      if (!calculation.isValid) {
-        pendingProjectionIsValid = false;
-      }
-
-      runningProjectedExposure =
-        runningProjectedExposure +
-        exposureDelta;
+    if (!calculation.isValid) {
+      pendingProjectionIsValid = false;
     }
-  );
 
-  const projectedExposure =
-    pendingProjectionIsValid
-      ? Math.max(
-          0,
-          runningProjectedExposure
-        )
-      : null;
+    runningProjectedExposure = runningProjectedExposure + exposureDelta;
+  });
 
-  const authoritativeCalculations =
-    new Map<string, PositionCalculation>();
+  const projectedExposure = pendingProjectionIsValid
+    ? Math.max(0, runningProjectedExposure)
+    : null;
 
-  let runningHistoricalPositionAfter =
-    wellsExposure;
+  const authoritativeCalculations = new Map<string, PositionCalculation>();
+
+  let runningHistoricalPositionAfter = wellsExposure;
 
   let historyIsComplete = true;
 
   authoritativeTrades.forEach((trade) => {
-    const commonValues =
-      buildCommonRowValues(
-        trade,
-        normalizedPositionSide,
-        normalizedCurrentPrice
-      );
+    const commonValues = buildCommonRowValues(
+      trade,
+      normalizedPositionSide,
+      normalizedCurrentPrice,
+    );
 
-    const exposureDelta =
-      getExposureDelta(
-        normalizedPositionSide,
-        commonValues.tradeType,
-        commonValues.storedShares
-      );
+    const exposureDelta = getExposureDelta(
+      normalizedPositionSide,
+      commonValues.tradeType,
+      commonValues.storedShares,
+    );
 
     const calculatedPositionBefore =
-      runningHistoricalPositionAfter -
-      exposureDelta;
+      runningHistoricalPositionAfter - exposureDelta;
 
-    const calculation =
-      createPositionCalculation(
-        calculatedPositionBefore,
-        exposureDelta
-      );
-
-    authoritativeCalculations.set(
-      trade.id,
-      calculation
+    const calculation = createPositionCalculation(
+      calculatedPositionBefore,
+      exposureDelta,
     );
+
+    authoritativeCalculations.set(trade.id, calculation);
 
     if (!calculation.isValid) {
       historyIsComplete = false;
     }
 
-    runningHistoricalPositionAfter =
-      calculatedPositionBefore;
+    runningHistoricalPositionAfter = calculatedPositionBefore;
   });
 
   const derivedStartingExposure =
-    runningHistoricalPositionAfter >=
-    -POSITION_TOLERANCE
-      ? Math.max(
-          0,
-          runningHistoricalPositionAfter
-        )
+    runningHistoricalPositionAfter >= -POSITION_TOLERANCE
+      ? Math.max(0, runningHistoricalPositionAfter)
       : null;
 
   if (
     derivedStartingExposure == null ||
-    derivedStartingExposure >
-      POSITION_TOLERANCE
+    derivedStartingExposure > POSITION_TOLERANCE
   ) {
     historyIsComplete = false;
   }
 
-  const rows: TradeHistoryRow[] =
-    newestFirstTrades.map((trade) => {
-      const commonValues =
-        buildCommonRowValues(
-          trade,
-          normalizedPositionSide,
-          normalizedCurrentPrice
-        );
+  const rows: TradeHistoryRow[] = newestFirstTrades.map((trade) => {
+    const commonValues = buildCommonRowValues(
+      trade,
+      normalizedPositionSide,
+      normalizedCurrentPrice,
+    );
 
-      const pendingManual =
-        isPendingManualTrade(trade);
+    const pendingManual = isPendingManualTrade(trade);
 
-      const calculation = pendingManual
-        ? pendingCalculations.get(trade.id)
-        : authoritativeCalculations.get(
-            trade.id
-          );
+    const calculation = pendingManual
+      ? pendingCalculations.get(trade.id)
+      : authoritativeCalculations.get(trade.id);
 
-      return {
-        trade,
-        tradeType:
-          commonValues.tradeType ||
-          "UNKNOWN",
-        absoluteShares:
-          commonValues.absoluteShares,
-        notional: commonValues.notional,
-        positionBefore:
-          calculation?.positionBefore ??
-          null,
-        positionAfter:
-          calculation?.positionAfter ??
-          null,
-        positionChangePct:
-          calculation?.positionChangePct ??
-          null,
-        positionChangeLabel:
-          calculation?.positionChangeLabel ??
-          "—",
-        executionVsCurrentPct:
-          commonValues.executionVsCurrentPct,
-        daysSinceTrade:
-          calculateDaysSince(
-            trade.dateTraded
-          ),
-        isEntry:
-          commonValues.entryTrade,
-        isExit:
-          commonValues.exitTrade,
-        isPendingManual: pendingManual,
-        calculationBasis: pendingManual
-          ? "PENDING_PROJECTION"
-          : "AUTHORITATIVE_HISTORY",
-        hasValidPositionHistory:
-          calculation?.isValid ?? false,
-      };
-    });
+    return {
+      trade,
+      tradeType: commonValues.tradeType || "UNKNOWN",
+      absoluteShares: commonValues.absoluteShares,
+      notional: commonValues.notional,
+      positionBefore: calculation?.positionBefore ?? null,
+      positionAfter: calculation?.positionAfter ?? null,
+      positionChangePct: calculation?.positionChangePct ?? null,
+      positionChangeLabel: calculation?.positionChangeLabel ?? "—",
+      executionVsCurrentPct: commonValues.executionVsCurrentPct,
+      daysSinceTrade: calculateDaysSince(trade.dateTraded),
+      isEntry: commonValues.entryTrade,
+      isExit: commonValues.exitTrade,
+      isPendingManual: pendingManual,
+      calculationBasis: pendingManual
+        ? "PENDING_PROJECTION"
+        : "AUTHORITATIVE_HISTORY",
+      hasValidPositionHistory: calculation?.isValid ?? false,
+    };
+  });
 
   const totalSharesTraded = rows.reduce(
-    (total, row) =>
-      total + row.absoluteShares,
-    0
+    (total, row) => total + row.absoluteShares,
+    0,
   );
 
   const grossTradeNotional = rows.reduce(
-    (total, row) =>
-      total + (row.notional ?? 0),
-    0
+    (total, row) => total + (row.notional ?? 0),
+    0,
   );
 
   const validDateRows = rows.filter(
-    (row) =>
-      !Number.isNaN(
-        new Date(
-          row.trade.dateTraded
-        ).getTime()
-      )
+    (row) => !Number.isNaN(new Date(row.trade.dateTraded).getTime()),
   );
 
-  const mostRecentTradeAt =
-    validDateRows[0]?.trade.dateTraded ??
-    null;
+  const mostRecentTradeAt = validDateRows[0]?.trade.dateTraded ?? null;
 
   const firstTradeAt =
     validDateRows.length > 0
-      ? validDateRows[
-          validDateRows.length - 1
-        ].trade.dateTraded
+      ? validDateRows[validDateRows.length - 1].trade.dateTraded
       : null;
 
   const addPercentages = rows
-    .map(
-      (row) =>
-        row.positionChangePct
-    )
-    .filter(
-      (value): value is number =>
-        value != null && value > 0
-    );
+    .map((row) => row.positionChangePct)
+    .filter((value): value is number => value != null && value > 0);
 
   const reductionPercentages = rows
-    .map(
-      (row) =>
-        row.positionChangePct
-    )
-    .filter(
-      (value): value is number =>
-        value != null && value < 0
-    );
+    .map((row) => row.positionChangePct)
+    .filter((value): value is number => value != null && value < 0);
 
   return {
     rows,
     tradeCount: rows.length,
-    entryTradeCount: rows.filter(
-      (row) => row.isEntry
-    ).length,
-    exitTradeCount: rows.filter(
-      (row) => row.isExit
-    ).length,
-    authoritativeTradeCount:
-      authoritativeTrades.length,
-    pendingTradeCount:
-      pendingTrades.length,
+    entryTradeCount: rows.filter((row) => row.isEntry).length,
+    exitTradeCount: rows.filter((row) => row.isExit).length,
+    authoritativeTradeCount: authoritativeTrades.length,
+    pendingTradeCount: pendingTrades.length,
     totalSharesTraded,
     grossTradeNotional,
-    weightedEntryPrice:
-      calculateWeightedTradePrice(
-        rows,
-        "ENTRY"
-      ),
-    weightedExitPrice:
-      calculateWeightedTradePrice(
-        rows,
-        "EXIT"
-      ),
+    weightedEntryPrice: calculateWeightedTradePrice(rows, "ENTRY"),
+    weightedExitPrice: calculateWeightedTradePrice(rows, "EXIT"),
     firstTradeAt,
     mostRecentTradeAt,
-    daysSinceLastTrade:
-      calculateDaysSince(
-        mostRecentTradeAt
-      ),
+    daysSinceLastTrade: calculateDaysSince(mostRecentTradeAt),
     largestAddPct:
-      addPercentages.length > 0
-        ? Math.max(...addPercentages)
-        : null,
+      addPercentages.length > 0 ? Math.max(...addPercentages) : null,
     largestReductionPct:
       reductionPercentages.length > 0
-        ? Math.min(
-            ...reductionPercentages
-          )
+        ? Math.min(...reductionPercentages)
         : null,
     derivedStartingExposure,
     historyIsComplete,

@@ -1,25 +1,14 @@
-export const PT_ALERT_FLAG_TYPE =
-  "PT Proximity Alert";
+export const PT_ALERT_FLAG_TYPE = "PT Proximity Alert";
 
 export const PT_ALERT_TRIGGER_PERCENT = 2;
 
-export type PtAlertContext =
-  | "WATCHLIST"
-  | "POSITION";
+export type PtAlertContext = "WATCHLIST" | "POSITION";
 
-export type PtAlertTargetKind =
-  | "ENTRY"
-  | "EXIT";
+export type PtAlertTargetKind = "ENTRY" | "EXIT";
 
-export type PtAlertSide =
-  | "LONG"
-  | "SHORT";
+export type PtAlertSide = "LONG" | "SHORT";
 
-export type PtAlertTargetLabel =
-  | "Buy PT"
-  | "Sell PT"
-  | "Short PT"
-  | "Cover PT";
+export type PtAlertTargetLabel = "Buy PT" | "Sell PT" | "Short PT" | "Cover PT";
 
 export type EvaluatePtProximityInput = {
   context: PtAlertContext;
@@ -52,37 +41,24 @@ export type PtProximityEvaluation = {
     | "INVALID_TRIGGER_PERCENT";
 };
 
-function toPositiveFiniteNumber(
-  value: unknown
-) {
-  const numberValue =
-    Number(value);
+function toPositiveFiniteNumber(value: unknown) {
+  const numberValue = Number(value);
 
-  if (
-    !Number.isFinite(numberValue) ||
-    numberValue <= 0
-  ) {
+  if (!Number.isFinite(numberValue) || numberValue <= 0) {
     return null;
   }
 
   return numberValue;
 }
 
-function normalizeKeyPart(
-  value: string
-) {
+function normalizeKeyPart(value: string) {
   return value
     .trim()
     .toUpperCase()
-    .replace(
-      /[^A-Z0-9_-]+/g,
-      "_"
-    );
+    .replace(/[^A-Z0-9_-]+/g, "_");
 }
 
-function normalizeTargetPriceForKey(
-  targetPrice: number
-) {
+function normalizeTargetPriceForKey(targetPrice: number) {
   return targetPrice.toFixed(6);
 }
 
@@ -94,14 +70,10 @@ export function getPtAlertTargetLabel({
   targetKind: PtAlertTargetKind;
 }): PtAlertTargetLabel {
   if (side === "SHORT") {
-    return targetKind === "ENTRY"
-      ? "Short PT"
-      : "Cover PT";
+    return targetKind === "ENTRY" ? "Short PT" : "Cover PT";
   }
 
-  return targetKind === "ENTRY"
-    ? "Buy PT"
-    : "Sell PT";
+  return targetKind === "ENTRY" ? "Buy PT" : "Sell PT";
 }
 
 export function buildPtAlertKey({
@@ -120,9 +92,7 @@ export function buildPtAlertKey({
     normalizeKeyPart(context),
     normalizeKeyPart(contextId),
     normalizeKeyPart(targetKind),
-    normalizeTargetPriceForKey(
-      targetPrice
-    ),
+    normalizeTargetPriceForKey(targetPrice),
   ].join(":");
 }
 
@@ -137,131 +107,89 @@ export function evaluatePtProximity({
   currentPrice,
   marketDataSource,
   marketDataAsOf,
-  triggerPercent =
-    PT_ALERT_TRIGGER_PERCENT,
+  triggerPercent = PT_ALERT_TRIGGER_PERCENT,
 }: EvaluatePtProximityInput): PtProximityEvaluation {
   void securityId;
   void ticker;
   void marketDataSource;
   void marketDataAsOf;
 
-  const targetLabel =
-    getPtAlertTargetLabel({
-      side,
-      targetKind,
-    });
+  const targetLabel = getPtAlertTargetLabel({
+    side,
+    targetKind,
+  });
 
-  const normalizedTargetPrice =
-    toPositiveFiniteNumber(
-      targetPrice
-    );
+  const normalizedTargetPrice = toPositiveFiniteNumber(targetPrice);
 
-  const normalizedCurrentPrice =
-    toPositiveFiniteNumber(
-      currentPrice
-    );
+  const normalizedCurrentPrice = toPositiveFiniteNumber(currentPrice);
 
-  const normalizedTriggerPercent =
-    toPositiveFiniteNumber(
-      triggerPercent
-    );
+  const normalizedTriggerPercent = toPositiveFiniteNumber(triggerPercent);
 
-  if (
-    normalizedTargetPrice == null
-  ) {
+  if (normalizedTargetPrice == null) {
     return {
       isEligible: false,
       isWithinTriggerRange: false,
       alertKey: null,
       targetLabel,
       targetPrice: null,
-      currentPrice:
-        normalizedCurrentPrice,
+      currentPrice: normalizedCurrentPrice,
       distancePercent: null,
-      triggerPercent:
-        normalizedTriggerPercent ??
-        PT_ALERT_TRIGGER_PERCENT,
-      reason:
-        "INVALID_TARGET_PRICE",
+      triggerPercent: normalizedTriggerPercent ?? PT_ALERT_TRIGGER_PERCENT,
+      reason: "INVALID_TARGET_PRICE",
     };
   }
 
-  if (
-    normalizedCurrentPrice == null
-  ) {
+  if (normalizedCurrentPrice == null) {
     return {
       isEligible: false,
       isWithinTriggerRange: false,
       alertKey: null,
       targetLabel,
-      targetPrice:
-        normalizedTargetPrice,
+      targetPrice: normalizedTargetPrice,
       currentPrice: null,
       distancePercent: null,
-      triggerPercent:
-        normalizedTriggerPercent ??
-        PT_ALERT_TRIGGER_PERCENT,
-      reason:
-        "INVALID_CURRENT_PRICE",
+      triggerPercent: normalizedTriggerPercent ?? PT_ALERT_TRIGGER_PERCENT,
+      reason: "INVALID_CURRENT_PRICE",
     };
   }
 
-  if (
-    normalizedTriggerPercent == null
-  ) {
+  if (normalizedTriggerPercent == null) {
     return {
       isEligible: false,
       isWithinTriggerRange: false,
       alertKey: null,
       targetLabel,
-      targetPrice:
-        normalizedTargetPrice,
-      currentPrice:
-        normalizedCurrentPrice,
+      targetPrice: normalizedTargetPrice,
+      currentPrice: normalizedCurrentPrice,
       distancePercent: null,
-      triggerPercent:
-        PT_ALERT_TRIGGER_PERCENT,
-      reason:
-        "INVALID_TRIGGER_PERCENT",
+      triggerPercent: PT_ALERT_TRIGGER_PERCENT,
+      reason: "INVALID_TRIGGER_PERCENT",
     };
   }
 
   const distancePercent =
-    (
-      Math.abs(
-        normalizedCurrentPrice -
-          normalizedTargetPrice
-      ) /
-      normalizedTargetPrice
-    ) *
+    (Math.abs(normalizedCurrentPrice - normalizedTargetPrice) /
+      normalizedTargetPrice) *
     100;
 
-  const isWithinTriggerRange =
-    distancePercent <=
-    normalizedTriggerPercent;
+  const isWithinTriggerRange = distancePercent <= normalizedTriggerPercent;
 
   return {
     isEligible: true,
     isWithinTriggerRange,
-    alertKey:
-      buildPtAlertKey({
-        context,
-        contextId,
-        targetKind,
-        targetPrice:
-          normalizedTargetPrice,
-      }),
+    alertKey: buildPtAlertKey({
+      context,
+      contextId,
+      targetKind,
+      targetPrice: normalizedTargetPrice,
+    }),
     targetLabel,
-    targetPrice:
-      normalizedTargetPrice,
-    currentPrice:
-      normalizedCurrentPrice,
+    targetPrice: normalizedTargetPrice,
+    currentPrice: normalizedCurrentPrice,
     distancePercent,
-    triggerPercent:
-      normalizedTriggerPercent,
-    reason:
-      isWithinTriggerRange
-        ? "WITHIN_TRIGGER_RANGE"
-        : "OUTSIDE_TRIGGER_RANGE",
+    triggerPercent: normalizedTriggerPercent,
+    reason: isWithinTriggerRange
+      ? "WITHIN_TRIGGER_RANGE"
+      : "OUTSIDE_TRIGGER_RANGE",
   };
 }

@@ -7,7 +7,7 @@ export async function PATCH(
     params: Promise<{
       id: string;
     }>;
-  }
+  },
 ) {
   const { id } = await context.params;
 
@@ -20,7 +20,7 @@ export async function PATCH(
       },
       {
         status: 400,
-      }
+      },
     );
   }
 

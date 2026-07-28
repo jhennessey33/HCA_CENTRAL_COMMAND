@@ -33,7 +33,9 @@ function sleep(ms) {
 }
 
 function normalizeTicker(ticker) {
-  return String(ticker || "").trim().toUpperCase();
+  return String(ticker || "")
+    .trim()
+    .toUpperCase();
 }
 
 async function fetchFinnhubQuote(ticker) {
@@ -121,7 +123,7 @@ async function getPortfolioTickers(prisma) {
 
   if (tickerMap.size > 0) {
     return Array.from(tickerMap.values()).sort((a, b) =>
-      a.ticker.localeCompare(b.ticker)
+      a.ticker.localeCompare(b.ticker),
     );
   }
 
@@ -147,7 +149,9 @@ async function main() {
   try {
     const tickers = await getPortfolioTickers(prisma);
 
-    console.log(`Testing Finnhub current price coverage for ${tickers.length} tickers...\n`);
+    console.log(
+      `Testing Finnhub current price coverage for ${tickers.length} tickers...\n`,
+    );
 
     const results = [];
 
@@ -161,7 +165,9 @@ async function main() {
         });
 
         if (result.ok) {
-          console.log(`[OK]   ${result.ticker.padEnd(8)} $${result.currentPrice.toFixed(2)}`);
+          console.log(
+            `[OK]   ${result.ticker.padEnd(8)} $${result.currentPrice.toFixed(2)}`,
+          );
         } else {
           console.log(`[MISS] ${result.ticker.padEnd(8)} ${result.reason}`);
         }
@@ -173,7 +179,9 @@ async function main() {
           reason: error instanceof Error ? error.message : "UNKNOWN_ERROR",
         });
 
-        console.log(`[ERR]  ${security.ticker.padEnd(8)} ${error instanceof Error ? error.message : "UNKNOWN_ERROR"}`);
+        console.log(
+          `[ERR]  ${security.ticker.padEnd(8)} ${error instanceof Error ? error.message : "UNKNOWN_ERROR"}`,
+        );
       }
 
       // Finnhub free tier is 60 calls/minute. This keeps us under that.
@@ -192,7 +200,7 @@ async function main() {
     const outputPath = path.join(
       process.cwd(),
       "scripts",
-      "finnhub-quote-test-results.json"
+      "finnhub-quote-test-results.json",
     );
 
     fs.writeFileSync(outputPath, JSON.stringify(results, null, 2));

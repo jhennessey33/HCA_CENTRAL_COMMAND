@@ -8,13 +8,15 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const email = String(body.email || "").trim().toLowerCase();
+    const email = String(body.email || "")
+      .trim()
+      .toLowerCase();
     const password = String(body.password || "");
 
     if (!email || !password) {
       return NextResponse.json(
         { error: "Email and password are required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -27,7 +29,7 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json(
         { error: "Invalid email or password." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -36,7 +38,7 @@ export async function POST(request: Request) {
     if (!isValidPassword) {
       return NextResponse.json(
         { error: "Invalid email or password." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -89,9 +91,6 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("POST /api/auth/login failed", error);
 
-    return NextResponse.json(
-      { error: "Failed to log in." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to log in." }, { status: 500 });
   }
 }

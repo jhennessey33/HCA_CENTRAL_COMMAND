@@ -24,7 +24,7 @@ export default function LocalDateTime({
         year: "numeric",
         hour: "numeric",
         minute: "2-digit",
-      }).format(new Date(value))
+      }).format(new Date(value)),
     );
   }, [value]);
 

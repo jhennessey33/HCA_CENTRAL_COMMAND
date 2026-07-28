@@ -1,8 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { fetchFinnhubQuote } from "@/lib/market-data/finnhub";
-import {
-  evaluateSecurityPtAlerts,
-} from "@/lib/alerts/pt-proximity-alert-service";
+import { evaluateSecurityPtAlerts } from "@/lib/alerts/pt-proximity-alert-service";
 
 type MarketDataRefreshTrigger = "MANUAL" | "SCHEDULED";
 
@@ -54,8 +52,7 @@ export async function refreshMarketData({
       source: "FINNHUB",
       trigger,
       skipped: true,
-      reason:
-        "Full market data refresh already running or pending.",
+      reason: "Full market data refresh already running or pending.",
       updatedCount: 0,
       failedCount: 0,
       ptAlertsEvaluated: 0,
@@ -163,8 +160,7 @@ export async function refreshMarketData({
           continue;
         }
 
-        const marketDataAsOf =
-          new Date();
+        const marketDataAsOf = new Date();
 
         const data = {
           currentPrice: quote.currentPrice,
@@ -173,8 +169,7 @@ export async function refreshMarketData({
           source: "FINNHUB",
           marketDataSource: "FINNHUB",
           dataQuality: "REAL",
-          lastMarketDataRefreshAt:
-            marketDataAsOf,
+          lastMarketDataRefreshAt: marketDataAsOf,
         };
 
         if (existingMarketData) {
@@ -196,38 +191,25 @@ export async function refreshMarketData({
         let securityPtAlertsCreated = 0;
 
         try {
-          const ptAlertResult =
-            await evaluateSecurityPtAlerts({
-              securityId:
-                security.id,
-              ticker:
-                security.ticker,
-              currentPrice:
-                quote.currentPrice,
-              marketDataSource:
-                "FINNHUB",
-              marketDataAsOf,
-            });
+          const ptAlertResult = await evaluateSecurityPtAlerts({
+            securityId: security.id,
+            ticker: security.ticker,
+            currentPrice: quote.currentPrice,
+            marketDataSource: "FINNHUB",
+            marketDataAsOf,
+          });
 
-          ptAlertsEvaluated +=
-            ptAlertResult.evaluatedCount;
+          ptAlertsEvaluated += ptAlertResult.evaluatedCount;
 
-          ptAlertsCreated +=
-            ptAlertResult.createdCount;
+          ptAlertsCreated += ptAlertResult.createdCount;
 
-          ptAlertsSkippedDuplicate +=
-            ptAlertResult
-              .skippedDuplicateCount;
+          ptAlertsSkippedDuplicate += ptAlertResult.skippedDuplicateCount;
 
-          securityPtAlertsCreated =
-            ptAlertResult.createdCount;
+          securityPtAlertsCreated = ptAlertResult.createdCount;
 
-          if (
-            ptAlertResult.skippedNoUserCount >
-            0
-          ) {
+          if (ptAlertResult.skippedNoUserCount > 0) {
             console.warn(
-              `[pt-alerts] Could not create ${ptAlertResult.skippedNoUserCount} alert(s) for ${security.ticker}: no system user was available.`
+              `[pt-alerts] Could not create ${ptAlertResult.skippedNoUserCount} alert(s) for ${security.ticker}: no system user was available.`,
             );
           }
         } catch (error) {
@@ -235,15 +217,14 @@ export async function refreshMarketData({
 
           console.error(
             `Failed to evaluate PT alerts for ${security.ticker}:`,
-            error
+            error,
           );
         }
 
         results.push({
           ticker: security.ticker,
           status: "UPDATED",
-          ptAlertsCreated:
-            securityPtAlertsCreated,
+          ptAlertsCreated: securityPtAlertsCreated,
         });
 
         // Finnhub free tier is 60 calls/minute, so stay under that.
@@ -260,11 +241,11 @@ export async function refreshMarketData({
     }
 
     const updatedCount = results.filter(
-      (result) => result.status === "UPDATED"
+      (result) => result.status === "UPDATED",
     ).length;
 
     const failedCount = results.filter(
-      (result) => result.status === "FAILED"
+      (result) => result.status === "FAILED",
     ).length;
 
     await prisma.ingestionRun.update({
@@ -280,13 +261,12 @@ export async function refreshMarketData({
         endedAt: new Date(),
         rowsProcessed: results.length,
         rowsFailed: failedCount,
-        detailsJson:
-          JSON.stringify({
-            ptAlertsEvaluated,
-            ptAlertsCreated,
-            ptAlertsSkippedDuplicate,
-            ptAlertFailures,
-          }),
+        detailsJson: JSON.stringify({
+          ptAlertsEvaluated,
+          ptAlertsCreated,
+          ptAlertsSkippedDuplicate,
+          ptAlertFailures,
+        }),
       },
     });
 

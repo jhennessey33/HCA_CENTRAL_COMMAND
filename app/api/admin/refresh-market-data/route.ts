@@ -9,14 +9,14 @@ export async function POST() {
     if (!user) {
       return NextResponse.json(
         { error: "Authentication required." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     if (user.role !== "ADMIN") {
       return NextResponse.json(
         { error: "Admin access required." },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -31,7 +31,7 @@ export async function POST() {
         error: "Finnhub current price refresh failed.",
         detail: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

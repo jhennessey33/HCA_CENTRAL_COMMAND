@@ -20,7 +20,6 @@ Everyone else accesses the active host in a browser.
 
 There must be exactly one active host at a time.
 
-
 John hosts HCA
 Malkolm opens John's HCA URL
 

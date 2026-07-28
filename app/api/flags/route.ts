@@ -4,18 +4,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { canCreateFlags } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
-const VALID_PRIORITIES = new Set([
-  "LOW",
-  "MEDIUM",
-  "HIGH",
-]);
+const VALID_PRIORITIES = new Set(["LOW", "MEDIUM", "HIGH"]);
 
 function parseOptionalReminderAt(value: unknown) {
-  if (
-    value === null ||
-    value === undefined ||
-    value === ""
-  ) {
+  if (value === null || value === undefined || value === "") {
     return null;
   }
 
@@ -70,7 +62,7 @@ export async function GET() {
 
     return NextResponse.json(
       { error: "Failed to load flags." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -82,17 +74,16 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json(
         { error: "Authentication required." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     if (!canCreateFlags(user.role)) {
       return NextResponse.json(
         {
-          error:
-            "You do not have permission to create flags.",
+          error: "You do not have permission to create flags.",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -102,9 +93,7 @@ export async function POST(request: Request) {
       ? String(body.securityId).trim()
       : null;
 
-    const positionId = body.positionId
-      ? String(body.positionId).trim()
-      : null;
+    const positionId = body.positionId ? String(body.positionId).trim() : null;
 
     const watchlistEntryId = body.watchlistEntryId
       ? String(body.watchlistEntryId).trim()
@@ -113,32 +102,27 @@ export async function POST(request: Request) {
     const flagType = String(body.flagType || "").trim();
 
     const normalizedFlagType =
-      flagType.toUpperCase() === "REMINDER"
-        ? "REMINDER"
-        : flagType;
+      flagType.toUpperCase() === "REMINDER" ? "REMINDER" : flagType;
 
     const priority = String(body.priority || "")
       .trim()
       .toUpperCase();
 
-    const description = String(
-      body.description || ""
-    ).trim();
+    const description = String(body.description || "").trim();
 
     if (!flagType) {
       return NextResponse.json(
         { error: "Flag type is required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!VALID_PRIORITIES.has(priority)) {
       return NextResponse.json(
         {
-          error:
-            "Priority must be LOW, MEDIUM, or HIGH.",
+          error: "Priority must be LOW, MEDIUM, or HIGH.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -148,16 +132,14 @@ export async function POST(request: Request) {
           error:
             "A flag cannot be associated with both a position and a watchlist entry.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     let reminderAt: Date | null;
 
     try {
-      reminderAt = parseOptionalReminderAt(
-        body.reminderAt
-      );
+      reminderAt = parseOptionalReminderAt(body.reminderAt);
     } catch (error) {
       return NextResponse.json(
         {
@@ -166,33 +148,25 @@ export async function POST(request: Request) {
               ? error.message
               : "Reminder date and time are invalid.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    if (
-      normalizedFlagType === "REMINDER" &&
-      !reminderAt
-    ) {
+    if (normalizedFlagType === "REMINDER" && !reminderAt) {
       return NextResponse.json(
         {
-          error:
-            "A reminder date and time are required for reminders.",
+          error: "A reminder date and time are required for reminders.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    if (
-      normalizedFlagType === "REMINDER" &&
-      !description
-    ) {
+    if (normalizedFlagType === "REMINDER" && !description) {
       return NextResponse.json(
         {
-          error:
-            "A description is required for reminders.",
+          error: "A description is required for reminders.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -218,20 +192,17 @@ export async function POST(request: Request) {
       if (!position) {
         return NextResponse.json(
           { error: "Position not found." },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
-      if (
-        securityId &&
-        securityId !== position.securityId
-      ) {
+      if (securityId && securityId !== position.securityId) {
         return NextResponse.json(
           {
             error:
               "The selected Security does not match the selected position.",
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -240,52 +211,43 @@ export async function POST(request: Request) {
     }
 
     if (watchlistEntryId) {
-      const watchlistEntry =
-        await prisma.watchlistEntry.findUnique({
-          where: {
-            id: watchlistEntryId,
-          },
-          select: {
-            id: true,
-            securityId: true,
-            security: {
-              select: {
-                ticker: true,
-              },
+      const watchlistEntry = await prisma.watchlistEntry.findUnique({
+        where: {
+          id: watchlistEntryId,
+        },
+        select: {
+          id: true,
+          securityId: true,
+          security: {
+            select: {
+              ticker: true,
             },
           },
-        });
+        },
+      });
 
       if (!watchlistEntry) {
         return NextResponse.json(
           { error: "Watchlist entry not found." },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
-      if (
-        securityId &&
-        securityId !== watchlistEntry.securityId
-      ) {
+      if (securityId && securityId !== watchlistEntry.securityId) {
         return NextResponse.json(
           {
             error:
               "The selected Security does not match the selected watchlist entry.",
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       securityId = watchlistEntry.securityId;
-      securityTicker =
-        watchlistEntry.security.ticker;
+      securityTicker = watchlistEntry.security.ticker;
     }
 
-    if (
-      securityId &&
-      !positionId &&
-      !watchlistEntryId
-    ) {
+    if (securityId && !positionId && !watchlistEntryId) {
       const security = await prisma.security.findUnique({
         where: {
           id: securityId,
@@ -299,7 +261,7 @@ export async function POST(request: Request) {
       if (!security) {
         return NextResponse.json(
           { error: "Security not found." },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -331,37 +293,29 @@ export async function POST(request: Request) {
             entityId: createdFlag.id,
             newValueJson: JSON.stringify({
               securityId: createdFlag.securityId,
-              securityContext:
-                securityTicker || "General",
-              positionId:
-                createdFlag.positionId,
-              watchlistEntryId:
-                createdFlag.watchlistEntryId,
+              securityContext: securityTicker || "General",
+              positionId: createdFlag.positionId,
+              watchlistEntryId: createdFlag.watchlistEntryId,
               flagType: createdFlag.flagType,
               priority: createdFlag.priority,
-              description:
-                createdFlag.description,
-              reminderAt:
-                createdFlag.reminderAt,
+              description: createdFlag.description,
+              reminderAt: createdFlag.reminderAt,
               status: createdFlag.status,
             }),
           },
         });
 
         return createdFlag;
-      }
+      },
     );
 
-    return NextResponse.json(
-      { flag },
-      { status: 201 }
-    );
+    return NextResponse.json({ flag }, { status: 201 });
   } catch (error) {
     console.error("POST /api/flags failed", error);
 
     return NextResponse.json(
       { error: "Failed to create flag." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

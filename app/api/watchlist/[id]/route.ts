@@ -4,15 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { canEditWatchlist } from "@/lib/permissions";
 
-function parseTargetPrice(
-  value: unknown,
-  label: string
-) {
-  if (
-    value === null ||
-    value === undefined ||
-    value === ""
-  ) {
+function parseTargetPrice(value: unknown, label: string) {
+  if (value === null || value === undefined || value === "") {
     return null;
   }
 
@@ -50,10 +43,7 @@ function formatPriceForComment(value: number | null) {
   });
 }
 
-function targetPriceChanged(
-  oldValue: number | null,
-  newValue: number | null
-) {
+function targetPriceChanged(oldValue: number | null, newValue: number | null) {
   if (oldValue == null && newValue == null) {
     return false;
   }
@@ -92,36 +82,31 @@ function buildTargetChangeComment({
 
   if (previousValue == null && nextValue != null) {
     return `${capitalizedLabel} price target set to ${formatPriceForComment(
-      nextValue
+      nextValue,
     )}. Reason: ${reason}`;
   }
 
   if (previousValue != null && nextValue == null) {
     return `${capitalizedLabel} price target removed. Previous value was ${formatPriceForComment(
-      previousValue
+      previousValue,
     )}. Reason: ${reason}`;
   }
 
   return `${capitalizedLabel} price target changed from ${formatPriceForComment(
-    previousValue
+    previousValue,
   )} to ${formatPriceForComment(nextValue)}. Reason: ${reason}`;
 }
 
-
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
     const body = await request.json();
 
     const meetingId =
-      body.meetingId == null
-        ? null
-        : String(
-            body.meetingId
-          ).trim() || null;
+      body.meetingId == null ? null : String(body.meetingId).trim() || null;
 
     const author = await getCurrentUser();
 
@@ -130,57 +115,53 @@ export async function PATCH(
         {
           error: "Authentication required.",
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     if (!canEditWatchlist(author.role)) {
       return NextResponse.json(
         {
-          error:
-            "You do not have permission to edit the watchlist.",
+          error: "You do not have permission to edit the watchlist.",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    const existingEntry =
-      await prisma.watchlistEntry.findUnique({
-        where: {
-          id,
-        },
-        include: {
-          security: true,
-        },
-      });
+    const existingEntry = await prisma.watchlistEntry.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        security: true,
+      },
+    });
 
     if (!existingEntry) {
       return NextResponse.json(
         {
           error: "Watchlist item not found.",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     if (meetingId) {
-      const meetingExists =
-        await prisma.meeting.findUnique({
-          where: {
-            id: meetingId,
-          },
-          select: {
-            id: true,
-          },
-        });
+      const meetingExists = await prisma.meeting.findUnique({
+        where: {
+          id: meetingId,
+        },
+        select: {
+          id: true,
+        },
+      });
 
       if (!meetingExists) {
         return NextResponse.json(
           {
-            error:
-              "The selected meeting could not be found.",
+            error: "The selected meeting could not be found.",
           },
-          { status: 404 }
+          { status: 404 },
         );
       }
     }
@@ -194,7 +175,7 @@ export async function PATCH(
         {
           error: "Side must be LONG or SHORT.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -204,76 +185,65 @@ export async function PATCH(
     try {
       entryTargetPrice = parseTargetPrice(
         body.entryTargetPrice,
-        side === "SHORT" ? "Sell PT" : "Buy PT"
+        side === "SHORT" ? "Sell PT" : "Buy PT",
       );
 
       exitTargetPrice = parseTargetPrice(
         body.exitTargetPrice,
-        side === "SHORT" ? "Cover PT" : "Sell PT"
+        side === "SHORT" ? "Cover PT" : "Sell PT",
       );
     } catch (error) {
       return NextResponse.json(
         {
           error:
-            error instanceof Error
-              ? error.message
-              : "Invalid target price.",
+            error instanceof Error ? error.message : "Invalid target price.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const notes = parseNotes(body.notes);
-    const ptChangeComment = parseNotes(
-      body.ptChangeComment
-    );
+    const ptChangeComment = parseNotes(body.ptChangeComment);
 
     const existingEntryTargetPrice =
-      existingEntry.entryTargetPrice ??
-      existingEntry.targetPrice;
+      existingEntry.entryTargetPrice ?? existingEntry.targetPrice;
 
-    const existingExitTargetPrice =
-      existingEntry.exitTargetPrice;
+    const existingExitTargetPrice = existingEntry.exitTargetPrice;
 
     const didEntryTargetChange = targetPriceChanged(
       existingEntryTargetPrice,
-      entryTargetPrice
+      entryTargetPrice,
     );
 
     const didExitTargetChange = targetPriceChanged(
       existingExitTargetPrice,
-      exitTargetPrice
+      exitTargetPrice,
     );
 
     const didSideChange = existingEntry.side !== side;
 
-    if (
-      (didEntryTargetChange || didExitTargetChange) &&
-      !ptChangeComment
-    ) {
+    if ((didEntryTargetChange || didExitTargetChange) && !ptChangeComment) {
       return NextResponse.json(
         {
-          error:
-            "Changing a price target requires a PT change comment.",
+          error: "Changing a price target requires a PT change comment.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const conflictingEntry =
-      await prisma.watchlistEntry.findFirst({
-        where: {
-          id: {
-            not: id,
-          },
-          securityId: existingEntry.securityId,
-          side,
-          archivedAt: null,
+    const conflictingEntry = await prisma.watchlistEntry.findFirst({
+      where: {
+        id: {
+          not: id,
         },
-        select: {
-          id: true,
-        },
-      });
+        securityId: existingEntry.securityId,
+        side,
+        archivedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
 
     if (conflictingEntry) {
       return NextResponse.json(
@@ -281,19 +251,15 @@ export async function PATCH(
           error:
             "This security already has an active watchlist entry on the selected side.",
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
-      const generatedPtCommentIds =
-        await prisma.$transaction(
-          async (
-            tx: Prisma.TransactionClient
-          ) => {
-            const commentIds: string[] =
-              [];
+    const generatedPtCommentIds = await prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const commentIds: string[] = [];
 
-            await tx.watchlistEntry.update({
+        await tx.watchlistEntry.update({
           where: {
             id,
           },
@@ -310,74 +276,48 @@ export async function PATCH(
           },
         });
 
-        if (
-          didEntryTargetChange &&
-          ptChangeComment
-        ) {
-          const comment =
-            await tx.comment.create({
-              data: {
-                securityId:
-                  existingEntry.securityId,
-                watchlistEntryId:
-                  existingEntry.id,
-                meetingId,
-                authorId: author.id,
-                tag: "PT",
-                content:
-                  buildTargetChangeComment({
-                    label:
-                      getEntryTargetLabel(
-                        side
-                      ),
-                    previousValue:
-                      existingEntryTargetPrice,
-                    nextValue:
-                      entryTargetPrice,
-                    reason:
-                      ptChangeComment,
-                  }),
-              },
-              select: {
-                id: true,
-              },
-            });
+        if (didEntryTargetChange && ptChangeComment) {
+          const comment = await tx.comment.create({
+            data: {
+              securityId: existingEntry.securityId,
+              watchlistEntryId: existingEntry.id,
+              meetingId,
+              authorId: author.id,
+              tag: "PT",
+              content: buildTargetChangeComment({
+                label: getEntryTargetLabel(side),
+                previousValue: existingEntryTargetPrice,
+                nextValue: entryTargetPrice,
+                reason: ptChangeComment,
+              }),
+            },
+            select: {
+              id: true,
+            },
+          });
 
           commentIds.push(comment.id);
         }
 
-        if (
-          didExitTargetChange &&
-          ptChangeComment
-        ) {
-          const comment =
-            await tx.comment.create({
-              data: {
-                securityId:
-                  existingEntry.securityId,
-                watchlistEntryId:
-                  existingEntry.id,
-                meetingId,
-                authorId: author.id,
-                tag: "PT",
-                content:
-                  buildTargetChangeComment({
-                    label:
-                      getExitTargetLabel(
-                        side
-                      ),
-                    previousValue:
-                      existingExitTargetPrice,
-                    nextValue:
-                      exitTargetPrice,
-                    reason:
-                      ptChangeComment,
-                  }),
-              },
-              select: {
-                id: true,
-              },
-            });
+        if (didExitTargetChange && ptChangeComment) {
+          const comment = await tx.comment.create({
+            data: {
+              securityId: existingEntry.securityId,
+              watchlistEntryId: existingEntry.id,
+              meetingId,
+              authorId: author.id,
+              tag: "PT",
+              content: buildTargetChangeComment({
+                label: getExitTargetLabel(side),
+                previousValue: existingExitTargetPrice,
+                nextValue: exitTargetPrice,
+                reason: ptChangeComment,
+              }),
+            },
+            select: {
+              id: true,
+            },
+          });
 
           commentIds.push(comment.id);
         }
@@ -409,9 +349,9 @@ export async function PATCH(
             }),
           },
         });
-      return commentIds;
-    }
-  );
+        return commentIds;
+      },
+    );
 
     const generatedPtComments =
       generatedPtCommentIds.length > 0
@@ -446,96 +386,89 @@ export async function PATCH(
           })
         : [];
 
-    const updatedEntry =
-      await prisma.watchlistEntry.findUniqueOrThrow({
-        where: {
-          id,
-        },
-        include: {
-          security: {
-            include: {
-              marketData: {
-                orderBy: {
-                  updatedAt: "desc",
-                },
-                take: 1,
+    const updatedEntry = await prisma.watchlistEntry.findUniqueOrThrow({
+      where: {
+        id,
+      },
+      include: {
+        security: {
+          include: {
+            marketData: {
+              orderBy: {
+                updatedAt: "desc",
               },
-              comments: {
-                where: {
-                  archivedAt: null,
-                },
-                include: {
-                  author: {
-                    select: {
-                      id: true,
-                      name: true,
-                      email: true,
-                      role: true,
-                    },
+              take: 1,
+            },
+            comments: {
+              where: {
+                archivedAt: null,
+              },
+              include: {
+                author: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
                   },
                 },
-                orderBy: {
-                  createdAt: "desc",
-                },
+              },
+              orderBy: {
+                createdAt: "desc",
               },
             },
-          },
-          comments: {
-            where: {
-              archivedAt: null,
-            },
-            include: {
-              author: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  role: true,
-                },
-              },
-            },
-            orderBy: {
-              createdAt: "desc",
-            },
-          },
-          flags: {
-            where: {
-              status: "OPEN",
-            },
-            orderBy: {
-              createdAt: "desc",
-            },
-            take: 5,
           },
         },
-      });
+        comments: {
+          where: {
+            archivedAt: null,
+          },
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        flags: {
+          where: {
+            status: "OPEN",
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 5,
+        },
+      },
+    });
 
     return NextResponse.json({
       watchlistEntry: updatedEntry,
       generatedPtComments,
     });
   } catch (error) {
-    console.error(
-      "Failed to update watchlist item:",
-      error
-    );
+    console.error("Failed to update watchlist item:", error);
 
     return NextResponse.json(
       {
         error: "Failed to update watchlist item.",
-        detail:
-          error instanceof Error
-            ? error.message
-            : "Unknown error",
+        detail: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -546,7 +479,7 @@ export async function DELETE(
         {
           error: "Authentication required.",
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -555,7 +488,7 @@ export async function DELETE(
         {
           error: "You do not have permission to edit the watchlist.",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -570,7 +503,7 @@ export async function DELETE(
         {
           error: "Watchlist item not found.",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -630,7 +563,7 @@ export async function DELETE(
         error: "Failed to remove watchlist item.",
         detail: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

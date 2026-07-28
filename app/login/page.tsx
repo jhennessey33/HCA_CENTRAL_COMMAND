@@ -63,11 +63,11 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-          body: JSON.stringify({
-            name: registerName,
-            email: registerEmail,
-            password: registerPassword,
-            confirmPassword: registerConfirmPassword,
+        body: JSON.stringify({
+          name: registerName,
+          email: registerEmail,
+          password: registerPassword,
+          confirmPassword: registerConfirmPassword,
         }),
       });
 
@@ -123,9 +123,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
-            <label className="text-sm font-medium text-slate-700">
-              Email
-            </label>
+            <label className="text-sm font-medium text-slate-700">Email</label>
             <input
               value={email}
               onChange={(event) => setEmail(event.target.value)}
@@ -171,9 +169,9 @@ export default function LoginPage() {
 
         <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-xs text-slate-500">
           <p className="font-semibold text-slate-700">Approved registration</p>
-            <p className="mt-2">
-            Approved users can create their accounts using their approved
-            email addresses.
+          <p className="mt-2">
+            Approved users can create their accounts using their approved email
+            addresses.
           </p>
           <p className="mt-2">
             Registration is restricted to manually approved emails only.
@@ -204,19 +202,19 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleRegister} className="mt-6 space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-slate-700">
-                    Full name
-                  </label>
-                  <input
-                    value={registerName}
-                    onChange={(event) => setRegisterName(event.target.value)}
-                    type="text"
-                    autoComplete="name"
-                    required
-                    className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
-                    placeholder="Full name"
-                  />
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Full name
+                </label>
+                <input
+                  value={registerName}
+                  onChange={(event) => setRegisterName(event.target.value)}
+                  type="text"
+                  autoComplete="name"
+                  required
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+                  placeholder="Full name"
+                />
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-700">
@@ -233,16 +231,14 @@ export default function LoginPage() {
                 />
               </div>
 
-                            <div>
+              <div>
                 <label className="text-sm font-medium text-slate-700">
                   Password
                 </label>
 
                 <input
                   value={registerPassword}
-                  onChange={(event) =>
-                    setRegisterPassword(event.target.value)
-                  }
+                  onChange={(event) => setRegisterPassword(event.target.value)}
                   type="password"
                   autoComplete="new-password"
                   required

@@ -32,27 +32,23 @@ const resolvedFlagInclude = {
   },
 } satisfies Prisma.FlagInclude;
 
-export async function POST(
-  _request: Request,
-  context: RouteContext
-) {
+export async function POST(_request: Request, context: RouteContext) {
   try {
     const user = await getCurrentUser();
 
     if (!user) {
       return NextResponse.json(
         { error: "Authentication required." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     if (!canCreateFlags(user.role)) {
       return NextResponse.json(
         {
-          error:
-            "You do not have permission to resolve flags.",
+          error: "You do not have permission to resolve flags.",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -61,7 +57,7 @@ export async function POST(
     if (!id) {
       return NextResponse.json(
         { error: "Flag ID is required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -80,16 +76,13 @@ export async function POST(
     });
 
     if (!existingFlag) {
-      return NextResponse.json(
-        { error: "Flag not found." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Flag not found." }, { status: 404 });
     }
 
     if (existingFlag.status === "RESOLVED") {
       return NextResponse.json(
         { error: "Flag is already resolved." },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -98,7 +91,7 @@ export async function POST(
         {
           error: `Only OPEN flags can be resolved. Current status: ${existingFlag.status}.`,
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -154,11 +147,9 @@ export async function POST(
               priority: currentFlag.priority,
               reminderAt: currentFlag.reminderAt,
               securityId: currentFlag.securityId,
-              securityContext:
-                currentFlag.security?.ticker || "General",
+              securityContext: currentFlag.security?.ticker || "General",
               positionId: currentFlag.positionId,
-              watchlistEntryId:
-                currentFlag.watchlistEntryId,
+              watchlistEntryId: currentFlag.watchlistEntryId,
             }),
             newValueJson: JSON.stringify({
               status: updatedFlag.status,
@@ -168,54 +159,39 @@ export async function POST(
               priority: updatedFlag.priority,
               reminderAt: updatedFlag.reminderAt,
               securityId: updatedFlag.securityId,
-              securityContext:
-                updatedFlag.security?.ticker || "General",
+              securityContext: updatedFlag.security?.ticker || "General",
               positionId: updatedFlag.positionId,
-              watchlistEntryId:
-                updatedFlag.watchlistEntryId,
+              watchlistEntryId: updatedFlag.watchlistEntryId,
             }),
           },
         });
 
         return updatedFlag;
-      }
+      },
     );
 
     return NextResponse.json({
       flag: resolvedFlag,
     });
   } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message === "FLAG_NOT_FOUND"
-    ) {
-      return NextResponse.json(
-        { error: "Flag not found." },
-        { status: 404 }
-      );
+    if (error instanceof Error && error.message === "FLAG_NOT_FOUND") {
+      return NextResponse.json({ error: "Flag not found." }, { status: 404 });
     }
 
-    if (
-      error instanceof Error &&
-      error.message === "FLAG_NOT_OPEN"
-    ) {
+    if (error instanceof Error && error.message === "FLAG_NOT_OPEN") {
       return NextResponse.json(
         {
-          error:
-            "The flag is no longer open and cannot be resolved.",
+          error: "The flag is no longer open and cannot be resolved.",
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
-    console.error(
-      "POST /api/flags/[id]/resolve failed",
-      error
-    );
+    console.error("POST /api/flags/[id]/resolve failed", error);
 
     return NextResponse.json(
       { error: "Failed to resolve flag." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

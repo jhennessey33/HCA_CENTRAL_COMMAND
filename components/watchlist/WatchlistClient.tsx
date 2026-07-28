@@ -5,12 +5,8 @@ import AppSidebar from "@/components/common/AppSidebar";
 import LocalDateTime from "@/components/common/LocalDateTime";
 import Badge from "@/components/common/Badge";
 import { useEffect, useMemo, useState } from "react";
-import {
-  canCreateComments,
-  canEditWatchlist,
-} from "@/lib/client-permissions";
+import { canCreateComments, canEditWatchlist } from "@/lib/client-permissions";
 import CurrentUserPill from "@/components/auth/CurrentUserPill";
-
 
 type WatchlistClientProps = {
   initialEntries: WatchlistEntry[];
@@ -95,17 +91,9 @@ type WatchlistEntry = {
   };
 };
 
-function SectionBar({
-  title,
-  tone,
-}: {
-  title: string;
-  tone: "green" | "red";
-}) {
+function SectionBar({ title, tone }: { title: string; tone: "green" | "red" }) {
   const toneClass =
-    tone === "green"
-      ? "bg-emerald-700 text-white"
-      : "bg-red-600 text-white";
+    tone === "green" ? "bg-emerald-700 text-white" : "bg-red-600 text-white";
 
   return (
     <div
@@ -126,19 +114,17 @@ function formatMoney(value: number | null | undefined) {
   });
 }
 
-
 function getCapitalIqUrl(ticker: string) {
   const normalizedTicker = ticker.trim().toLowerCase();
 
   return `https://www.capitaliq.spglobal.com/apisv3/spg-webplatform-core/search/searchResults?vertical=&q=${encodeURIComponent(
-    normalizedTicker
+    normalizedTicker,
   )}`;
 }
 
 function openCapitalIq(ticker: string) {
   window.open(getCapitalIqUrl(ticker), "_blank");
 }
-
 
 function formatDateTime(value: string | Date | null | undefined) {
   if (!value) return "—";
@@ -174,7 +160,7 @@ function getWatchlistCurrentPrice(entry: WatchlistEntry) {
 
 function calculateFromTarget(
   currentPrice?: number | null,
-  targetPrice?: number | null
+  targetPrice?: number | null,
 ) {
   if (currentPrice == null || targetPrice == null || currentPrice === 0) {
     return null;
@@ -216,49 +202,43 @@ function getWatchlistComments(entry: WatchlistEntry) {
   });
 
   return Array.from(byId.values()).sort(
-    (a, b) =>
-      new Date(b.createdAt).getTime() -
-      new Date(a.createdAt).getTime()
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 }
 
-
 function WatchlistGrid({
-    title,
-    tone,
-    entries,
-    onSelect,
-    onMarketData,
-    onComment,
-    onEdit,
-    onRemove,
-    canComment,
-    canEdit,
-    confirmRemoveEntryId,
-    setConfirmRemoveEntryId,
-  }: {
-    title: string;
-    tone: "green" | "red";
-    entries: any[];
-    onSelect: (entry: WatchlistEntry) => void;
-    onMarketData: (entry: WatchlistEntry) => void;
-    onComment: (entry: WatchlistEntry) => void;
-    onEdit: (entry: WatchlistEntry) => void;
-    onRemove: (entry: WatchlistEntry) => void;
-    canComment: boolean;
-    canEdit: boolean;
-    confirmRemoveEntryId: string | null;
-    setConfirmRemoveEntryId: (
-      id: string | null
-    ) => void;
-    
-  }) {
+  title,
+  tone,
+  entries,
+  onSelect,
+  onMarketData,
+  onComment,
+  onEdit,
+  onRemove,
+  canComment,
+  canEdit,
+  confirmRemoveEntryId,
+  setConfirmRemoveEntryId,
+}: {
+  title: string;
+  tone: "green" | "red";
+  entries: any[];
+  onSelect: (entry: WatchlistEntry) => void;
+  onMarketData: (entry: WatchlistEntry) => void;
+  onComment: (entry: WatchlistEntry) => void;
+  onEdit: (entry: WatchlistEntry) => void;
+  onRemove: (entry: WatchlistEntry) => void;
+  canComment: boolean;
+  canEdit: boolean;
+  confirmRemoveEntryId: string | null;
+  setConfirmRemoveEntryId: (id: string | null) => void;
+}) {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <SectionBar title={title} tone={tone} />
 
       <div className="overflow-x-auto">
-          <div className="grid min-w-[1320px] grid-cols-10 border-b bg-slate-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        <div className="grid min-w-[1320px] grid-cols-10 border-b bg-slate-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
           <div className="col-span-2">Ticker # / Name</div>
           <div>Current Price</div>
           <div>{tone === "green" ? "Buy PT" : "Sell PT"}</div>
@@ -271,35 +251,32 @@ function WatchlistGrid({
         </div>
 
         {entries.map((entry) => {
-            const currentPrice = getWatchlistCurrentPrice(entry);
+          const currentPrice = getWatchlistCurrentPrice(entry);
 
-          const entryTargetPrice =
-            getEntryTargetPrice(entry);
+          const entryTargetPrice = getEntryTargetPrice(entry);
 
-          const exitTargetPrice =
-            getExitTargetPrice(entry);
+          const exitTargetPrice = getExitTargetPrice(entry);
 
           const fromEntryTarget = calculateFromTarget(
             currentPrice,
-            entryTargetPrice
+            entryTargetPrice,
           );
 
           const fromExitTarget = calculateFromTarget(
             currentPrice,
-            exitTargetPrice
+            exitTargetPrice,
           );
 
-          const openFlag = entry.flags?.[0];        
+          const openFlag = entry.flags?.[0];
           const latestComment = getWatchlistComments(entry).find(
-            (comment: any) => comment.tag !== "PT"
+            (comment: any) => comment.tag !== "PT",
           );
 
           return (
             <div
               key={entry.id}
-                            className="grid min-w-[1320px] grid-cols-10 items-center border-b border-slate-100 px-4 py-3 text-xs transition hover:bg-slate-50"
+              className="grid min-w-[1320px] grid-cols-10 items-center border-b border-slate-100 px-4 py-3 text-xs transition hover:bg-slate-50"
             >
-              
               <button
                 onClick={() => onSelect(entry)}
                 className="col-span-2 flex items-center gap-1 text-left font-semibold text-slate-950 hover:underline"
@@ -315,20 +292,13 @@ function WatchlistGrid({
                 </span>
               </button>
 
-
-              <div>
-                {formatMoney(currentPrice)}
-              </div>
+              <div>{formatMoney(currentPrice)}</div>
 
               <div className="font-semibold text-slate-900">
                 {formatMoney(entryTargetPrice)}
               </div>
 
-              <div
-                className={`font-semibold ${pctClass(
-                  fromEntryTarget
-                )}`}
-              >
+              <div className={`font-semibold ${pctClass(fromEntryTarget)}`}>
                 {formatPercent(fromEntryTarget)}
               </div>
 
@@ -336,14 +306,9 @@ function WatchlistGrid({
                 {formatMoney(exitTargetPrice)}
               </div>
 
-              <div
-                className={`font-semibold ${pctClass(
-                  fromExitTarget
-                )}`}
-              >
+              <div className={`font-semibold ${pctClass(fromExitTarget)}`}>
                 {formatPercent(fromExitTarget)}
               </div>
-
 
               <div>
                 <button
@@ -426,26 +391,49 @@ function MarketDataModal({
   const marketData = security.marketData?.[0];
 
   const rows = [
-    ["VWAP", marketData?.vwap != null ? `$${marketData.vwap.toFixed(2)}` : "N/A"],
-    ["52 Week High", marketData?.high52w != null ? `$${marketData.high52w.toFixed(2)}` : "N/A"],
-    ["52 Week Low", marketData?.low52w != null ? `$${marketData.low52w.toFixed(2)}` : "N/A"],
+    [
+      "VWAP",
+      marketData?.vwap != null ? `$${marketData.vwap.toFixed(2)}` : "N/A",
+    ],
+    [
+      "52 Week High",
+      marketData?.high52w != null ? `$${marketData.high52w.toFixed(2)}` : "N/A",
+    ],
+    [
+      "52 Week Low",
+      marketData?.low52w != null ? `$${marketData.low52w.toFixed(2)}` : "N/A",
+    ],
     ["Beta", marketData?.beta != null ? marketData.beta.toFixed(2) : "N/A"],
     [
       "Avg Volume",
       marketData?.avgVolume != null
-        ? marketData.avgVolume.toLocaleString("en-US", { maximumFractionDigits: 0 })
+        ? marketData.avgVolume.toLocaleString("en-US", {
+            maximumFractionDigits: 0,
+          })
         : "N/A",
     ],
-    ["Short Float", marketData?.shortFloat != null ? `${marketData.shortFloat}%` : "N/A"],
-    ["Market Cap", marketData?.marketCap != null ? formatMoney(marketData.marketCap) : "N/A"],
-    ["P/LTM EPS", marketData?.peLtm != null ? `${marketData.peLtm.toFixed(1)}x` : "N/A"],
+    [
+      "Short Float",
+      marketData?.shortFloat != null ? `${marketData.shortFloat}%` : "N/A",
+    ],
+    [
+      "Market Cap",
+      marketData?.marketCap != null ? formatMoney(marketData.marketCap) : "N/A",
+    ],
+    [
+      "P/LTM EPS",
+      marketData?.peLtm != null ? `${marketData.peLtm.toFixed(1)}x` : "N/A",
+    ],
     [
       "Price/Tang Book",
       marketData?.priceToTangBook != null
         ? `${marketData.priceToTangBook.toFixed(1)}x`
         : "N/A",
     ],
-    ["P/NTM EPS", marketData?.peNtm != null ? `${marketData.peNtm.toFixed(1)}x` : "N/A"],
+    [
+      "P/NTM EPS",
+      marketData?.peNtm != null ? `${marketData.peNtm.toFixed(1)}x` : "N/A",
+    ],
     [
       "Price/Book",
       marketData?.priceToBook != null
@@ -466,7 +454,9 @@ function MarketDataModal({
       <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-slate-950">Market Data</h2>
+            <h2 className="text-xl font-semibold text-slate-950">
+              Market Data
+            </h2>
             <p className="mt-1 text-sm text-slate-500">
               {security.ticker} • {security.name}
             </p>
@@ -497,11 +487,15 @@ function MarketDataModal({
         </div>
         <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-slate-500">
-            <span className="font-medium text-slate-700">Market Data Source</span>
+            <span className="font-medium text-slate-700">
+              Market Data Source
+            </span>
             <span className="text-right font-semibold text-slate-950">
               {marketData?.marketDataSource ?? "N/A"}
             </span>
-            <span className="font-medium text-slate-700">Fundamentals Source</span>
+            <span className="font-medium text-slate-700">
+              Fundamentals Source
+            </span>
             <span className="text-right font-semibold text-slate-950">
               {marketData?.fundamentalsSource ?? "N/A"}
             </span>
@@ -509,13 +503,17 @@ function MarketDataModal({
             <span className="text-right font-semibold text-slate-950">
               {marketData?.dataQuality ?? "N/A"}
             </span>
-            <span className="font-medium text-slate-700">Last Market Refresh</span>
+            <span className="font-medium text-slate-700">
+              Last Market Refresh
+            </span>
             <span className="text-right font-semibold text-slate-950">
               {marketData?.lastMarketDataRefreshAt
                 ? formatDateTime(marketData.lastMarketDataRefreshAt)
                 : "N/A"}
             </span>
-            <span className="font-medium text-slate-700">Last Fundamentals Refresh</span>
+            <span className="font-medium text-slate-700">
+              Last Fundamentals Refresh
+            </span>
             <span className="text-right font-semibold text-slate-950">
               {marketData?.lastFundamentalsRefreshAt
                 ? formatDateTime(marketData.lastFundamentalsRefreshAt)
@@ -542,9 +540,7 @@ function WatchlistDetailPanel({
   onRemove: (entry: WatchlistEntry) => void;
   canEdit: boolean;
   confirmRemoveEntryId: string | null;
-  setConfirmRemoveEntryId: (
-    id: string | null
-  ) => void;
+  setConfirmRemoveEntryId: (id: string | null) => void;
 }) {
   const [showAllComments, setShowAllComments] = useState(false);
   const [showAllPtHistory, setShowAllPtHistory] = useState(false);
@@ -561,47 +557,34 @@ function WatchlistDetailPanel({
 
   const currentPrice = getWatchlistCurrentPrice(entry);
 
-  const entryTargetPrice =
-    getEntryTargetPrice(entry);
+  const entryTargetPrice = getEntryTargetPrice(entry);
 
-  const exitTargetPrice =
-    getExitTargetPrice(entry);
+  const exitTargetPrice = getExitTargetPrice(entry);
 
-  const fromEntryTarget = calculateFromTarget(
-    currentPrice,
-    entryTargetPrice
-  );
+  const fromEntryTarget = calculateFromTarget(currentPrice, entryTargetPrice);
 
-  const fromExitTarget = calculateFromTarget(
-    currentPrice,
-    exitTargetPrice
-  );
+  const fromExitTarget = calculateFromTarget(currentPrice, exitTargetPrice);
 
-  const entryTargetLabel =
-    getEntryTargetLabel(entry.side);
+  const entryTargetLabel = getEntryTargetLabel(entry.side);
 
-  const exitTargetLabel =
-    getExitTargetLabel(entry.side);
+  const exitTargetLabel = getExitTargetLabel(entry.side);
 
   const allComments = getWatchlistComments(entry);
 
-  const comments = allComments.filter(
-    (comment: any) => comment.tag !== "PT"
-  );
+  const comments = allComments.filter((comment: any) => comment.tag !== "PT");
 
-  const ptComments = allComments.filter(
-    (comment: any) => comment.tag === "PT"
-  );
+  const ptComments = allComments.filter((comment: any) => comment.tag === "PT");
 
   const visibleComments = showAllComments ? comments : comments.slice(0, 5);
-  const visiblePtComments = showAllPtHistory ? ptComments : ptComments.slice(0, 5);
+  const visiblePtComments = showAllPtHistory
+    ? ptComments
+    : ptComments.slice(0, 5);
 
   const hiddenCommentCount = Math.max(0, comments.length - 5);
   const hiddenPtCommentCount = Math.max(0, ptComments.length - 5);
 
-  
   return (
-      <aside className="flex h-full w-[460px] shrink-0 flex-col border-l border-slate-200 bg-white shadow-xl">      
+    <aside className="flex h-full w-[460px] shrink-0 flex-col border-l border-slate-200 bg-white shadow-xl">
       <div className="border-b border-slate-200 p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -628,9 +611,7 @@ function WatchlistDetailPanel({
 
         <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
           <div className="rounded-2xl bg-slate-50 p-3">
-            <p className="text-xs text-slate-500">
-              Current Price
-            </p>
+            <p className="text-xs text-slate-500">Current Price</p>
 
             <p className="mt-1 font-semibold text-slate-950">
               {formatMoney(currentPrice)}
@@ -638,9 +619,7 @@ function WatchlistDetailPanel({
           </div>
 
           <div className="rounded-2xl bg-slate-50 p-3">
-            <p className="text-xs text-slate-500">
-              Market Data Source
-            </p>
+            <p className="text-xs text-slate-500">Market Data Source</p>
 
             <p className="mt-1 font-semibold text-slate-950">
               {marketData?.marketDataSource ?? "N/A"}
@@ -648,9 +627,7 @@ function WatchlistDetailPanel({
           </div>
 
           <div className="rounded-2xl bg-slate-50 p-3">
-            <p className="text-xs text-slate-500">
-              {entryTargetLabel}
-            </p>
+            <p className="text-xs text-slate-500">{entryTargetLabel}</p>
 
             <p className="mt-1 font-semibold text-slate-950">
               {formatMoney(entryTargetPrice)}
@@ -658,23 +635,15 @@ function WatchlistDetailPanel({
           </div>
 
           <div className="rounded-2xl bg-slate-50 p-3">
-            <p className="text-xs text-slate-500">
-              % From {entryTargetLabel}
-            </p>
+            <p className="text-xs text-slate-500">% From {entryTargetLabel}</p>
 
-            <p
-              className={`mt-1 font-semibold ${pctClass(
-                fromEntryTarget
-              )}`}
-            >
+            <p className={`mt-1 font-semibold ${pctClass(fromEntryTarget)}`}>
               {formatPercent(fromEntryTarget)}
             </p>
           </div>
 
           <div className="rounded-2xl bg-slate-50 p-3">
-            <p className="text-xs text-slate-500">
-              {exitTargetLabel}
-            </p>
+            <p className="text-xs text-slate-500">{exitTargetLabel}</p>
 
             <p className="mt-1 font-semibold text-slate-950">
               {formatMoney(exitTargetPrice)}
@@ -682,15 +651,9 @@ function WatchlistDetailPanel({
           </div>
 
           <div className="rounded-2xl bg-slate-50 p-3">
-            <p className="text-xs text-slate-500">
-              % From {exitTargetLabel}
-            </p>
+            <p className="text-xs text-slate-500">% From {exitTargetLabel}</p>
 
-            <p
-              className={`mt-1 font-semibold ${pctClass(
-                fromExitTarget
-              )}`}
-            >
+            <p className={`mt-1 font-semibold ${pctClass(fromExitTarget)}`}>
               {formatPercent(fromExitTarget)}
             </p>
           </div>
@@ -731,12 +694,10 @@ function WatchlistDetailPanel({
       </div>
 
       <div className="flex-1 overflow-auto p-5">
-
-
-        
-
         <section className="mt-5">
-          <h3 className="mb-3 font-semibold text-slate-950">Comment Timeline</h3>
+          <h3 className="mb-3 font-semibold text-slate-950">
+            Comment Timeline
+          </h3>
 
           <div className="space-y-3">
             {comments.length ? (
@@ -758,7 +719,8 @@ function WatchlistDetailPanel({
                   </p>
 
                   <p className="mt-2 text-xs text-slate-400">
-                    by {comment.author?.name || comment.author?.email || "Unknown"}
+                    by{" "}
+                    {comment.author?.name || comment.author?.email || "Unknown"}
                   </p>
                 </div>
               ))
@@ -785,8 +747,8 @@ function WatchlistDetailPanel({
           <h3 className="mb-3 font-semibold text-slate-950">PT History</h3>
 
           <div className="space-y-3">
-         {ptComments.length ? (
-            visiblePtComments.map((comment: any) => (
+            {ptComments.length ? (
+              visiblePtComments.map((comment: any) => (
                 <div
                   key={comment.id}
                   className="rounded-2xl border border-blue-100 bg-blue-50 p-4"
@@ -794,17 +756,18 @@ function WatchlistDetailPanel({
                   <div className="flex items-center justify-between">
                     <Badge tone="blue">PT</Badge>
                     <LocalDateTime
-                        value={comment.createdAt}
-                        className="text-xs text-slate-400"
-                      />
-                    </div>
+                      value={comment.createdAt}
+                      className="text-xs text-slate-400"
+                    />
+                  </div>
 
                   <p className="mt-3 text-sm text-slate-700">
                     {comment.content}
                   </p>
 
                   <p className="mt-2 text-xs text-slate-400">
-                    by {comment.author?.name || comment.author?.email || "Unknown"}
+                    by{" "}
+                    {comment.author?.name || comment.author?.email || "Unknown"}
                   </p>
                 </div>
               ))
@@ -845,7 +808,6 @@ function WatchlistDetailPanel({
   );
 }
 
-
 function AddStockModal({
   open,
   onClose,
@@ -865,8 +827,6 @@ function AddStockModal({
   portfolioSecurities: PortfolioSecurity[];
   mode: "WATCHLIST" | "PORTFOLIO";
 }) {
-
-
   const [ticker, setTicker] = useState("");
   const [side, setSide] = useState("LONG");
   const [targetType, setTargetType] = useState("BUY");
@@ -875,8 +835,7 @@ function AddStockModal({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const isActivePortfolioSecurity = portfolioSecurities.some(
-    (security) =>
-      security.ticker.toUpperCase() === ticker.trim().toUpperCase()
+    (security) => security.ticker.toUpperCase() === ticker.trim().toUpperCase(),
   );
 
   if (!open) return null;
@@ -888,12 +847,9 @@ function AddStockModal({
       setError("Ticker is required.");
       return;
     }
-    if (
-      mode === "WATCHLIST" &&
-      isActivePortfolioSecurity
-    ) {
+    if (mode === "WATCHLIST" && isActivePortfolioSecurity) {
       setError(
-        "This security is already an active portfolio position. Use the Portfolio view instead."
+        "This security is already an active portfolio position. Use the Portfolio view instead.",
       );
       return;
     }
@@ -901,7 +857,7 @@ function AddStockModal({
     setIsSaving(true);
 
     try {
-          await onAdd({
+      await onAdd({
         ticker,
         side,
         targetType,
@@ -915,11 +871,11 @@ function AddStockModal({
       setTargetPrice("");
       setComment("");
       onClose();
-      } catch (error) {
+    } catch (error) {
       setError(
         error instanceof Error
           ? error.message
-          : "Failed to add stock. Please try again."
+          : "Failed to add stock. Please try again.",
       );
     } finally {
       setIsSaving(false);
@@ -948,7 +904,7 @@ function AddStockModal({
         </div>
 
         <div className="mt-5 space-y-3">
-         <input
+          <input
             value={ticker}
             onChange={(event) => setTicker(event.target.value)}
             className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
@@ -957,8 +913,8 @@ function AddStockModal({
 
           {mode === "WATCHLIST" && isActivePortfolioSecurity ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-              This security is currently an active portfolio position and will appear in
-              the Portfolio view instead of the Watchlist.
+              This security is currently an active portfolio position and will
+              appear in the Portfolio view instead of the Watchlist.
             </div>
           ) : null}
 
@@ -995,9 +951,7 @@ function AddStockModal({
                 const nextSide = event.target.value;
 
                 setSide(nextSide);
-                setTargetType(
-                  nextSide === "SHORT" ? "SELL" : "BUY"
-                );
+                setTargetType(nextSide === "SHORT" ? "SELL" : "BUY");
               }}
               className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
             >
@@ -1005,16 +959,14 @@ function AddStockModal({
               <option value="SHORT">Short Watchlist</option>
             </select>
           </div>
-                    <div>
+          <div>
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Target Type
             </label>
 
             <select
               value={targetType}
-              onChange={(event) =>
-                setTargetType(event.target.value)
-              }
+              onChange={(event) => setTargetType(event.target.value)}
               className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
             >
               {side === "LONG" ? (
@@ -1051,9 +1003,7 @@ function AddStockModal({
 
             <input
               value={targetPrice}
-              onChange={(event) =>
-                setTargetPrice(event.target.value)
-              }
+              onChange={(event) => setTargetPrice(event.target.value)}
               type="number"
               min="0"
               step="any"
@@ -1092,8 +1042,7 @@ function AddStockModal({
           <button
             onClick={handleSubmit}
             disabled={
-              isSaving ||
-              (mode === "WATCHLIST" && isActivePortfolioSecurity)
+              isSaving || (mode === "WATCHLIST" && isActivePortfolioSecurity)
             }
             className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -1122,7 +1071,7 @@ function EditWatchlistModal({
       exitTargetPrice: string;
       notes: string;
       ptChangeComment: string;
-    }
+    },
   ) => Promise<void>;
 }) {
   const [side, setSide] = useState("LONG");
@@ -1140,9 +1089,7 @@ function EditWatchlistModal({
         : "";
 
   const originalExitTargetPrice =
-    entry?.exitTargetPrice != null
-      ? String(entry.exitTargetPrice)
-      : "";
+    entry?.exitTargetPrice != null ? String(entry.exitTargetPrice) : "";
 
   const entryTargetChanged =
     String(entryTargetPrice || "") !== originalEntryTargetPrice;
@@ -1150,14 +1097,11 @@ function EditWatchlistModal({
   const exitTargetChanged =
     String(exitTargetPrice || "") !== originalExitTargetPrice;
 
-  const targetPriceChanged =
-    entryTargetChanged || exitTargetChanged;
+  const targetPriceChanged = entryTargetChanged || exitTargetChanged;
 
-  const entryTargetLabel =
-    side === "SHORT" ? "Sell PT" : "Buy PT";
+  const entryTargetLabel = side === "SHORT" ? "Sell PT" : "Buy PT";
 
-  const exitTargetLabel =
-    side === "SHORT" ? "Cover PT" : "Sell PT";
+  const exitTargetLabel = side === "SHORT" ? "Cover PT" : "Sell PT";
 
   useEffect(() => {
     if (!entry) return;
@@ -1169,13 +1113,11 @@ function EditWatchlistModal({
         ? String(entry.entryTargetPrice)
         : entry.targetPrice != null
           ? String(entry.targetPrice)
-          : ""
+          : "",
     );
 
     setExitTargetPrice(
-      entry.exitTargetPrice != null
-        ? String(entry.exitTargetPrice)
-        : ""
+      entry.exitTargetPrice != null ? String(entry.exitTargetPrice) : "",
     );
 
     setPtChangeComment("");
@@ -1188,9 +1130,7 @@ function EditWatchlistModal({
     setError("");
 
     if (targetPriceChanged && !ptChangeComment.trim()) {
-      setError(
-        "Please enter a reason for changing the price targets."
-      );
+      setError("Please enter a reason for changing the price targets.");
       return;
     }
 
@@ -1210,7 +1150,7 @@ function EditWatchlistModal({
       setError(
         error instanceof Error
           ? error.message
-          : "Failed to update watchlist item."
+          : "Failed to update watchlist item.",
       );
     } finally {
       setIsSaving(false);
@@ -1245,34 +1185,26 @@ function EditWatchlistModal({
         <div className="mt-5 space-y-4">
           <div>
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              {mode === "PORTFOLIO"
-                ? "Portfolio Side"
-                : "Watchlist Side"}
+              {mode === "PORTFOLIO" ? "Portfolio Side" : "Watchlist Side"}
             </label>
 
             <select
               value={side}
-              onChange={(event) =>
-                setSide(event.target.value)
-              }
+              onChange={(event) => setSide(event.target.value)}
               className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
             >
               <option value="LONG">
-                {mode === "PORTFOLIO"
-                  ? "Long Portfolio"
-                  : "Long Watchlist"}
+                {mode === "PORTFOLIO" ? "Long Portfolio" : "Long Watchlist"}
               </option>
 
               <option value="SHORT">
-                {mode === "PORTFOLIO"
-                  ? "Short Portfolio"
-                  : "Short Watchlist"}
+                {mode === "PORTFOLIO" ? "Short Portfolio" : "Short Watchlist"}
               </option>
             </select>
 
             <p className="mt-1 text-xs text-slate-500">
-              Changing sides relabels the entry and exit targets but
-              preserves their values.
+              Changing sides relabels the entry and exit targets but preserves
+              their values.
             </p>
           </div>
 
@@ -1284,9 +1216,7 @@ function EditWatchlistModal({
 
               <input
                 value={entryTargetPrice}
-                onChange={(event) =>
-                  setEntryTargetPrice(event.target.value)
-                }
+                onChange={(event) => setEntryTargetPrice(event.target.value)}
                 type="number"
                 min="0"
                 step="any"
@@ -1309,9 +1239,7 @@ function EditWatchlistModal({
 
               <input
                 value={exitTargetPrice}
-                onChange={(event) =>
-                  setExitTargetPrice(event.target.value)
-                }
+                onChange={(event) => setExitTargetPrice(event.target.value)}
                 type="number"
                 min="0"
                 step="any"
@@ -1336,9 +1264,7 @@ function EditWatchlistModal({
 
               <textarea
                 value={ptChangeComment}
-                onChange={(event) =>
-                  setPtChangeComment(event.target.value)
-                }
+                onChange={(event) => setPtChangeComment(event.target.value)}
                 className="mt-2 h-24 w-full resize-none rounded-2xl border border-amber-200 bg-white p-4 text-sm outline-none focus:ring-2 focus:ring-amber-500"
                 placeholder="Explain why one or both price targets are changing..."
               />
@@ -1347,9 +1273,7 @@ function EditWatchlistModal({
         </div>
 
         {error ? (
-          <p className="mt-3 text-sm font-medium text-rose-600">
-            {error}
-          </p>
+          <p className="mt-3 text-sm font-medium text-rose-600">{error}</p>
         ) : null}
 
         <div className="mt-5 flex justify-end gap-2">
@@ -1444,7 +1368,8 @@ function CommentModal({
               Comment Section
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              {entry.security.ticker} • timestamp and author are captured automatically
+              {entry.security.ticker} • timestamp and author are captured
+              automatically
             </p>
           </div>
 
@@ -1523,18 +1448,14 @@ export default function WatchlistClient({
   const [commentEntry, setCommentEntry] = useState<any | null>(null);
   const [selectedEntry, setSelectedEntry] = useState<any | null>(null);
   const [editingEntry, setEditingEntry] = useState<any | null>(null);
-  const [confirmRemoveEntryId, setConfirmRemoveEntryId] =
-  useState<string | null>(null);
+  const [confirmRemoveEntryId, setConfirmRemoveEntryId] = useState<
+    string | null
+  >(null);
   const activeSecurityIds = useMemo(
-    () =>
-      new Set(
-        portfolioSecurities.map(
-          (security) => security.id
-        )
-      ),
-    [portfolioSecurities]
+    () => new Set(portfolioSecurities.map((security) => security.id)),
+    [portfolioSecurities],
   );
-    useEffect(() => {
+  useEffect(() => {
     if (!confirmRemoveEntryId) {
       return;
     }
@@ -1547,80 +1468,65 @@ export default function WatchlistClient({
   }, [confirmRemoveEntryId]);
 
   useEffect(() => {
-  async function loadCurrentUser() {
-    const response = await fetch("/api/auth/me");
+    async function loadCurrentUser() {
+      const response = await fetch("/api/auth/me");
 
-    if (!response.ok) return;
+      if (!response.ok) return;
 
-    const data = await response.json();
-    setCurrentUser(data.user);
-  }
+      const data = await response.json();
+      setCurrentUser(data.user);
+    }
 
-  loadCurrentUser();
-}, []);
+    loadCurrentUser();
+  }, []);
   const filteredEntries = useMemo(() => {
-  const normalizedQuery = query.trim().toLowerCase();
-  const modeFilteredEntries =
-    mode === "PORTFOLIO"
-      ? entries.filter((entry) =>
-          activeSecurityIds.has(
-            entry.securityId
-          )
-        )
-      : entries.filter(
-          (entry) =>
-            !activeSecurityIds.has(
-              entry.securityId
-            )
-        );
-  if (!normalizedQuery) {
-    return modeFilteredEntries;
-  }
+    const normalizedQuery = query.trim().toLowerCase();
+    const modeFilteredEntries =
+      mode === "PORTFOLIO"
+        ? entries.filter((entry) => activeSecurityIds.has(entry.securityId))
+        : entries.filter((entry) => !activeSecurityIds.has(entry.securityId));
+    if (!normalizedQuery) {
+      return modeFilteredEntries;
+    }
 
-  return modeFilteredEntries.filter(
-    (entry) => {
-    const commentText =
-    entry.comments?.map((comment: any) => comment.content).join(" ") || "";
-    const flagText =
-      entry.flags?.map((flag: any) => flag.flagType).join(" ") || "";
+    return modeFilteredEntries.filter((entry) => {
+      const commentText =
+        entry.comments?.map((comment: any) => comment.content).join(" ") || "";
+      const flagText =
+        entry.flags?.map((flag: any) => flag.flagType).join(" ") || "";
 
-        const searchable = [
-      entry.security?.ticker,
-      entry.security?.name,
-      entry.security?.sector,
-      entry.side,
-      getEntryTargetLabel(entry.side),
-      getExitTargetLabel(entry.side),
-      getEntryTargetPrice(entry),
-      getExitTargetPrice(entry),
-      entry.notes,
-      commentText,
-      flagText,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
+      const searchable = [
+        entry.security?.ticker,
+        entry.security?.name,
+        entry.security?.sector,
+        entry.side,
+        getEntryTargetLabel(entry.side),
+        getExitTargetLabel(entry.side),
+        getEntryTargetPrice(entry),
+        getExitTargetPrice(entry),
+        entry.notes,
+        commentText,
+        flagText,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
 
-    return searchable.includes(normalizedQuery);
-  });
-}, [
-  entries,
-  query,
-  mode,
-  activeSecurityIds,
-]);
+      return searchable.includes(normalizedQuery);
+    });
+  }, [entries, query, mode, activeSecurityIds]);
 
-const longEntries = useMemo(
-  () => filteredEntries.filter((entry) => entry.side === "LONG"),
-  [filteredEntries]
-);
+  const longEntries = useMemo(
+    () => filteredEntries.filter((entry) => entry.side === "LONG"),
+    [filteredEntries],
+  );
 
-const shortEntries = useMemo(
-  () => filteredEntries.filter((entry) => entry.side === "SHORT"),
-  [filteredEntries]
-);
+  const shortEntries = useMemo(
+    () => filteredEntries.filter((entry) => entry.side === "SHORT"),
+    [filteredEntries],
+  );
 
-   async function handleAddEntry(payload: {
+  async function handleAddEntry(payload: {
     ticker: string;
     side: string;
     targetType: string;
@@ -1635,24 +1541,20 @@ const shortEntries = useMemo(
       body: JSON.stringify(payload),
     });
 
-        const data = await response.json();
+    const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(
-        data.error || "Failed to add watchlist entry."
-      );
+      throw new Error(data.error || "Failed to add watchlist entry.");
     }
 
-        setEntries((currentEntries) => {
+    setEntries((currentEntries) => {
       const entryAlreadyExists = currentEntries.some(
-        (entry) => entry.id === data.entry.id
+        (entry) => entry.id === data.entry.id,
       );
 
       if (entryAlreadyExists) {
         return currentEntries.map((entry) =>
-          entry.id === data.entry.id
-            ? data.entry
-            : entry
+          entry.id === data.entry.id ? data.entry : entry,
         );
       }
 
@@ -1660,17 +1562,15 @@ const shortEntries = useMemo(
     });
 
     setSelectedEntry((currentEntry: any | null) =>
-      currentEntry?.id === data.entry.id
-        ? data.entry
-        : currentEntry
+      currentEntry?.id === data.entry.id ? data.entry : currentEntry,
     );
   }
 
   async function handleSaveComment(payload: {
-  securityId: string;
-  watchlistEntryId: string;
-  tag: string;
-  content: string;
+    securityId: string;
+    watchlistEntryId: string;
+    tag: string;
+    content: string;
   }) {
     const response = await fetch("/api/comments", {
       method: "POST",
@@ -1695,13 +1595,10 @@ const shortEntries = useMemo(
           ...entry,
           security: {
             ...entry.security,
-            comments: [
-              newComment,
-              ...(entry.security?.comments || []),
-            ],
+            comments: [newComment, ...(entry.security?.comments || [])],
           },
         };
-      })
+      }),
     );
 
     setSelectedEntry((currentEntry: any | null) => {
@@ -1714,7 +1611,6 @@ const shortEntries = useMemo(
         comments: [newComment, ...(currentEntry.comments || [])],
       };
     });
-
   }
 
   async function handleSaveEdit(
@@ -1725,207 +1621,198 @@ const shortEntries = useMemo(
       exitTargetPrice: string;
       notes: string;
       ptChangeComment: string;
-    }
-  ) {
-
-  const response = await fetch(`/api/watchlist/${entry.id}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
     },
-    body: JSON.stringify(payload),
-  });
+  ) {
+    const response = await fetch(`/api/watchlist/${entry.id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
 
-  const data = await response.json();
+    const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error(data.error || data.detail || "Failed to update watchlist item.");
+    if (!response.ok) {
+      throw new Error(
+        data.error || data.detail || "Failed to update watchlist item.",
+      );
+    }
+
+    const updatedEntry = data.watchlistEntry;
+
+    setEntries((currentEntries: any[]) =>
+      currentEntries.map((currentEntry: any) =>
+        currentEntry.id === updatedEntry.id ? updatedEntry : currentEntry,
+      ),
+    );
+
+    setSelectedEntry((currentEntry: any | null) =>
+      currentEntry?.id === updatedEntry.id ? updatedEntry : currentEntry,
+    );
   }
 
-  const updatedEntry = data.watchlistEntry;
-
-    
-  setEntries((currentEntries: any[]) =>
-    currentEntries.map((currentEntry: any) =>
-      currentEntry.id === updatedEntry.id ? updatedEntry : currentEntry
-    )
-  );
-
-  setSelectedEntry((currentEntry: any | null) =>
-    currentEntry?.id === updatedEntry.id ? updatedEntry : currentEntry
-  );
-
-}
-
-async function handleRemoveEntry(entry: any) {
-
+  async function handleRemoveEntry(entry: any) {
     const response = await fetch(`/api/watchlist/${entry.id}`, {
       method: "DELETE",
     });
 
     const data = await response.json();
 
-    
-
     if (!response.ok) {
-  throw new Error(data.error || data.detail || "Failed to remove watchlist item.");
-}
+      throw new Error(
+        data.error || data.detail || "Failed to remove watchlist item.",
+      );
+    }
 
-  setEntries((currentEntries: any[]) =>
-    currentEntries.filter((currentEntry: any) => currentEntry.id !== entry.id)
-  );
+    setEntries((currentEntries: any[]) =>
+      currentEntries.filter(
+        (currentEntry: any) => currentEntry.id !== entry.id,
+      ),
+    );
 
-  setSelectedEntry((currentEntry: any | null) =>
-    currentEntry?.id === entry.id ? null : currentEntry
-  );
+    setSelectedEntry((currentEntry: any | null) =>
+      currentEntry?.id === entry.id ? null : currentEntry,
+    );
 
-  setEditingEntry((currentEntry: any | null) =>
-    currentEntry?.id === entry.id ? null : currentEntry
-  );
-  setConfirmRemoveEntryId(null);
+    setEditingEntry((currentEntry: any | null) =>
+      currentEntry?.id === entry.id ? null : currentEntry,
+    );
+    setConfirmRemoveEntryId(null);
   }
   return (
     <main className="h-screen overflow-hidden bg-slate-100 text-slate-900">
       <div className="flex h-full">
-        
         <AppSidebar
-          activePage={
-            mode === "PORTFOLIO"
-              ? "/portfolio"
-              : "/watchlist"
-          }
+          activePage={mode === "PORTFOLIO" ? "/portfolio" : "/watchlist"}
         />
 
         <section className="flex min-w-0 flex-1 flex-col">
           <header className="flex h-20 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
             <div>
               <p className="text-sm font-medium text-slate-900">
-                {mode === "PORTFOLIO"
-                  ? "Portfolio"
-                  : "Watchlist"}
+                {mode === "PORTFOLIO" ? "Portfolio" : "Watchlist"}
               </p>
 
-              <p className="text-xs text-slate-500">Long and short idea pipeline</p>
+              <p className="text-xs text-slate-500">
+                Long and short idea pipeline
+              </p>
             </div>
 
             <div className="ml-4 flex items-center gap-3">
-              
               <CurrentUserPill />
             </div>
           </header>
 
-                      
-            <div className="flex min-h-0 flex-1">
-                        <div className="min-w-0 flex-1 overflow-auto p-6">
-                          <div className="space-y-5">
-                            <div className="flex items-end justify-between">
-                              <div>
-                                <h2 className="text-3xl font-semibold tracking-tight">
-                                  {mode === "PORTFOLIO"
-                                    ? "Portfolio"
-                                    : "Watchlist"}
-                                </h2>
-                                  <p className="mt-1 text-sm text-slate-500">
-                                    {mode === "PORTFOLIO"
-                                      ? "Active portfolio positions with targets, comments, flags, and market intelligence."
-                                      : "Long and short idea pipeline with entry and exit targets, comments, and market data."}
-                                  </p>
-                                </div>
+          <div className="flex min-h-0 flex-1">
+            <div className="min-w-0 flex-1 overflow-auto p-6">
+              <div className="space-y-5">
+                <div className="flex items-end justify-between">
+                  <div>
+                    <h2 className="text-3xl font-semibold tracking-tight">
+                      {mode === "PORTFOLIO" ? "Portfolio" : "Watchlist"}
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {mode === "PORTFOLIO"
+                        ? "Active portfolio positions with targets, comments, flags, and market intelligence."
+                        : "Long and short idea pipeline with entry and exit targets, comments, and market data."}
+                    </p>
+                  </div>
 
-                              {userCanEditWatchlist ? (
-                                <button
-                                  onClick={() => setAddModalOpen(true)}
-                                  className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-                                >
-                                  Add Stock
-                                </button>
-                              ) : (
-                                <button
-                                  disabled
-                                  className="cursor-not-allowed rounded-2xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-500"
-                                >
-                                  Read Only
-                                </button>
-                              )}
-                            </div>
-                              <div className="grid grid-cols-3 gap-4">
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Long Watchlist
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-slate-950">
-                  {longEntries.length}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Potential long ideas
-                </p>
-              </div>
+                  {userCanEditWatchlist ? (
+                    <button
+                      onClick={() => setAddModalOpen(true)}
+                      className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+                    >
+                      Add Stock
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      className="cursor-not-allowed rounded-2xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-500"
+                    >
+                      Read Only
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Long Watchlist
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold text-slate-950">
+                      {longEntries.length}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Potential long ideas
+                    </p>
+                  </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Short Watchlist
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-slate-950">
-                  {shortEntries.length}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Potential short ideas
-                </p>
-              </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Short Watchlist
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold text-slate-950">
+                      {shortEntries.length}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Potential short ideas
+                    </p>
+                  </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Commented Names
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-slate-950">
-                  {entries.filter((entry) => entry.comments?.length > 0).length}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  With comment history
-                </p>
-              </div>
-            </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Commented Names
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold text-slate-950">
+                      {
+                        entries.filter((entry) => entry.comments?.length > 0)
+                          .length
+                      }
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      With comment history
+                    </p>
+                  </div>
+                </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-3">
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search ticker, company, sector, side, buy, sell, cover, target prices, notes, comments, flags..."
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-slate-900"
-              />
-            </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                  <input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search ticker, company, sector, side, buy, sell, cover, target prices, notes, comments, flags..."
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-slate-900"
+                  />
+                </div>
 
-         
-
-            <WatchlistGrid
-              title="Long Watchlist"
-              tone="green"
-              entries={longEntries}
-              onSelect={setSelectedEntry}
-              onMarketData={setMarketDataEntry}
-              onComment={setCommentEntry}
-              onEdit={setEditingEntry}
-              onRemove={handleRemoveEntry}
-              canComment={userCanCreateComments}
-              canEdit={userCanEditWatchlist}
-              confirmRemoveEntryId={confirmRemoveEntryId}
-              setConfirmRemoveEntryId={setConfirmRemoveEntryId}
-            />
-             <WatchlistGrid
-              title="Short Watchlist"
-              tone="red"
-              entries={shortEntries}
-              onSelect={setSelectedEntry}
-              onMarketData={setMarketDataEntry}
-              onComment={setCommentEntry}
-              onEdit={setEditingEntry}
-              onRemove={handleRemoveEntry}
-              canComment={userCanCreateComments}
-              canEdit={userCanEditWatchlist}
-              confirmRemoveEntryId={confirmRemoveEntryId}
-              setConfirmRemoveEntryId={setConfirmRemoveEntryId}
-            />
-                
+                <WatchlistGrid
+                  title="Long Watchlist"
+                  tone="green"
+                  entries={longEntries}
+                  onSelect={setSelectedEntry}
+                  onMarketData={setMarketDataEntry}
+                  onComment={setCommentEntry}
+                  onEdit={setEditingEntry}
+                  onRemove={handleRemoveEntry}
+                  canComment={userCanCreateComments}
+                  canEdit={userCanEditWatchlist}
+                  confirmRemoveEntryId={confirmRemoveEntryId}
+                  setConfirmRemoveEntryId={setConfirmRemoveEntryId}
+                />
+                <WatchlistGrid
+                  title="Short Watchlist"
+                  tone="red"
+                  entries={shortEntries}
+                  onSelect={setSelectedEntry}
+                  onMarketData={setMarketDataEntry}
+                  onComment={setCommentEntry}
+                  onEdit={setEditingEntry}
+                  onRemove={handleRemoveEntry}
+                  canComment={userCanCreateComments}
+                  canEdit={userCanEditWatchlist}
+                  confirmRemoveEntryId={confirmRemoveEntryId}
+                  setConfirmRemoveEntryId={setConfirmRemoveEntryId}
+                />
               </div>
             </div>
 
@@ -1942,8 +1829,6 @@ async function handleRemoveEntry(entry: any) {
         </section>
       </div>
 
-
-            
       <AddStockModal
         open={addModalOpen}
         onClose={() => setAddModalOpen(false)}
@@ -1955,16 +1840,14 @@ async function handleRemoveEntry(entry: any) {
       <EditWatchlistModal
         entry={editingEntry}
         mode={mode}
-        onClose={() =>
-          setEditingEntry(null)
-        }
+        onClose={() => setEditingEntry(null)}
         onSave={handleSaveEdit}
       />
       <MarketDataModal
         entry={marketDataEntry}
         onClose={() => setMarketDataEntry(null)}
       />
-     
+
       <CommentModal
         entry={commentEntry}
         onClose={() => setCommentEntry(null)}

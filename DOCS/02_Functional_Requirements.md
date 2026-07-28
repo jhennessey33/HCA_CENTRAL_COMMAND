@@ -1,4 +1,3 @@
-
 Functional Requirements
 Home / Positions
 Must display:
@@ -17,15 +16,15 @@ Must display:
 - Market Data action.
 - Comment action.
 - Flag indicator.
-Must support:
+  Must support:
 
 - Search.
 - Filtering.
 - Ticker click.
 - Market-data click.
 - Comment click.
-Ticker Detail Panel
-Must display:
+  Ticker Detail Panel
+  Must display:
 
 - Header with ticker/company/side/flag.
 - Summary fields.
@@ -33,14 +32,14 @@ Must display:
 - Comment section.
 - Comment timeline.
 - Quick actions.
-Must support:
+  Must support:
 
 - Add comment.
 - Add flag.
 - Open market data.
 - Close panel.
-Comments
-Must support:
+  Comments
+  Must support:
 
 - Add comment.
 - Categorize comment.
@@ -48,7 +47,7 @@ Must support:
 - Display globally.
 - Preserve author and timestamp.
 - Audit creation/edit.
-Categories:
+  Categories:
 
 - Comment
 - Thesis
@@ -56,9 +55,8 @@ Categories:
 - Catalyst
 - Trade
 - Exit
-Watchlist
-Must support:
-
+  Watchlist
+  Must support:
 
 - Long watchlist.
 - Short watchlist.
@@ -69,8 +67,8 @@ Must support:
 - Comments.
 - Flags.
 - Market data.
-Past Positions
-Must display:
+  Past Positions
+  Must display:
 
 - Ticker.
 - Company name.
@@ -78,8 +76,8 @@ Must display:
 - Price sold/covered.
 - Comment action.
 - Exit rationale under row.
-Market Data
-Must display:
+  Market Data
+  Must display:
 
 - VWAP.
 - 52 Week High.

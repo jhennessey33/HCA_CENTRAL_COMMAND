@@ -28,24 +28,21 @@ const approvalInclude = {
   },
 } satisfies Prisma.RegistrationApprovalInclude;
 
-export async function POST(
-  _request: Request,
-  context: RouteContext
-) {
+export async function POST(_request: Request, context: RouteContext) {
   try {
     const user = await getCurrentUser();
 
     if (!user) {
       return NextResponse.json(
         { error: "Authentication required." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     if (user.role !== "ADMIN") {
       return NextResponse.json(
         { error: "Admin access required." },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -54,7 +51,7 @@ export async function POST(
     if (!id) {
       return NextResponse.json(
         { error: "Registration approval ID is required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -67,44 +64,39 @@ export async function POST(
     if (!approval) {
       return NextResponse.json(
         { error: "Registration approval not found." },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     if (approval.status !== "PENDING") {
       return NextResponse.json(
         { error: "Only pending approvals can be revoked." },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
     const revokedApproval = await prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
-        const currentApproval =
-          await tx.registrationApproval.findUnique({
-            where: {
-              id,
-            },
-          });
+        const currentApproval = await tx.registrationApproval.findUnique({
+          where: {
+            id,
+          },
+        });
 
-        if (
-          !currentApproval ||
-          currentApproval.status !== "PENDING"
-        ) {
+        if (!currentApproval || currentApproval.status !== "PENDING") {
           throw new Error("APPROVAL_NOT_PENDING");
         }
 
-        const updatedApproval =
-          await tx.registrationApproval.update({
-            where: {
-              id,
-            },
-            data: {
-              status: "REVOKED",
-              revokedAt: new Date(),
-            },
-            include: approvalInclude,
-          });
+        const updatedApproval = await tx.registrationApproval.update({
+          where: {
+            id,
+          },
+          data: {
+            status: "REVOKED",
+            revokedAt: new Date(),
+          },
+          include: approvalInclude,
+        });
 
         await tx.auditLog.create({
           data: {
@@ -128,31 +120,28 @@ export async function POST(
         });
 
         return updatedApproval;
-      }
+      },
     );
 
     return NextResponse.json({
       approval: revokedApproval,
     });
   } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message === "APPROVAL_NOT_PENDING"
-    ) {
+    if (error instanceof Error && error.message === "APPROVAL_NOT_PENDING") {
       return NextResponse.json(
         { error: "Only pending approvals can be revoked." },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
     console.error(
       "POST /api/admin/registration-approvals/[id]/revoke failed",
-      error
+      error,
     );
 
     return NextResponse.json(
       { error: "Failed to revoke registration approval." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

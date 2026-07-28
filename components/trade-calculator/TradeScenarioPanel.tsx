@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
 import Badge from "@/components/common/Badge";
 import ManualTradeReviewModal from "@/components/trade-calculator/ManualTradeReviewModal";
 import {
@@ -36,80 +32,52 @@ type TradeScenarioPanelProps = {
   onTradeCreated: (trade: any) => void;
 };
 
-function toInputNumber(
-  value: string
-): number | null {
+function toInputNumber(value: string): number | null {
   if (!value.trim()) {
     return null;
   }
 
   const parsedValue = Number(value);
 
-  return Number.isFinite(parsedValue)
-    ? parsedValue
-    : null;
+  return Number.isFinite(parsedValue) ? parsedValue : null;
 }
 
-function getLocalDateTimeInputValue(
-  date = new Date()
-) {
-  const timezoneOffsetMilliseconds =
-    date.getTimezoneOffset() * 60 * 1000;
+function getLocalDateTimeInputValue(date = new Date()) {
+  const timezoneOffsetMilliseconds = date.getTimezoneOffset() * 60 * 1000;
 
-  return new Date(
-    date.getTime() -
-      timezoneOffsetMilliseconds
-  )
+  return new Date(date.getTime() - timezoneOffsetMilliseconds)
     .toISOString()
     .slice(0, 16);
 }
 
-function getSnapshotDateKey(
-  value: string | Date
-) {
+function getSnapshotDateKey(value: string | Date) {
   const date = new Date(value);
 
-  const year =
-    date.getUTCFullYear();
+  const year = date.getUTCFullYear();
 
-  const month = String(
-    date.getUTCMonth() + 1
-  ).padStart(2, "0");
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
 
-  const day = String(
-    date.getUTCDate()
-  ).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
 
-function serializeLocalDateTime(
-  value: string
-) {
+function serializeLocalDateTime(value: string) {
   if (!value) {
     return null;
   }
 
   const parsedDate = new Date(value);
 
-  if (
-    Number.isNaN(
-      parsedDate.getTime()
-    )
-  ) {
+  if (Number.isNaN(parsedDate.getTime())) {
     return null;
   }
 
   return parsedDate.toISOString();
 }
 
-function formatMoney(
-  value: number | null | undefined
-) {
-  if (
-    value == null ||
-    !Number.isFinite(value)
-  ) {
+function formatMoney(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
     return "—";
   }
 
@@ -120,13 +88,8 @@ function formatMoney(
   });
 }
 
-function formatPrice(
-  value: number | null | undefined
-) {
-  if (
-    value == null ||
-    !Number.isFinite(value)
-  ) {
+function formatPrice(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
     return "—";
   }
 
@@ -138,13 +101,8 @@ function formatPrice(
   });
 }
 
-function formatNumber(
-  value: number | null | undefined
-) {
-  if (
-    value == null ||
-    !Number.isFinite(value)
-  ) {
+function formatNumber(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
     return "—";
   }
 
@@ -154,37 +112,22 @@ function formatNumber(
   });
 }
 
-function formatWholeShares(
-  value: number | null | undefined
-) {
-  if (
-    value == null ||
-    !Number.isFinite(value)
-  ) {
+function formatWholeShares(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
     return "—";
   }
 
-  return Math.round(value).toLocaleString(
-    "en-US",
-    {
-      maximumFractionDigits: 0,
-    }
-  );
+  return Math.round(value).toLocaleString("en-US", {
+    maximumFractionDigits: 0,
+  });
 }
 
-function formatSignedMoney(
-  value: number | null | undefined
-) {
-  if (
-    value == null ||
-    !Number.isFinite(value)
-  ) {
+function formatSignedMoney(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
     return "—";
   }
 
-  const formattedValue = Math.abs(
-    value
-  ).toLocaleString("en-US", {
+  const formattedValue = Math.abs(value).toLocaleString("en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 0,
@@ -197,51 +140,29 @@ function formatSignedMoney(
   return `${value > 0 ? "+" : "-"}${formattedValue}`;
 }
 
-function formatPercent(
-  value: number | null | undefined,
-  includeSign = false
-) {
-  if (
-    value == null ||
-    !Number.isFinite(value)
-  ) {
+function formatPercent(value: number | null | undefined, includeSign = false) {
+  if (value == null || !Number.isFinite(value)) {
     return "—";
   }
 
-  const sign =
-    includeSign && value > 0
-      ? "+"
-      : "";
+  const sign = includeSign && value > 0 ? "+" : "";
 
   return `${sign}${value.toFixed(2)}%`;
 }
 
-function valueClass(
-  value: number | null | undefined
-) {
-  if (
-    value == null ||
-    Math.abs(value) < 0.000001
-  ) {
+function valueClass(value: number | null | undefined) {
+  if (value == null || Math.abs(value) < 0.000001) {
     return "text-slate-950";
   }
 
-  return value > 0
-    ? "text-emerald-600"
-    : "text-rose-600";
+  return value > 0 ? "text-emerald-600" : "text-rose-600";
 }
 
-function getDefaultAction(
-  side: string | null | undefined
-): TradeAction {
-  return side === "SHORT"
-    ? "SHORT"
-    : "BUY";
+function getDefaultAction(side: string | null | undefined): TradeAction {
+  return side === "SHORT" ? "SHORT" : "BUY";
 }
 
-function getSideLabel(
-  side: PositionSide
-) {
+function getSideLabel(side: PositionSide) {
   if (side === "LONG") {
     return "Long";
   }
@@ -270,15 +191,11 @@ function ResultCard({
         {label}
       </p>
 
-      <div
-        className={`mt-1 text-lg font-semibold ${valueClassName}`}
-      >
+      <div className={`mt-1 text-lg font-semibold ${valueClassName}`}>
         {value}
       </div>
 
-      <p className="mt-1 text-xs leading-5 text-slate-500">
-        {detail}
-      </p>
+      <p className="mt-1 text-xs leading-5 text-slate-500">{detail}</p>
     </div>
   );
 }
@@ -296,79 +213,42 @@ export default function TradeScenarioPanel({
   canSubmitManualTrade,
   onTradeCreated,
 }: TradeScenarioPanelProps) {
-  const [tradeAction, setTradeAction] =
-    useState<TradeAction>(
-      getDefaultAction(position?.side)
-    );
-
-  const [sizingMode, setSizingMode] =
-    useState<TradeSizingMode>(
-      "TARGET_WEIGHT"
-    );
-
-  const [sharesInput, setSharesInput] =
-    useState("");
-
-  const [notionalInput, setNotionalInput] =
-    useState("");
-
-  const [
-    basisPointsInput,
-    setBasisPointsInput,
-  ] = useState("");
-  const [
-    targetWeightPctInput,
-    setTargetWeightPctInput,
-  ] = useState("");
-
-  const [
-    estimatedPriceInput,
-    setEstimatedPriceInput,
-  ] = useState(
-    currentPrice != null
-      ? currentPrice.toFixed(2)
-      : ""
+  const [tradeAction, setTradeAction] = useState<TradeAction>(
+    getDefaultAction(position?.side),
   );
 
-  const [stopPriceInput, setStopPriceInput] =
-    useState("");
+  const [sizingMode, setSizingMode] =
+    useState<TradeSizingMode>("TARGET_WEIGHT");
 
-  const [
-    targetPriceInput,
-    setTargetPriceInput,
-  ] = useState("");
+  const [sharesInput, setSharesInput] = useState("");
 
-  const [dateTraded, setDateTraded] =
-    useState(
-      getLocalDateTimeInputValue()
-    );
+  const [notionalInput, setNotionalInput] = useState("");
 
-  const [comment, setComment] =
-    useState("");
-  
-  const [
-    shortLocateNumber,
-    setShortLocateNumber,
-  ] = useState("");
+  const [basisPointsInput, setBasisPointsInput] = useState("");
+  const [targetWeightPctInput, setTargetWeightPctInput] = useState("");
 
-  const [isReviewOpen, setIsReviewOpen] =
-    useState(false);    
-  const [isSubmitting, setIsSubmitting] =
-    useState(false);
+  const [estimatedPriceInput, setEstimatedPriceInput] = useState(
+    currentPrice != null ? currentPrice.toFixed(2) : "",
+  );
 
-  const [
-    submissionError,
-    setSubmissionError,
-  ] = useState("");
+  const [stopPriceInput, setStopPriceInput] = useState("");
 
-  const [
-    submissionMessage,
-    setSubmissionMessage,
-  ] = useState("");
+  const [targetPriceInput, setTargetPriceInput] = useState("");
+
+  const [dateTraded, setDateTraded] = useState(getLocalDateTimeInputValue());
+
+  const [comment, setComment] = useState("");
+
+  const [shortLocateNumber, setShortLocateNumber] = useState("");
+
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [submissionError, setSubmissionError] = useState("");
+
+  const [submissionMessage, setSubmissionMessage] = useState("");
   useEffect(() => {
-    setTradeAction(
-      getDefaultAction(position?.side)
-    );
+    setTradeAction(getDefaultAction(position?.side));
 
     setSizingMode("TARGET_WEIGHT");
     setSharesInput("");
@@ -376,18 +256,12 @@ export default function TradeScenarioPanel({
     setBasisPointsInput("");
     setTargetWeightPctInput("");
 
-    setEstimatedPriceInput(
-      currentPrice != null
-        ? currentPrice.toFixed(2)
-        : ""
-    );
+    setEstimatedPriceInput(currentPrice != null ? currentPrice.toFixed(2) : "");
 
     setStopPriceInput("");
     setTargetPriceInput("");
 
-    setDateTraded(
-      getLocalDateTimeInputValue()
-    );
+    setDateTraded(getLocalDateTimeInputValue());
 
     setComment("");
     setShortLocateNumber("");
@@ -395,41 +269,25 @@ export default function TradeScenarioPanel({
     setIsSubmitting(false);
     setSubmissionError("");
     setSubmissionMessage("");
-  }, [
-        position?.id,
-        currentPrice,
-    ]);
+  }, [position?.id, currentPrice]);
 
-  const serializedDateTraded =
-    serializeLocalDateTime(dateTraded);
+  const serializedDateTraded = serializeLocalDateTime(dateTraded);
 
-  const proposedTradeDateKey =
-    dateTraded
-      ? dateTraded.slice(0, 10)
-      : null;
+  const proposedTradeDateKey = dateTraded ? dateTraded.slice(0, 10) : null;
 
-  const applicableFundEquity =
-    proposedTradeDateKey
-      ? fundEquitySnapshots.find(
-          (snapshot) =>
-            getSnapshotDateKey(
-              snapshot.asOfDate
-            ) <= proposedTradeDateKey
-        ) ?? null
-      : null;
+  const applicableFundEquity = proposedTradeDateKey
+    ? (fundEquitySnapshots.find(
+        (snapshot) =>
+          getSnapshotDateKey(snapshot.asOfDate) <= proposedTradeDateKey,
+      ) ?? null)
+    : null;
 
-  const netEquity =
-    applicableFundEquity
-      ? Number(
-          applicableFundEquity
-            .netEquity
-        )
-      : null;
+  const netEquity = applicableFundEquity
+    ? Number(applicableFundEquity.netEquity)
+    : null;
 
   const validNetEquity =
-    netEquity != null &&
-    Number.isFinite(netEquity) &&
-    netEquity > 0
+    netEquity != null && Number.isFinite(netEquity) && netEquity > 0
       ? netEquity
       : null;
 
@@ -440,13 +298,9 @@ export default function TradeScenarioPanel({
         positionId: position.id,
         ticker: security.ticker,
         companyName: security.name,
-        wellsSide:
-          position.side === "SHORT"
-            ? "SHORT"
-            : "LONG",
+        wellsSide: position.side === "SHORT" ? "SHORT" : "LONG",
         wellsShares: position.shares,
-        wellsMarketValue:
-          position.marketValue,
+        wellsMarketValue: position.marketValue,
         wellsWap,
         pendingManualDelta,
         pendingProjectionIsValid,
@@ -455,32 +309,14 @@ export default function TradeScenarioPanel({
         baselineMode,
         tradeAction,
         sizingMode,
-        sharesInput:
-          toInputNumber(sharesInput),
-        notionalInput:
-          toInputNumber(notionalInput),
-        basisPointsInput:
-            toInputNumber(
-              basisPointsInput
-            ),
-        targetWeightPctInput:
-          toInputNumber(
-            targetWeightPctInput
-          ),
-        estimatedPrice:
-          toInputNumber(
-            estimatedPriceInput
-          ),
-        stopPrice:
-          toInputNumber(
-            stopPriceInput
-          ),
-        targetPrice:
-          toInputNumber(
-            targetPriceInput
-          ),
-        dateTraded:
-          serializedDateTraded,
+        sharesInput: toInputNumber(sharesInput),
+        notionalInput: toInputNumber(notionalInput),
+        basisPointsInput: toInputNumber(basisPointsInput),
+        targetWeightPctInput: toInputNumber(targetWeightPctInput),
+        estimatedPrice: toInputNumber(estimatedPriceInput),
+        stopPrice: toInputNumber(stopPriceInput),
+        targetPrice: toInputNumber(targetPriceInput),
+        dateTraded: serializedDateTraded,
         comment,
         shortLocateNumber,
       }),
@@ -505,89 +341,59 @@ export default function TradeScenarioPanel({
       serializedDateTraded,
       comment,
       shortLocateNumber,
-    ]
+    ],
   );
   const scenarioActionLabel =
-  tradeAction === "BUY"
-    ? "Buy"
-    : tradeAction === "SELL"
-      ? "Sell"
-      : tradeAction === "SHORT"
-        ? "Short"
-        : "Cover";
+    tradeAction === "BUY"
+      ? "Buy"
+      : tradeAction === "SELL"
+        ? "Sell"
+        : tradeAction === "SHORT"
+          ? "Short"
+          : "Cover";
 
-  const scenarioSizingDescription =
-    (() => {
-      if (
-        sizingMode === "AMOUNT_BPS"
-      ) {
-        const basisPoints =
-          toInputNumber(
-            basisPointsInput
-          );
+  const scenarioSizingDescription = (() => {
+    if (sizingMode === "AMOUNT_BPS") {
+      const basisPoints = toInputNumber(basisPointsInput);
 
-        return basisPoints != null
-          ? `${formatNumber(
-              basisPoints
-            )} bps of ${security.ticker}`
-          : `${security.ticker} using basis-point sizing`;
-      }
+      return basisPoints != null
+        ? `${formatNumber(basisPoints)} bps of ${security.ticker}`
+        : `${security.ticker} using basis-point sizing`;
+    }
 
-      if (sizingMode === "SHARES") {
-        const shares =
-          toInputNumber(
-            sharesInput
-          );
+    if (sizingMode === "SHARES") {
+      const shares = toInputNumber(sharesInput);
 
-        return shares != null
-          ? `${formatNumber(
-              shares
-            )} shares of ${security.ticker}`
-          : `${security.ticker} using share sizing`;
-      }
+      return shares != null
+        ? `${formatNumber(shares)} shares of ${security.ticker}`
+        : `${security.ticker} using share sizing`;
+    }
 
-      if (
-        sizingMode === "NOTIONAL"
-      ) {
-        const notional =
-          toInputNumber(
-            notionalInput
-          );
+    if (sizingMode === "NOTIONAL") {
+      const notional = toInputNumber(notionalInput);
 
-        return notional != null
-          ? `${formatMoney(
-              notional
-            )} of ${security.ticker}`
-          : `${security.ticker} using notional sizing`;
-      }
+      return notional != null
+        ? `${formatMoney(notional)} of ${security.ticker}`
+        : `${security.ticker} using notional sizing`;
+    }
 
-      const targetWeight =
-        toInputNumber(
-          targetWeightPctInput
-        );
+    const targetWeight = toInputNumber(targetWeightPctInput);
 
-      return targetWeight != null
-        ? `${security.ticker} to a ${formatPercent(
-            targetWeight
-          )} target weight`
-        : `${security.ticker} using target-weight sizing`;
-    })();
+    return targetWeight != null
+      ? `${security.ticker} to a ${formatPercent(targetWeight)} target weight`
+      : `${security.ticker} using target-weight sizing`;
+  })();
 
-  const scenarioExecutionPrice =
-    toInputNumber(
-      estimatedPriceInput
-    );
+  const scenarioExecutionPrice = toInputNumber(estimatedPriceInput);
 
   const scenarioSummary =
     scenarioExecutionPrice != null
       ? `${scenarioActionLabel} ${scenarioSizingDescription} at an estimated execution price of ${formatPrice(
-          scenarioExecutionPrice
+          scenarioExecutionPrice,
         )}.`
       : `${scenarioActionLabel} ${scenarioSizingDescription}.`;
 
-  function handleSizingModeChange(
-    nextMode: TradeSizingMode
-  ) {
+  function handleSizingModeChange(nextMode: TradeSizingMode) {
     setSizingMode(nextMode);
 
     if (nextMode !== "SHARES") {
@@ -601,17 +407,13 @@ export default function TradeScenarioPanel({
       setBasisPointsInput("");
     }
 
-    if (
-      nextMode !== "TARGET_WEIGHT"
-    ) {
+    if (nextMode !== "TARGET_WEIGHT") {
       setTargetWeightPctInput("");
     }
   }
 
   function handleReset() {
-    setTradeAction(
-      getDefaultAction(position?.side)
-    );
+    setTradeAction(getDefaultAction(position?.side));
 
     setSizingMode("TARGET_WEIGHT");
     setSharesInput("");
@@ -619,18 +421,12 @@ export default function TradeScenarioPanel({
     setBasisPointsInput("");
     setTargetWeightPctInput("");
 
-    setEstimatedPriceInput(
-      currentPrice != null
-        ? currentPrice.toFixed(2)
-        : ""
-    );
+    setEstimatedPriceInput(currentPrice != null ? currentPrice.toFixed(2) : "");
 
     setStopPriceInput("");
     setTargetPriceInput("");
 
-    setDateTraded(
-      getLocalDateTimeInputValue()
-    );
+    setDateTraded(getLocalDateTimeInputValue());
 
     setComment("");
     setIsReviewOpen(false);
@@ -643,16 +439,12 @@ export default function TradeScenarioPanel({
     const draft = result.draft;
 
     if (!draft) {
-      setSubmissionError(
-        "The trade scenario is not ready for submission."
-      );
+      setSubmissionError("The trade scenario is not ready for submission.");
       return;
     }
 
     if (!canSubmitManualTrade) {
-      setSubmissionError(
-        "You do not have permission to create manual trades."
-      );
+      setSubmissionError("You do not have permission to create manual trades.");
       return;
     }
 
@@ -661,45 +453,29 @@ export default function TradeScenarioPanel({
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(
-        "/api/trades/manual",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            securityId:
-              draft.securityId,
-            positionId:
-              draft.positionId,
-            tradeType:
-              draft.tradeType,
-            dateTraded:
-              draft.dateTraded,
-            shares:
-              draft.shares,
-            avgPrice:
-              draft.avgPrice,
-            comment:
-              draft.comment,
-            shortLocateNumber:
-              draft.shortLocateNumber,
-            origin:
-              "TRADE_CALCULATOR",
-          }),
-        }
-      );
+      const response = await fetch("/api/trades/manual", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          securityId: draft.securityId,
+          positionId: draft.positionId,
+          tradeType: draft.tradeType,
+          dateTraded: draft.dateTraded,
+          shares: draft.shares,
+          avgPrice: draft.avgPrice,
+          comment: draft.comment,
+          shortLocateNumber: draft.shortLocateNumber,
+          origin: "TRADE_CALCULATOR",
+        }),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error ||
-            "Failed to create manual trade."
-        );
+        throw new Error(data.error || "Failed to create manual trade.");
       }
 
       onTradeCreated(data.trade);
@@ -714,57 +490,41 @@ export default function TradeScenarioPanel({
       setTargetWeightPctInput("");
 
       setEstimatedPriceInput(
-        currentPrice != null
-          ? currentPrice.toFixed(2)
-          : ""
+        currentPrice != null ? currentPrice.toFixed(2) : "",
       );
 
       setStopPriceInput("");
       setTargetPriceInput("");
 
-      setDateTraded(
-        getLocalDateTimeInputValue()
-      );
+      setDateTraded(getLocalDateTimeInputValue());
 
       setComment("");
       setShortLocateNumber("");
 
       setSubmissionMessage(
-        `${draft.tradeType} ${draft.shares.toLocaleString(
-          "en-US"
-        )} shares of ${
+        `${draft.tradeType} ${draft.shares.toLocaleString("en-US")} shares of ${
           draft.ticker
-        } was added as a Manual Pending trade.`
+        } was added as a Manual Pending trade.`,
       );
     } catch (error) {
       setSubmissionError(
         error instanceof Error
           ? error.message
-          : "Failed to create manual trade."
+          : "Failed to create manual trade.",
       );
     } finally {
       setIsSubmitting(false);
     }
   }
 
-
   const sizingInputIsStarted =
     sizingMode === "SHARES"
-      ? Boolean(
-          sharesInput.trim()
-        )
+      ? Boolean(sharesInput.trim())
       : sizingMode === "NOTIONAL"
-        ? Boolean(
-            notionalInput.trim()
-          )
-        : sizingMode ===
-            "AMOUNT_BPS"
-          ? Boolean(
-              basisPointsInput.trim()
-            )
-          : Boolean(
-              targetWeightPctInput.trim()
-            );
+        ? Boolean(notionalInput.trim())
+        : sizingMode === "AMOUNT_BPS"
+          ? Boolean(basisPointsInput.trim())
+          : Boolean(targetWeightPctInput.trim());
 
   const showValidation =
     sizingInputIsStarted ||
@@ -784,13 +544,9 @@ export default function TradeScenarioPanel({
               <h3 className="mt-1 text-lg font-semibold text-slate-950">
                 Define the Proposed Trade
               </h3>
-
-             
             </div>
 
-            <Badge tone="blue">
-              Scenario
-            </Badge>
+            <Badge tone="blue">Scenario</Badge>
           </div>
 
           <div className="mt-4">
@@ -810,9 +566,7 @@ export default function TradeScenarioPanel({
                 <button
                   key={value}
                   type="button"
-                  onClick={() =>
-                    setTradeAction(value)
-                  }
+                  onClick={() => setTradeAction(value)}
                   className={`rounded-2xl px-3 py-3 text-sm font-medium ${
                     tradeAction === value
                       ? "bg-slate-900 text-white"
@@ -835,21 +589,14 @@ export default function TradeScenarioPanel({
                 [
                   ["AMOUNT_BPS", "Amount (BPS)"],
                   ["SHARES", "Shares"],
-                  [
-                    "TARGET_WEIGHT",
-                    "Target Weight",
-                  ],
+                  ["TARGET_WEIGHT", "Target Weight"],
                   ["NOTIONAL", "Notional"],
                 ] as const
               ).map(([value, label]) => (
                 <button
                   key={value}
                   type="button"
-                  onClick={() =>
-                    handleSizingModeChange(
-                      value
-                    )
-                  }
+                  onClick={() => handleSizingModeChange(value)}
                   className={`rounded-2xl px-2 py-3 text-xs font-medium ${
                     sizingMode === value
                       ? "bg-violet-700 text-white"
@@ -862,8 +609,7 @@ export default function TradeScenarioPanel({
             </div>
           </div>
 
-          {sizingMode ===
-          "TARGET_WEIGHT" ? (
+          {sizingMode === "TARGET_WEIGHT" ? (
             <div className="mt-4">
               <label className="text-sm font-medium text-slate-700">
                 Target Portfolio Weight
@@ -871,13 +617,9 @@ export default function TradeScenarioPanel({
 
               <div className="relative mt-2">
                 <input
-                  value={
-                    targetWeightPctInput
-                  }
+                  value={targetWeightPctInput}
                   onChange={(event) =>
-                    setTargetWeightPctInput(
-                      event.target.value
-                    )
+                    setTargetWeightPctInput(event.target.value)
                   }
                   inputMode="decimal"
                   placeholder="5.00"
@@ -899,11 +641,7 @@ export default function TradeScenarioPanel({
 
               <input
                 value={sharesInput}
-                onChange={(event) =>
-                  setSharesInput(
-                    event.target.value
-                  )
-                }
+                onChange={(event) => setSharesInput(event.target.value)}
                 inputMode="decimal"
                 placeholder="10,000"
                 className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
@@ -924,11 +662,7 @@ export default function TradeScenarioPanel({
 
                 <input
                   value={notionalInput}
-                  onChange={(event) =>
-                    setNotionalInput(
-                      event.target.value
-                    )
-                  }
+                  onChange={(event) => setNotionalInput(event.target.value)}
                   inputMode="decimal"
                   placeholder="750000"
                   className="w-full rounded-2xl border border-slate-200 py-3 pl-8 pr-4 text-sm outline-none focus:ring-2 focus:ring-slate-900"
@@ -937,83 +671,61 @@ export default function TradeScenarioPanel({
             </div>
           ) : null}
 
-          {sizingMode ===
-            "AMOUNT_BPS" ? (
-              <div className="mt-4">
-                <label className="text-sm font-medium text-slate-700">
-                  Amount (BPS)
-                </label>
+          {sizingMode === "AMOUNT_BPS" ? (
+            <div className="mt-4">
+              <label className="text-sm font-medium text-slate-700">
+                Amount (BPS)
+              </label>
 
-                <div className="relative mt-2">
-                  <input
-                    value={
-                      basisPointsInput
-                    }
-                    onChange={(event) =>
-                      setBasisPointsInput(
-                        event.target.value
-                      )
-                    }
-                    inputMode="decimal"
-                    placeholder="50"
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 pr-12 text-sm outline-none focus:ring-2 focus:ring-slate-900"
-                  />
+              <div className="relative mt-2">
+                <input
+                  value={basisPointsInput}
+                  onChange={(event) => setBasisPointsInput(event.target.value)}
+                  inputMode="decimal"
+                  placeholder="50"
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 pr-12 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+                />
 
-                  <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm text-slate-400">
-                    bps
-                  </span>
-                </div>
-
-                <p className="mt-1 text-xs leading-5 text-slate-500">
-                  {applicableFundEquity &&
-                  validNetEquity != null
-                    ? `Calculated using Net Equity of ${formatMoney(
-                        validNetEquity
-                      )} as of ${new Date(
-                        applicableFundEquity
-                          .asOfDate
-                      ).toLocaleDateString(
-                        "en-US",
-                        {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                          timeZone: "UTC",
-                        }
-                      )}.`
-                    : "No Net Equity snapshot is available on or before the proposed trade date."}
-                </p>
+                <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm text-slate-400">
+                  bps
+                </span>
               </div>
-            ) : null}
+
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                {applicableFundEquity && validNetEquity != null
+                  ? `Calculated using Net Equity of ${formatMoney(
+                      validNetEquity,
+                    )} as of ${new Date(
+                      applicableFundEquity.asOfDate,
+                    ).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      timeZone: "UTC",
+                    })}.`
+                  : "No Net Equity snapshot is available on or before the proposed trade date."}
+              </p>
+            </div>
+          ) : null}
 
           {result.warnings.length > 0 ? (
             <section className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
               <ul className="space-y-1 text-xs leading-5 text-amber-800">
-                {result.warnings.map(
-                  (warning) => (
-                    <li key={warning}>
-                      • {warning}
-                    </li>
-                  )
-                )}
+                {result.warnings.map((warning) => (
+                  <li key={warning}>• {warning}</li>
+                ))}
               </ul>
             </section>
           ) : null}
-          {showValidation &&
-            result.errors.length > 0 ? (
-              <section className="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2">
-
-                <ul className="space-y-1 text-xs leading-5 text-rose-700">
-                  {result.errors.map(
-                    (error) => (
-                      <li key={error}>
-                        • {error}
-                      </li>
-                    )
-                  )}
-                </ul>
-              </section>
-            ) : null}
+          {showValidation && result.errors.length > 0 ? (
+            <section className="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2">
+              <ul className="space-y-1 text-xs leading-5 text-rose-700">
+                {result.errors.map((error) => (
+                  <li key={error}>• {error}</li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
           <div className="mt-4">
             <label className="text-sm font-medium text-slate-700">
               Estimated Execution Price
@@ -1025,14 +737,8 @@ export default function TradeScenarioPanel({
               </span>
 
               <input
-                value={
-                  estimatedPriceInput
-                }
-                onChange={(event) =>
-                  setEstimatedPriceInput(
-                    event.target.value
-                  )
-                }
+                value={estimatedPriceInput}
+                onChange={(event) => setEstimatedPriceInput(event.target.value)}
                 inputMode="decimal"
                 placeholder="0.00"
                 className="w-full rounded-2xl border border-slate-200 py-3 pl-8 pr-4 text-sm outline-none focus:ring-2 focus:ring-slate-900"
@@ -1040,8 +746,7 @@ export default function TradeScenarioPanel({
             </div>
 
             <p className="mt-1 text-xs text-slate-500">
-              Defaults to the current HCA display
-              price when available.
+              Defaults to the current HCA display price when available.
             </p>
           </div>
 
@@ -1053,11 +758,7 @@ export default function TradeScenarioPanel({
 
               <input
                 value={stopPriceInput}
-                onChange={(event) =>
-                  setStopPriceInput(
-                    event.target.value
-                  )
-                }
+                onChange={(event) => setStopPriceInput(event.target.value)}
                 inputMode="decimal"
                 placeholder="Optional"
                 className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
@@ -1070,14 +771,8 @@ export default function TradeScenarioPanel({
               </label>
 
               <input
-                value={
-                  targetPriceInput
-                }
-                onChange={(event) =>
-                  setTargetPriceInput(
-                    event.target.value
-                  )
-                }
+                value={targetPriceInput}
+                onChange={(event) => setTargetPriceInput(event.target.value)}
                 inputMode="decimal"
                 placeholder="Optional"
                 className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
@@ -1093,11 +788,7 @@ export default function TradeScenarioPanel({
             <input
               type="datetime-local"
               value={dateTraded}
-              onChange={(event) =>
-                setDateTraded(
-                  event.target.value
-                )
-              }
+              onChange={(event) => setDateTraded(event.target.value)}
               step="60"
               className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
             />
@@ -1106,18 +797,12 @@ export default function TradeScenarioPanel({
             <div className="mt-4">
               <label className="text-sm font-medium text-slate-700">
                 Short Locate Number
-                <span className="ml-1 text-rose-600">
-                  *
-                </span>
+                <span className="ml-1 text-rose-600">*</span>
               </label>
 
               <input
                 value={shortLocateNumber}
-                onChange={(event) =>
-                  setShortLocateNumber(
-                    event.target.value
-                  )
-                }
+                onChange={(event) => setShortLocateNumber(event.target.value)}
                 required
                 autoComplete="off"
                 placeholder="Enter short locate number"
@@ -1125,9 +810,8 @@ export default function TradeScenarioPanel({
               />
 
               <p className="mt-1 text-xs text-slate-500">
-                Required for short trades. The locate
-                number will be appended to the saved
-                trade note.
+                Required for short trades. The locate number will be appended to
+                the saved trade note.
               </p>
             </div>
           ) : null}
@@ -1138,11 +822,7 @@ export default function TradeScenarioPanel({
 
             <textarea
               value={comment}
-              onChange={(event) =>
-                setComment(
-                  event.target.value
-                )
-              }
+              onChange={(event) => setComment(event.target.value)}
               placeholder="Optional rationale or scenario note..."
               className="mt-2 h-20 w-full resize-none rounded-2xl border border-slate-200 p-4 text-sm outline-none focus:ring-2 focus:ring-slate-900"
             />
@@ -1155,7 +835,6 @@ export default function TradeScenarioPanel({
           >
             Reset Scenario
           </button>
-          
         </section>
 
         <section className="min-w-0 space-y-4">
@@ -1167,36 +846,27 @@ export default function TradeScenarioPanel({
                 </p>
 
                 <h3 className="mt-1 text-lg font-semibold text-slate-950">
-                  {security.ticker}{" "}
-                  {tradeAction} Scenario
+                  {security.ticker} {tradeAction} Scenario
                 </h3>
 
-              <p className="mt-1 text-sm text-slate-500">
-                {scenarioSummary}
-              </p>
+                <p className="mt-1 text-sm text-slate-500">{scenarioSummary}</p>
               </div>
 
               <div className="flex flex-wrap gap-2">
                 <Badge
                   tone={
-                    result.projectedSide ===
-                    "SHORT"
+                    result.projectedSide === "SHORT"
                       ? "red"
-                      : result.projectedSide ===
-                          "LONG"
+                      : result.projectedSide === "LONG"
                         ? "green"
                         : "slate"
                   }
                 >
-                  {getSideLabel(
-                    result.projectedSide
-                  )}
+                  {getSideLabel(result.projectedSide)}
                 </Badge>
 
                 <Badge tone="blue">
-                  {sizingMode
-                    .replace("_", " ")
-                    .toLowerCase()}
+                  {sizingMode.replace("_", " ").toLowerCase()}
                 </Badge>
               </div>
             </div>
@@ -1204,16 +874,14 @@ export default function TradeScenarioPanel({
 
           <div
             className={`overflow-hidden rounded-2xl border shadow-sm ${
-              tradeAction === "SELL" ||
-              tradeAction === "SHORT"
+              tradeAction === "SELL" || tradeAction === "SHORT"
                 ? "border-rose-300 bg-rose-50"
                 : "border-emerald-300 bg-emerald-50"
             }`}
           >
             <div
               className={`px-5 py-2 text-xs font-bold uppercase tracking-widest ${
-                tradeAction === "SELL" ||
-                tradeAction === "SHORT"
+                tradeAction === "SELL" || tradeAction === "SHORT"
                   ? "bg-rose-600 text-white"
                   : "bg-emerald-700 text-white"
               }`}
@@ -1225,35 +893,29 @@ export default function TradeScenarioPanel({
               <div>
                 <p
                   className={`text-3xl font-bold tabular-nums tracking-tight ${
-                    tradeAction === "SELL" ||
-                    tradeAction === "SHORT"
+                    tradeAction === "SELL" || tradeAction === "SHORT"
                       ? "text-rose-900"
                       : "text-emerald-900"
                   }`}
                 >
-                  {formatWholeShares(
-                    result.proposedShares
-                  )}
+                  {formatWholeShares(result.proposedShares)}
                 </p>
 
                 <p
                   className={`mt-1 text-sm font-semibold ${
-                    tradeAction === "SELL" ||
-                    tradeAction === "SHORT"
+                    tradeAction === "SELL" || tradeAction === "SHORT"
                       ? "text-rose-700"
                       : "text-emerald-700"
                   }`}
                 >
-                  {tradeAction}{" "}
-                  {security.ticker} shares
+                  {tradeAction} {security.ticker} shares
                 </p>
               </div>
 
               <div className="text-left sm:text-right">
                 <p
                   className={`text-xs font-semibold uppercase tracking-wide ${
-                    tradeAction === "SELL" ||
-                    tradeAction === "SHORT"
+                    tradeAction === "SELL" || tradeAction === "SHORT"
                       ? "text-rose-700"
                       : "text-emerald-700"
                   }`}
@@ -1263,28 +925,21 @@ export default function TradeScenarioPanel({
 
                 <p
                   className={`mt-1 text-xl font-bold tabular-nums ${
-                    tradeAction === "SELL" ||
-                    tradeAction === "SHORT"
+                    tradeAction === "SELL" || tradeAction === "SHORT"
                       ? "text-rose-900"
                       : "text-emerald-900"
                   }`}
                 >
-                  {formatMoney(
-                    result.proposedNotional
-                  )}
+                  {formatMoney(result.proposedNotional)}
                 </p>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
-
-
             <ResultCard
               label="Trade Notional"
-              value={formatMoney(
-                result.proposedNotional
-              )}
+              value={formatMoney(result.proposedNotional)}
               detail="Shares × estimated price"
             />
 
@@ -1292,13 +947,9 @@ export default function TradeScenarioPanel({
               label="Projected Position"
               value={
                 <span>
-                  {formatNumber(
-                    result.projectedExposure
-                  )}{" "}
+                  {formatNumber(result.projectedExposure)}{" "}
                   <span className="text-sm text-slate-500">
-                    {getSideLabel(
-                      result.projectedSide
-                    )}
+                    {getSideLabel(result.projectedSide)}
                   </span>
                 </span>
               }
@@ -1307,63 +958,44 @@ export default function TradeScenarioPanel({
 
             <ResultCard
               label="Position Change"
-              value={
-                result.exposureChangeLabel
-              }
+              value={result.exposureChangeLabel}
               detail="Change in absolute exposure"
-              valueClassName={valueClass(
-                result.exposureChangePct
-              )}
+              valueClassName={valueClass(result.exposureChangePct)}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
             <ResultCard
               label="Projected Market Value"
-              value={formatMoney(
-                result.projectedMarketValue
-              )}
+              value={formatMoney(result.projectedMarketValue)}
               detail="Projected exposure × price"
             />
 
             <ResultCard
               label="Projected Weight"
-              value={formatPercent(
-                result.projectedPortfolioWeightPct
-              )}
+              value={formatPercent(result.projectedPortfolioWeightPct)}
               detail="Projected market value ÷ Net Equity"
             />
 
             <ResultCard
               label="Weight Change"
-              value={formatPercent(
-                result.portfolioWeightChangePctPoints,
-                true
-              )}
+              value={formatPercent(result.portfolioWeightChangePctPoints, true)}
               detail="Percentage-point change"
-              valueClassName={valueClass(
-                result.portfolioWeightChangePctPoints
-              )}
+              valueClassName={valueClass(result.portfolioWeightChangePctPoints)}
             />
 
             <ResultCard
               label="Estimated Cash Flow"
-              value={formatSignedMoney(
-                result.estimatedCashFlow
-              )}
+              value={formatSignedMoney(result.estimatedCashFlow)}
               detail="Negative uses cash; positive adds cash"
-              valueClassName={valueClass(
-                result.estimatedCashFlow
-              )}
+              valueClassName={valueClass(result.estimatedCashFlow)}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
             <ResultCard
               label="Estimated Blended WAP"
-              value={formatPrice(
-                result.estimatedBlendedWap
-              )}
+              value={formatPrice(result.estimatedBlendedWap)}
               detail={
                 result.blendedWapIsAvailable
                   ? "Estimated after a same-side add"
@@ -1373,9 +1005,7 @@ export default function TradeScenarioPanel({
 
             <ResultCard
               label="Current Wells Weight"
-              value={formatPercent(
-                result.currentPortfolioWeightPct
-              )}
+              value={formatPercent(result.currentPortfolioWeightPct)}
               detail="Wells market value ÷ Net Equity"
             />
 
@@ -1383,13 +1013,9 @@ export default function TradeScenarioPanel({
               label="Baseline Exposure"
               value={
                 <span>
-                  {formatNumber(
-                    result.baselineExposure
-                  )}{" "}
+                  {formatNumber(result.baselineExposure)}{" "}
                   <span className="text-sm text-slate-500">
-                    {getSideLabel(
-                      result.baselineSide
-                    )}
+                    {getSideLabel(result.baselineSide)}
                   </span>
                 </span>
               }
@@ -1398,89 +1024,61 @@ export default function TradeScenarioPanel({
 
             <ResultCard
               label="Execution Price"
-              value={formatPrice(
-                toInputNumber(
-                  estimatedPriceInput
-                )
-              )}
+              value={formatPrice(toInputNumber(estimatedPriceInput))}
               detail="Scenario assumption"
             />
           </div>
           <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Risk / Reward
-        </p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Risk / Reward
+            </p>
 
-        <div className="mt-4 grid grid-cols-2 gap-4 xl:grid-cols-3">
-          <ResultCard
-            label="Risk Per Share"
-            value={formatPrice(
-              result.riskPerShare
-            )}
-            detail="Execution to stop"
-          />
+            <div className="mt-4 grid grid-cols-2 gap-4 xl:grid-cols-3">
+              <ResultCard
+                label="Risk Per Share"
+                value={formatPrice(result.riskPerShare)}
+                detail="Execution to stop"
+              />
 
-          <ResultCard
-            label="Total Risk"
-            value={formatMoney(
-              result.totalRisk
-            )}
-            detail="Proposed shares × risk/share"
-          />
+              <ResultCard
+                label="Total Risk"
+                value={formatMoney(result.totalRisk)}
+                detail="Proposed shares × risk/share"
+              />
 
-          <ResultCard
-            label="Portfolio Risk"
-            value={formatPercent(
-              result.portfolioRiskPct
-            )}
-            detail="Total risk ÷ Net Equity"
-          />
+              <ResultCard
+                label="Portfolio Risk"
+                value={formatPercent(result.portfolioRiskPct)}
+                detail="Total risk ÷ Net Equity"
+              />
 
-          <ResultCard
-            label="Potential Reward"
-            value={formatMoney(
-              result.totalReward
-            )}
-            detail="Proposed shares × reward/share"
-          />
+              <ResultCard
+                label="Potential Reward"
+                value={formatMoney(result.totalReward)}
+                detail="Proposed shares × reward/share"
+              />
 
-          <ResultCard
-            label="Reward / Risk"
-            value={
-              result.rewardRiskRatio != null
-                ? `${result.rewardRiskRatio.toFixed(
-                    2
-                  )}x`
-                : "—"
-            }
-            detail="Potential reward ÷ total risk"
-          />
+              <ResultCard
+                label="Reward / Risk"
+                value={
+                  result.rewardRiskRatio != null
+                    ? `${result.rewardRiskRatio.toFixed(2)}x`
+                    : "—"
+                }
+                detail="Potential reward ÷ total risk"
+              />
 
-          <ResultCard
-            label="Target Move"
-            value={formatPercent(
-              result.targetMovePct,
-              true
-            )}
-            detail="Execution to target"
-            valueClassName={valueClass(
-              result.targetMovePct
-            )}
-          />
-        </div>
-      </section>
-
-
-
-
+              <ResultCard
+                label="Target Move"
+                value={formatPercent(result.targetMovePct, true)}
+                detail="Execution to target"
+                valueClassName={valueClass(result.targetMovePct)}
+              />
+            </div>
+          </section>
         </section>
       </div>
 
-      
-
-      
-
-      
       {submissionMessage ? (
         <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-700">
           {submissionMessage}
@@ -1494,54 +1092,48 @@ export default function TradeScenarioPanel({
             </p>
 
             <p className="mt-1 text-xs leading-5 text-slate-500">
-              This scenario has not created a trade
-              or changed Wells-authoritative records.
-              Review the calculated trade before any
-              Manual Pending record is created.
+              This scenario has not created a trade or changed
+              Wells-authoritative records. Review the calculated trade before
+              any Manual Pending record is created.
             </p>
           </div>
 
-            <button
+          <button
             type="button"
             onClick={() => {
-                setSubmissionError("");
-                setSubmissionMessage("");
-                setIsReviewOpen(true);
+              setSubmissionError("");
+              setSubmissionMessage("");
+              setIsReviewOpen(true);
             }}
             disabled={!result?.canCreateDraft}
             className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
-            >
+          >
             Review &amp; Add Trade
-            </button>
-
+          </button>
         </div>
-        </section>
+      </section>
 
-        <ManualTradeReviewModal
-            open={isReviewOpen}
-            draft={result.draft}
-            result={result}
-            baselineLabel={
-            baselineMode === "WELLS"
-                ? "Wells-only scenario basis"
-                : "Wells plus pending manual trades"
-            }
-            canSubmit={
-            canSubmitManualTrade
-            }
-            isSubmitting={isSubmitting}
-            submissionError={
-            submissionError
-            }
-            onClose={() => {
-            if (isSubmitting) {
-                return;
-            }
+      <ManualTradeReviewModal
+        open={isReviewOpen}
+        draft={result.draft}
+        result={result}
+        baselineLabel={
+          baselineMode === "WELLS"
+            ? "Wells-only scenario basis"
+            : "Wells plus pending manual trades"
+        }
+        canSubmit={canSubmitManualTrade}
+        isSubmitting={isSubmitting}
+        submissionError={submissionError}
+        onClose={() => {
+          if (isSubmitting) {
+            return;
+          }
 
-            setSubmissionError("");
-            setIsReviewOpen(false);
-            }}
-            onSubmit={handleSubmitTrade}
+          setSubmissionError("");
+          setIsReviewOpen(false);
+        }}
+        onSubmit={handleSubmitTrade}
       />
     </div>
   );

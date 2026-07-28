@@ -18,13 +18,8 @@ type ManualTradeReviewModalProps = {
   onClose: () => void;
   onSubmit: () => Promise<void>;
 };
-function formatMoney(
-  value: number | null | undefined
-) {
-  if (
-    value == null ||
-    !Number.isFinite(value)
-  ) {
+function formatMoney(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
     return "—";
   }
 
@@ -35,13 +30,8 @@ function formatMoney(
   });
 }
 
-function formatPrice(
-  value: number | null | undefined
-) {
-  if (
-    value == null ||
-    !Number.isFinite(value)
-  ) {
+function formatPrice(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
     return "—";
   }
 
@@ -53,13 +43,8 @@ function formatPrice(
   });
 }
 
-function formatNumber(
-  value: number | null | undefined
-) {
-  if (
-    value == null ||
-    !Number.isFinite(value)
-  ) {
+function formatNumber(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
     return "—";
   }
 
@@ -69,46 +54,27 @@ function formatNumber(
   });
 }
 
-function formatWholeShares(
-  value: number | null | undefined
-) {
-  if (
-    value == null ||
-    !Number.isFinite(value)
-  ) {
+function formatWholeShares(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
     return "—";
   }
 
-  return Math.round(value).toLocaleString(
-    "en-US",
-    {
-      maximumFractionDigits: 0,
-    }
-  );
+  return Math.round(value).toLocaleString("en-US", {
+    maximumFractionDigits: 0,
+  });
 }
 
-function formatPercent(
-  value: number | null | undefined,
-  includeSign = false
-) {
-  if (
-    value == null ||
-    !Number.isFinite(value)
-  ) {
+function formatPercent(value: number | null | undefined, includeSign = false) {
+  if (value == null || !Number.isFinite(value)) {
     return "—";
   }
 
-  const sign =
-    includeSign && value > 0
-      ? "+"
-      : "";
+  const sign = includeSign && value > 0 ? "+" : "";
 
   return `${sign}${value.toFixed(2)}%`;
 }
 
-function formatSide(
-  side: "LONG" | "SHORT" | "FLAT"
-) {
+function formatSide(side: "LONG" | "SHORT" | "FLAT") {
   if (side === "LONG") {
     return "Long";
   }
@@ -135,14 +101,10 @@ function ReviewValue({
         {label}
       </p>
 
-      <div className="mt-2 font-semibold text-slate-950">
-        {value}
-      </div>
+      <div className="mt-2 font-semibold text-slate-950">{value}</div>
 
       {detail ? (
-        <p className="mt-1 text-xs leading-5 text-slate-500">
-          {detail}
-        </p>
+        <p className="mt-1 text-xs leading-5 text-slate-500">{detail}</p>
       ) : null}
     </div>
   );
@@ -175,8 +137,7 @@ export default function ManualTradeReviewModal({
 
               <Badge
                 tone={
-                  draft.tradeType === "SELL" ||
-                  draft.tradeType === "SHORT"
+                  draft.tradeType === "SELL" || draft.tradeType === "SHORT"
                     ? "red"
                     : "green"
                 }
@@ -184,14 +145,11 @@ export default function ManualTradeReviewModal({
                 {draft.tradeType}
               </Badge>
 
-              <Badge tone="amber">
-                Manual Pending
-              </Badge>
+              <Badge tone="amber">Manual Pending</Badge>
             </div>
 
             <p className="mt-1 text-sm text-slate-500">
-              {draft.ticker} â€¢{" "}
-              {draft.companyName}
+              {draft.ticker} â€¢ {draft.companyName}
             </p>
           </div>
 
@@ -226,48 +184,34 @@ export default function ManualTradeReviewModal({
 
               <ReviewValue
                 label="Shares"
-                value={formatWholeShares(
-                  draft.shares
-                )}
+                value={formatWholeShares(draft.shares)}
                 detail="Positive submitted quantity"
               />
 
               <ReviewValue
                 label="Estimated Price"
-                value={formatPrice(
-                  draft.avgPrice
-                )}
+                value={formatPrice(draft.avgPrice)}
                 detail="Scenario execution price"
               />
 
               <ReviewValue
                 label="Estimated Notional"
-                value={formatMoney(
-                  result.proposedNotional
-                )}
+                value={formatMoney(result.proposedNotional)}
                 detail="Shares Ã— estimated price"
               />
 
               <ReviewValue
                 label="Trade Date and Time"
-                value={
-                  <LocalDateTime
-                    value={draft.dateTraded}
-                  />
-                }
+                value={<LocalDateTime value={draft.dateTraded} />}
                 detail="Stored as an exact timestamp"
               />
               {draft.tradeType === "SHORT" ? (
                 <ReviewValue
                   label="Short Locate Number"
-                  value={
-                    draft.shortLocateNumber ||
-                    "—"
-                  }
+                  value={draft.shortLocateNumber || "—"}
                   detail="Required locate reference"
                 />
               ) : null}
-
             </div>
           </section>
 
@@ -281,13 +225,9 @@ export default function ManualTradeReviewModal({
                 label="Wells Position"
                 value={
                   <span>
-                    {formatNumber(
-                      result.wellsExposure
-                    )}{" "}
+                    {formatNumber(result.wellsExposure)}{" "}
                     <span className="text-sm text-slate-500">
-                      {formatSide(
-                        result.wellsSide
-                      )}
+                      {formatSide(result.wellsSide)}
                     </span>
                   </span>
                 }
@@ -298,13 +238,9 @@ export default function ManualTradeReviewModal({
                 label="Selected Baseline"
                 value={
                   <span>
-                    {formatNumber(
-                      result.baselineExposure
-                    )}{" "}
+                    {formatNumber(result.baselineExposure)}{" "}
                     <span className="text-sm text-slate-500">
-                      {formatSide(
-                        result.baselineSide
-                      )}
+                      {formatSide(result.baselineSide)}
                     </span>
                   </span>
                 }
@@ -315,13 +251,9 @@ export default function ManualTradeReviewModal({
                 label="Projected Position"
                 value={
                   <span>
-                    {formatNumber(
-                      result.projectedExposure
-                    )}{" "}
+                    {formatNumber(result.projectedExposure)}{" "}
                     <span className="text-sm text-slate-500">
-                      {formatSide(
-                        result.projectedSide
-                      )}
+                      {formatSide(result.projectedSide)}
                     </span>
                   </span>
                 }
@@ -330,25 +262,19 @@ export default function ManualTradeReviewModal({
 
               <ReviewValue
                 label="Position Change"
-                value={
-                  result.exposureChangeLabel
-                }
+                value={result.exposureChangeLabel}
                 detail="Change in absolute exposure"
               />
 
               <ReviewValue
                 label="Current Wells Weight"
-                value={formatPercent(
-                  result.currentPortfolioWeightPct
-                )}
+                value={formatPercent(result.currentPortfolioWeightPct)}
                 detail="Wells market value ÷ Net Equity"
               />
 
               <ReviewValue
                 label="Projected Weight"
-                value={formatPercent(
-                  result.projectedPortfolioWeightPct
-                )}
+                value={formatPercent(result.projectedPortfolioWeightPct)}
                 detail="Projected market value ÷ Net Equity"
               />
 
@@ -356,16 +282,14 @@ export default function ManualTradeReviewModal({
                 label="Weight Change"
                 value={formatPercent(
                   result.portfolioWeightChangePctPoints,
-                  true
+                  true,
                 )}
                 detail="Percentage-point change"
               />
 
               <ReviewValue
                 label="Estimated Cash Flow"
-                value={formatMoney(
-                  result.estimatedCashFlow
-                )}
+                value={formatMoney(result.estimatedCashFlow)}
                 detail={
                   result.estimatedCashFlow != null &&
                   result.estimatedCashFlow < 0
@@ -384,44 +308,33 @@ export default function ManualTradeReviewModal({
             <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-5">
               <ReviewValue
                 label="Risk Per Share"
-                value={formatPrice(
-                  result.riskPerShare
-                )}
+                value={formatPrice(result.riskPerShare)}
                 detail="Execution to stop"
               />
 
               <ReviewValue
                 label="Total Risk"
-                value={formatMoney(
-                  result.totalRisk
-                )}
+                value={formatMoney(result.totalRisk)}
                 detail="Scenario estimate"
               />
 
               <ReviewValue
                 label="Portfolio Risk"
-                value={formatPercent(
-                  result.portfolioRiskPct
-                )}
+                value={formatPercent(result.portfolioRiskPct)}
                 detail="Risk Ã· projected gross portfolio"
               />
 
               <ReviewValue
                 label="Potential Reward"
-                value={formatMoney(
-                  result.totalReward
-                )}
+                value={formatMoney(result.totalReward)}
                 detail="Scenario estimate"
               />
 
               <ReviewValue
                 label="Reward / Risk"
                 value={
-                  result.rewardRiskRatio !=
-                  null
-                    ? `${result.rewardRiskRatio.toFixed(
-                        2
-                      )}x`
+                  result.rewardRiskRatio != null
+                    ? `${result.rewardRiskRatio.toFixed(2)}x`
                     : "—"
                 }
                 detail="Reward divided by risk"
@@ -448,54 +361,41 @@ export default function ManualTradeReviewModal({
               </p>
 
               <ul className="mt-2 space-y-1 text-sm leading-6 text-amber-800">
-                {result.warnings.map(
-                  (warning) => (
-                    <li key={warning}>
-                      â€¢ {warning}
-                    </li>
-                  )
-                )}
+                {result.warnings.map((warning) => (
+                  <li key={warning}>â€¢ {warning}</li>
+                ))}
               </ul>
             </section>
           ) : null}
 
           <section className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm leading-6 text-violet-800">
-            <p className="font-semibold">
-              Manual trade boundary
-            </p>
+            <p className="font-semibold">Manual trade boundary</p>
 
             <p className="mt-1">
-              Adding this trade will create a
-              Manual Pending record for later Wells
-              reconciliation. This action does not
-              place a broker order and does not
-              modify the Wells-authoritative
-              position, WAP, market value, portfolio
-              weight, tax lots, or P&amp;L.
+              Adding this trade will create a Manual Pending record for later
+              Wells reconciliation. This action does not place a broker order
+              and does not modify the Wells-authoritative position, WAP, market
+              value, portfolio weight, tax lots, or P&amp;L.
             </p>
             {!canSubmit ? (
-                <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-                <p className="font-semibold text-slate-900">
-                    Calculation Only
-                </p>
+              <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+                <p className="font-semibold text-slate-900">Calculation Only</p>
 
                 <p className="mt-1">
-                    Your current role may calculate and
-                    review trade scenarios but cannot
-                    create Manual Pending trades.
+                  Your current role may calculate and review trade scenarios but
+                  cannot create Manual Pending trades.
                 </p>
-                </section>
+              </section>
             ) : null}
 
-          {submissionError ? (
-            <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700">
-              {submissionError}
-            </section>
-          ) : null}
+            {submissionError ? (
+              <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700">
+                {submissionError}
+              </section>
+            ) : null}
             <p className="mt-2">
-              Stop and target prices are scenario
-              assumptions only and will not be saved
-              with the trade.
+              Stop and target prices are scenario assumptions only and will not
+              be saved with the trade.
             </p>
           </section>
         </div>
@@ -520,10 +420,7 @@ export default function ManualTradeReviewModal({
             <button
               type="button"
               onClick={onSubmit}
-              disabled={
-                !canSubmit ||
-                isSubmitting
-              }
+              disabled={!canSubmit || isSubmitting}
               className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
             >
               {isSubmitting
