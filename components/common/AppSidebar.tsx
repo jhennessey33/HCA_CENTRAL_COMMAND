@@ -40,7 +40,7 @@ export default function AppSidebar({ activePage }: { activePage: string }) {
   ];
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-r border-slate-200 bg-white p-4">
+    <aside className="flex h-full w-72 shrink-0 flex-col overflow-y-auto border-r border-slate-200 bg-white p-4">
       <div className="mb-6 flex items-center gap-3 px-2 py-2">
         <HcaLogo />
         <div>
