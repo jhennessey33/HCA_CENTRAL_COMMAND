@@ -314,40 +314,59 @@ export default function AuditLogsClient({ initialLogs }: AuditLogsClientProps) {
 
           <nav className="space-y-2">
             <a
+              href="/trade-calculator"
+              className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
+            >
+              Trade Calculator
+            </a>
+            <a
+              href="/portfolio"
+              className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
+            >
+              Portfolio
+            </a>
+            <a
               href="/"
               className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
             >
               Home / Positions
             </a>
-
             <a
               href="/watchlist"
               className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
             >
               Watchlist
             </a>
-
-            <a
-              href="/past-positions"
-              className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
-            >
-              Past Positions
-            </a>
-
-            <a
-              href="/comments"
-              className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
-            >
-              Comments
-            </a>
-
             <a
               href="/alerts"
               className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
             >
               Alerts
             </a>
-
+            <a
+              href="/meetings"
+              className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
+            >
+              Meetings
+            </a>
+            <a
+              href="/comments"
+              className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
+            >
+              Comments
+            </a>
+            <a
+              href="/trades"
+              className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
+            >
+              Trades
+            </a>
+            <a
+              href="/past-positions"
+              className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
+            >
+              Past Positions
+            </a>
             <a
               href="/settings"
               className="block rounded-2xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
@@ -355,7 +374,9 @@ export default function AuditLogsClient({ initialLogs }: AuditLogsClientProps) {
               Settings
             </a>
 
-            <a href="/audit-logs" className="block">
+            <a href="/audit-logs"
+              className="block rounded-2xl bg-slate-900 px-3 py-2.5 text-sm font-medium text-white"
+            >
               Audit-logs
             </a>
           </nav>
@@ -413,9 +434,8 @@ export default function AuditLogsClient({ initialLogs }: AuditLogsClientProps) {
                   </p>
 
                   <p
-                    className={`mt-2 text-2xl font-semibold ${
-                      filtersActive ? "text-amber-600" : "text-slate-900"
-                    }`}
+                    className={`mt-2 text-2xl font-semibold ${filtersActive ? "text-amber-600" : "text-slate-900"
+                      }`}
                   >
                     {filteredCount}
                   </p>
