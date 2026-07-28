@@ -353,11 +353,10 @@ function WatchlistGrid({
 
                         setConfirmRemoveEntryId(entry.id);
                       }}
-                      className={`rounded-xl px-2 py-1 font-medium ${
-                        confirmRemoveEntryId === entry.id
-                          ? "bg-rose-600 text-white hover:bg-rose-700"
-                          : "bg-rose-50 text-rose-700 hover:bg-rose-100"
-                      }`}
+                      className={`rounded-xl px-2 py-1 font-medium ${confirmRemoveEntryId === entry.id
+                        ? "bg-rose-600 text-white hover:bg-rose-700"
+                        : "bg-rose-50 text-rose-700 hover:bg-rose-100"
+                        }`}
                     >
                       {confirmRemoveEntryId === entry.id
                         ? "Confirm Remove"
@@ -408,8 +407,8 @@ function MarketDataModal({
       "Avg Volume",
       marketData?.avgVolume != null
         ? marketData.avgVolume.toLocaleString("en-US", {
-            maximumFractionDigits: 0,
-          })
+          maximumFractionDigits: 0,
+        })
         : "N/A",
     ],
     [
@@ -474,9 +473,8 @@ function MarketDataModal({
           {rows.map(([label, value], index) => (
             <div
               key={label}
-              className={`grid grid-cols-2 px-4 py-3 text-sm ${
-                index % 2 === 0 ? "bg-slate-50" : "bg-white"
-              }`}
+              className={`grid grid-cols-2 px-4 py-3 text-sm ${index % 2 === 0 ? "bg-slate-50" : "bg-white"
+                }`}
             >
               <span className="font-medium text-slate-700">{label}</span>
               <span className="text-right font-semibold text-slate-950">
@@ -678,11 +676,10 @@ function WatchlistDetailPanel({
 
                   setConfirmRemoveEntryId(entry.id);
                 }}
-                className={`rounded-2xl px-4 py-2 text-sm font-medium ${
-                  confirmRemoveEntryId === entry.id
-                    ? "bg-rose-600 text-white hover:bg-rose-700"
-                    : "border border-rose-100 bg-rose-50 text-rose-700 hover:bg-rose-100"
-                }`}
+                className={`rounded-2xl px-4 py-2 text-sm font-medium ${confirmRemoveEntryId === entry.id
+                  ? "bg-rose-600 text-white hover:bg-rose-700"
+                  : "border border-rose-100 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                  }`}
               >
                 {confirmRemoveEntryId === entry.id
                   ? "Confirm Remove"
@@ -1009,13 +1006,12 @@ function AddStockModal({
               step="any"
               inputMode="decimal"
               className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
-              placeholder={`Enter ${
-                targetType === "BUY"
-                  ? "buy"
-                  : targetType === "COVER"
-                    ? "cover"
-                    : "sell"
-              } price target`}
+              placeholder={`Enter ${targetType === "BUY"
+                ? "buy"
+                : targetType === "COVER"
+                  ? "cover"
+                  : "sell"
+                } price target`}
             />
           </div>
 
@@ -1386,11 +1382,10 @@ function CommentModal({
             <button
               key={value}
               onClick={() => setTag(value)}
-              className={`rounded-2xl px-3 py-2 text-sm ${
-                tag === value
-                  ? "bg-slate-900 text-white"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-              }`}
+              className={`rounded-2xl px-3 py-2 text-sm ${tag === value
+                ? "bg-slate-900 text-white"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
             >
               {label}
             </button>
@@ -1439,6 +1434,7 @@ export default function WatchlistClient({
   mode = "WATCHLIST",
 }: WatchlistClientProps) {
   const [entries, setEntries] = useState<any[]>(initialEntries);
+  const [isPinkThemeActive, setIsPinkThemeActive] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [marketDataEntry, setMarketDataEntry] = useState<any | null>(null);
   const [query, setQuery] = useState("");
@@ -1455,6 +1451,30 @@ export default function WatchlistClient({
     () => new Set(portfolioSecurities.map((security) => security.id)),
     [portfolioSecurities],
   );
+
+  useEffect(() => {
+    const rootElement = document.documentElement;
+
+    function syncPinkThemeState() {
+      setIsPinkThemeActive(
+        rootElement.classList.contains("hca-pink-theme"),
+      );
+    }
+
+    syncPinkThemeState();
+
+    const observer = new MutationObserver(syncPinkThemeState);
+
+    observer.observe(rootElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   useEffect(() => {
     if (!confirmRemoveEntryId) {
       return;
@@ -1681,8 +1701,27 @@ export default function WatchlistClient({
     setConfirmRemoveEntryId(null);
   }
   return (
-    <main className="h-screen overflow-hidden bg-slate-100 text-slate-900">
-      <div className="flex h-full">
+    <main className="relative h-screen overflow-hidden bg-slate-100 text-slate-900">
+      {isPinkThemeActive ? (
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-30 motion-reduce:hidden"
+        >
+          <source src="/assets/john2.mp4"></source>
+        </video>
+      ) : null}
+
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-slate-100/60"
+      />
+
+      <div className="relative z-10 flex h-full">
         <AppSidebar
           activePage={mode === "PORTFOLIO" ? "/portfolio" : "/watchlist"}
         />

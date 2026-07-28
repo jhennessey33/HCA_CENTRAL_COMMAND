@@ -125,9 +125,8 @@ function ReportTable({
                 return (
                   <th
                     key={column}
-                    className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 ${
-                      isNumeric ? "text-right tabular-nums" : "text-left"
-                    }`}
+                    className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 ${isNumeric ? "text-right tabular-nums" : "text-left"
+                      }`}
                   >
                     {column}
                   </th>
@@ -149,9 +148,8 @@ function ReportTable({
                     return (
                       <td
                         key={cellIndex}
-                        className={`px-4 py-3 ${
-                          isNumeric ? "text-right tabular-nums" : "text-left"
-                        }`}
+                        className={`px-4 py-3 ${isNumeric ? "text-right tabular-nums" : "text-left"
+                          }`}
                       >
                         {cell}
                       </td>
@@ -219,7 +217,17 @@ export default function SummaryModal({
     const shortPositions = positionsWithDayPnl
       .filter((position) => position.side === "SHORT")
       .sort(sortByDayChangeDescending);
+    const longDayPnl = longPositions.reduce(
+      (total, position) => total + position.calculatedDayPnl,
+      0,
+    );
 
+    const shortDayPnl = shortPositions.reduce(
+      (total, position) => total + position.calculatedDayPnl,
+      0,
+    );
+
+    const totalDayPnl = longDayPnl + shortDayPnl;
     const signedSectorMarketValues = positions.reduce(
       (accumulator, position) => {
         const sector = position.security?.sector || "Unclassified";
@@ -246,19 +254,19 @@ export default function SummaryModal({
 
     const categoryEquityRows = hasValidNetEquity
       ? [
-          ...Object.entries(signedSectorMarketValues).map(
-            ([category, marketValue]) => ({
-              category,
-              marketValue: Number(marketValue),
-              equityPct: (Number(marketValue) / netEquity) * 100,
-            }),
-          ),
-          {
-            category: "Cash",
-            marketValue: cashMarketValue ?? 0,
-            equityPct: ((cashMarketValue ?? 0) / netEquity) * 100,
-          },
-        ].sort((a, b) => a.category.localeCompare(b.category))
+        ...Object.entries(signedSectorMarketValues).map(
+          ([category, marketValue]) => ({
+            category,
+            marketValue: Number(marketValue),
+            equityPct: (Number(marketValue) / netEquity) * 100,
+          }),
+        ),
+        {
+          category: "Cash",
+          marketValue: cashMarketValue ?? 0,
+          equityPct: ((cashMarketValue ?? 0) / netEquity) * 100,
+        },
+      ].sort((a, b) => a.category.localeCompare(b.category))
       : [];
 
     const totalEquityPct = categoryEquityRows.reduce(
@@ -271,6 +279,9 @@ export default function SummaryModal({
       lossRankings,
       longPositions,
       shortPositions,
+      longDayPnl,
+      shortDayPnl,
+      totalDayPnl,
       categoryEquityRows,
       totalEquityPct,
       netEquity: hasValidNetEquity ? netEquity : null,
@@ -307,22 +318,20 @@ export default function SummaryModal({
           <div className="flex gap-2">
             <button
               onClick={() => setActiveTab("EXECUTIVE")}
-              className={`rounded-xl px-4 py-2 text-sm ${
-                activeTab === "EXECUTIVE"
-                  ? "bg-slate-900 text-white"
-                  : "bg-slate-100 text-slate-600"
-              }`}
+              className={`rounded-xl px-4 py-2 text-sm ${activeTab === "EXECUTIVE"
+                ? "bg-slate-900 text-white"
+                : "bg-slate-100 text-slate-600"
+                }`}
             >
               Executive Summary
             </button>
 
             <button
               onClick={() => setActiveTab("REPORT")}
-              className={`rounded-xl px-4 py-2 text-sm ${
-                activeTab === "REPORT"
-                  ? "bg-slate-900 text-white"
-                  : "bg-slate-100 text-slate-600"
-              }`}
+              className={`rounded-xl px-4 py-2 text-sm ${activeTab === "REPORT"
+                ? "bg-slate-900 text-white"
+                : "bg-slate-100 text-slate-600"
+                }`}
             >
               Fund Report
             </button>
@@ -425,6 +434,73 @@ export default function SummaryModal({
                   </span>,
                 ])}
               />
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+                  <h3 className="font-semibold text-slate-900">
+                    Daily Net P&amp;L Summary
+                  </h3>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    Aggregate daily gain or loss across current long and short positions.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-3 divide-x divide-slate-200">
+                  <div className="p-5">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Long Day P&amp;L
+                    </p>
+
+                    <p
+                      className={`mt-2 text-2xl tabular-nums ${getPerformanceClass(
+                        analytics.longDayPnl,
+                      )}`}
+                    >
+                      {formatMoney(analytics.longDayPnl)}
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      Net result from long positions
+                    </p>
+                  </div>
+
+                  <div className="p-5">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Short Day P&amp;L
+                    </p>
+
+                    <p
+                      className={`mt-2 text-2xl tabular-nums ${getPerformanceClass(
+                        analytics.shortDayPnl,
+                      )}`}
+                    >
+                      {formatMoney(analytics.shortDayPnl)}
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      Net result from short positions
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-50 p-5">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Total Day P&amp;L
+                    </p>
+
+                    <p
+                      className={`mt-2 text-3xl tabular-nums ${getPerformanceClass(
+                        analytics.totalDayPnl,
+                      )}`}
+                    >
+                      {formatMoney(analytics.totalDayPnl)}
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      Combined portfolio result
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -491,11 +567,10 @@ export default function SummaryModal({
                           </td>
 
                           <td
-                            className={`px-4 py-2.5 text-right font-semibold tabular-nums ${
-                              category.equityPct < 0
-                                ? "text-rose-600"
-                                : "text-slate-900"
-                            }`}
+                            className={`px-4 py-2.5 text-right font-semibold tabular-nums ${category.equityPct < 0
+                              ? "text-rose-600"
+                              : "text-slate-900"
+                              }`}
                           >
                             {formatEquityPercent(category.equityPct)}
                           </td>
