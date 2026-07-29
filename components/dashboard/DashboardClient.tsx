@@ -219,9 +219,8 @@ function PositionGrid({
           return (
             <div
               key={position.id}
-              className={`grid min-w-[1300px] grid-cols-13 justify-items-center items-center border-b border-slate-100 px-4 py-3 text-xs transition hover:bg-slate-50 ${
-                selectedId === position.id ? "bg-slate-100" : "bg-white"
-              }`}
+              className={`grid min-w-[1300px] grid-cols-13 justify-items-center items-center border-b border-slate-100 px-4 py-3 text-xs transition hover:bg-slate-50 ${selectedId === position.id ? "bg-slate-100" : "bg-white"
+                }`}
             >
               <button
                 onClick={() => onSelect(position)}
@@ -571,7 +570,7 @@ function TickerDetailPanel({
                     )}
 
                     {trade.source === "SYSTEM" &&
-                    trade.reconciliationStatus === "MANUAL_PENDING" ? (
+                      trade.reconciliationStatus === "MANUAL_PENDING" ? (
                       <Badge tone="blue">Pending Completion</Badge>
                     ) : trade.reconciliationStatus === "REVIEW_REQUIRED" ? (
                       <Badge tone="red">Review</Badge>
@@ -653,7 +652,24 @@ function TickerDetailPanel({
     </aside>
   );
 }
+function getFinnhubCurrentPrice(position: any) {
+  const marketData = position.security?.marketData?.[0];
 
+  if (marketData?.marketDataSource !== "FINNHUB") {
+    return null;
+  }
+
+  const currentPrice = Number(marketData.currentPrice);
+
+  if (
+    !Number.isFinite(currentPrice) ||
+    currentPrice <= 0
+  ) {
+    return null;
+  }
+
+  return currentPrice;
+}
 function TaxLotsModal({
   position,
   onClose,
@@ -665,6 +681,8 @@ function TaxLotsModal({
 
   const security = position.security;
   const lots = position.taxLots || [];
+  const currentPrice =
+    getFinnhubCurrentPrice(position);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 p-4 backdrop-blur-sm">
@@ -676,6 +694,11 @@ function TaxLotsModal({
             </h2>
             <p className="mt-1 text-sm text-slate-500">
               {security.ticker} • {security.name}
+            </p>
+
+            <p className="mt-1 text-xs text-slate-400">
+              Current price: {formatPrice(currentPrice)}
+              {currentPrice != null ? " • FINNHUB" : " • FINNHUB unavailable"}
             </p>
           </div>
 
@@ -694,38 +717,110 @@ function TaxLotsModal({
               <span>Tax Lot ID</span>
               <span>Qty</span>
               <span>Unit Cost</span>
-              <span>Mkt Price</span>
+              <span>Current Price</span>
               <span>Cost</span>
-              <span>Mkt Value</span>
-              <span>U/P&L</span>
-              <span>ROI</span>
+              <span>Current Value</span>
+              <span>Current U/P&amp;L</span>
+              <span>Current ROI</span>
+
               <span>Days to LT</span>
             </div>
 
             {lots.length ? (
-              lots.map((lot: any) => (
-                <div
-                  key={lot.id}
-                  className="grid min-w-[1050px] grid-cols-10 gap-2 border-b border-slate-100 px-3 py-3 last:border-b-0"
-                >
-                  <DateDisplay value={lot.taxLotDate} />
-                  <span className="truncate text-slate-500">
-                    {lot.taxLotId || "—"}
-                  </span>
-                  <span>{formatNumber(lot.quantity)}</span>
-                  <span>{formatPrice(lot.unitCost)}</span>
-                  <span>{formatPrice(lot.marketPrice)}</span>
-                  <span>{formatMoney(lot.costBasis)}</span>
-                  <span>{formatMoney(lot.marketValue)}</span>
-                  <span className={pnlClass(lot.unrealizedPnl)}>
-                    {formatMoney(lot.unrealizedPnl)}
-                  </span>
-                  <span className={pnlClass(lot.roi)}>
-                    {lot.roi != null ? `${lot.roi.toFixed(1)}%` : "—"}
-                  </span>
-                  <span>{lot.daysToLongTerm || "—"}</span>
-                </div>
-              ))
+              lots.map((lot: any) => {
+                const quantity = Number(lot.quantity);
+                const costBasis = Number(lot.costBasis);
+
+                const hasValidQuantity =
+                  Number.isFinite(quantity);
+
+                const hasValidCostBasis =
+                  Number.isFinite(costBasis);
+
+                const currentMarketValue =
+                  currentPrice != null && hasValidQuantity
+                    ? quantity * currentPrice
+                    : null;
+
+                const currentUnrealizedPnl =
+                  currentMarketValue != null &&
+                    hasValidCostBasis
+                    ? currentMarketValue - costBasis
+                    : null;
+
+                const currentRoi =
+                  currentUnrealizedPnl != null &&
+                    hasValidCostBasis &&
+                    Math.abs(costBasis) > 0
+                    ? (currentUnrealizedPnl /
+                      Math.abs(costBasis)) *
+                    100
+                    : null;
+
+                return (
+                  <div
+                    key={lot.id}
+                    className="grid min-w-[1050px] grid-cols-10 gap-2 border-b border-slate-100 px-3 py-3 last:border-b-0"
+                  >
+                    <DateDisplay value={lot.taxLotDate} />
+
+                    <span className="truncate text-slate-500">
+                      {lot.taxLotId || "—"}
+                    </span>
+
+                    <span>
+                      {formatNumber(lot.quantity)}
+                    </span>
+
+                    <span>
+                      {formatPrice(lot.unitCost)}
+                    </span>
+
+                    <span>
+                      {formatPrice(currentPrice)}
+                    </span>
+
+                    <span>
+                      {formatMoney(lot.costBasis)}
+                    </span>
+
+                    <span>
+                      {currentMarketValue != null
+                        ? formatMoney(currentMarketValue)
+                        : "—"}
+                    </span>
+
+                    <span
+                      className={
+                        currentUnrealizedPnl != null
+                          ? pnlClass(currentUnrealizedPnl)
+                          : "text-slate-500"
+                      }
+                    >
+                      {currentUnrealizedPnl != null
+                        ? formatMoney(currentUnrealizedPnl)
+                        : "—"}
+                    </span>
+
+                    <span
+                      className={
+                        currentRoi != null
+                          ? pnlClass(currentRoi)
+                          : "text-slate-500"
+                      }
+                    >
+                      {currentRoi != null
+                        ? `${currentRoi.toFixed(1)}%`
+                        : "—"}
+                    </span>
+
+                    <span>
+                      {lot.daysToLongTerm || "—"}
+                    </span>
+                  </div>
+                );
+              })
+
             ) : (
               <div className="px-3 py-4 text-slate-500">
                 No tax lot breakdown yet.
@@ -768,8 +863,8 @@ function MarketDataModal({
       "Avg Volume",
       marketData?.avgVolume != null
         ? marketData.avgVolume.toLocaleString("en-US", {
-            maximumFractionDigits: 0,
-          })
+          maximumFractionDigits: 0,
+        })
         : "N/A",
     ],
     [
@@ -834,9 +929,8 @@ function MarketDataModal({
           {rows.map(([label, value], index) => (
             <div
               key={label}
-              className={`grid grid-cols-2 px-4 py-3 text-sm ${
-                index % 2 === 0 ? "bg-slate-50" : "bg-white"
-              }`}
+              className={`grid grid-cols-2 px-4 py-3 text-sm ${index % 2 === 0 ? "bg-slate-50" : "bg-white"
+                }`}
             >
               <span className="font-medium text-slate-700">{label}</span>
               <span className="text-right font-semibold text-slate-950">
@@ -1131,11 +1225,10 @@ function AddTradeModal({
               setConfirmingSave(true);
             }}
             disabled={isSaving}
-            className={`rounded-2xl px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60 ${
-              confirmingSave
-                ? "bg-amber-600 hover:bg-emerald-700"
-                : "bg-slate-900 hover:bg-slate-800"
-            }`}
+            className={`rounded-2xl px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60 ${confirmingSave
+              ? "bg-amber-600 hover:bg-emerald-700"
+              : "bg-slate-900 hover:bg-slate-800"
+              }`}
           >
             {isSaving
               ? "Saving..."
@@ -1236,11 +1329,10 @@ function CommentModal({
             <button
               key={value}
               onClick={() => setTag(value)}
-              className={`rounded-2xl px-3 py-2 text-sm ${
-                tag === value
-                  ? "bg-slate-900 text-white"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-              }`}
+              className={`rounded-2xl px-3 py-2 text-sm ${tag === value
+                ? "bg-slate-900 text-white"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
             >
               {label}
             </button>
@@ -2005,9 +2097,9 @@ export default function DashboardClient({
         trades: (position.trades || []).map((trade: any) =>
           trade.id === tradeId
             ? {
-                ...trade,
-                comment,
-              }
+              ...trade,
+              comment,
+            }
             : trade,
         ),
       };
@@ -2213,11 +2305,10 @@ export default function DashboardClient({
                     <button
                       key={filter}
                       onClick={() => setActiveFilter(filter)}
-                      className={`rounded-xl px-3 py-2 text-sm ${
-                        activeFilter === filter
-                          ? "bg-slate-900 text-white"
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                      }`}
+                      className={`rounded-xl px-3 py-2 text-sm ${activeFilter === filter
+                        ? "bg-slate-900 text-white"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        }`}
                     >
                       {filter}
                     </button>
