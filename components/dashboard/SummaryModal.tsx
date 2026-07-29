@@ -2,6 +2,7 @@
 import {
   getDisplayCurrentPrice,
   getDisplayDayPctChange,
+  getDisplayDayPnl,
 } from "@/lib/dashboard/position-metrics";
 import { useMemo, useState } from "react";
 
@@ -88,13 +89,8 @@ function formatEquityPercent(value: number | null | undefined) {
   return roundedValue.toFixed(2);
 }
 
-function getDayPnl(position: any) {
-  const marketValue = Number(position.marketValue || 0);
 
-  const dayPctChange = getDisplayDayPctChange(position) || 0;
 
-  return (marketValue * dayPctChange) / 100;
-}
 
 function ReportTable({
   title,
@@ -189,16 +185,26 @@ export default function SummaryModal({
 
     const positionsWithDayPnl = positions.map((position) => ({
       ...position,
-      calculatedDayPnl: getDayPnl(position),
+      calculatedDayPnl: getDisplayDayPnl(position),
     }));
 
+
     const profitRankings = positionsWithDayPnl
-      .filter((position) => position.calculatedDayPnl > 0)
+      .filter(
+        (position) =>
+          position.calculatedDayPnl != null &&
+          position.calculatedDayPnl > 0,
+      )
       .sort((a, b) => b.calculatedDayPnl - a.calculatedDayPnl)
       .slice(0, 10);
 
     const lossRankings = positionsWithDayPnl
-      .filter((position) => position.calculatedDayPnl < 0)
+      .filter(
+        (position) =>
+          position.calculatedDayPnl != null &&
+          position.calculatedDayPnl < 0,
+      )
+
       .sort((a, b) => a.calculatedDayPnl - b.calculatedDayPnl)
       .slice(0, 10);
 
@@ -218,15 +224,16 @@ export default function SummaryModal({
       .filter((position) => position.side === "SHORT")
       .sort(sortByDayChangeDescending);
     const longDayPnl = longPositions.reduce(
-      (total, position) => total + position.calculatedDayPnl,
+      (total, position) =>
+        total + (position.calculatedDayPnl ?? 0),
       0,
     );
 
     const shortDayPnl = shortPositions.reduce(
-      (total, position) => total + position.calculatedDayPnl,
+      (total, position) =>
+        total + (position.calculatedDayPnl ?? 0),
       0,
     );
-
     const totalDayPnl = longDayPnl + shortDayPnl;
     const signedSectorMarketValues = positions.reduce(
       (accumulator, position) => {
