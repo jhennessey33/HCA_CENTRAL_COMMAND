@@ -34,28 +34,44 @@ function parseTargetPrice(value: unknown) {
 }
 
 function getAllowedTargetTypes(side: string) {
-  return side === "LONG" ? ["BUY", "SELL"] : ["SELL", "COVER"];
+  return side === "LONG"
+    ? ["BUY", "SELL", "DISCUSSION"]
+    : ["SELL", "COVER", "DISCUSSION"];
 }
 
 function getTargetField(
   side: string,
   targetType: string,
-): "entryTargetPrice" | "exitTargetPrice" {
-  if (side === "LONG") {
-    return targetType === "BUY" ? "entryTargetPrice" : "exitTargetPrice";
+):
+  | "entryTargetPrice"
+  | "exitTargetPrice"
+  | "discussionTargetPrice" {
+  if (targetType === "DISCUSSION") {
+    return "discussionTargetPrice";
   }
 
-  return targetType === "SELL" ? "entryTargetPrice" : "exitTargetPrice";
+  if (side === "LONG") {
+    return targetType === "BUY"
+      ? "entryTargetPrice"
+      : "exitTargetPrice";
+  }
+
+  return targetType === "SELL"
+    ? "entryTargetPrice"
+    : "exitTargetPrice";
 }
 
 function getTargetLabel(side: string, targetType: string) {
+  if (targetType === "DISCUSSION") {
+    return "discussion";
+  }
+
   if (side === "LONG") {
     return targetType === "BUY" ? "buy" : "sell";
   }
 
   return targetType === "SELL" ? "sell" : "cover";
 }
-
 const watchlistEntryInclude = {
   security: {
     include: {
@@ -198,12 +214,13 @@ export async function POST(request: Request) {
         {
           error:
             side === "LONG"
-              ? "Long target type must be BUY or SELL."
-              : "Short target type must be SELL or COVER.",
+              ? "Long target type must be BUY, SELL, or DISCUSSION."
+              : "Short target type must be SELL, COVER, or DISCUSSION.",
         },
         { status: 400 },
       );
     }
+
 
     let parsedTargetPrice: number | null;
 
@@ -254,7 +271,9 @@ export async function POST(request: Request) {
           const previousTargetPrice =
             targetField === "entryTargetPrice"
               ? existingEntryTarget
-              : existingEntry.exitTargetPrice;
+              : targetField === "exitTargetPrice"
+                ? existingEntry.exitTargetPrice
+                : existingEntry.discussionTargetPrice;
 
           const updateData: Prisma.WatchlistEntryUpdateInput = {};
 
@@ -265,8 +284,10 @@ export async function POST(request: Request) {
               // Keep the temporary legacy field synchronized until it is
               // removed in a later migration.
               updateData.targetPrice = parsedTargetPrice;
-            } else {
+            } else if (targetField === "exitTargetPrice") {
               updateData.exitTargetPrice = parsedTargetPrice;
+            } else {
+              updateData.discussionTargetPrice = parsedTargetPrice;
             }
           }
 
@@ -281,13 +302,13 @@ export async function POST(request: Request) {
             const commentPrefix =
               previousTargetPrice == null
                 ? `${targetLabel[0].toUpperCase()}${targetLabel.slice(
-                    1,
-                  )} price target set to`
+                  1,
+                )} price target set to`
                 : `${targetLabel[0].toUpperCase()}${targetLabel.slice(
-                    1,
-                  )} price target changed from ${formatPriceForComment(
-                    previousTargetPrice,
-                  )} to`;
+                  1,
+                )} price target changed from ${formatPriceForComment(
+                  previousTargetPrice,
+                )} to`;
 
             await tx.comment.create({
               data: {
@@ -325,6 +346,7 @@ export async function POST(request: Request) {
                 side: existingEntry.side,
                 entryTargetPrice: existingEntryTarget,
                 exitTargetPrice: existingEntry.exitTargetPrice,
+                discussionTargetPrice: existingEntry.discussionTargetPrice,
               }),
               newValueJson: JSON.stringify({
                 ticker,
@@ -333,6 +355,7 @@ export async function POST(request: Request) {
                 entryTargetPrice:
                   updatedEntry.entryTargetPrice ?? updatedEntry.targetPrice,
                 exitTargetPrice: updatedEntry.exitTargetPrice,
+                discussionTargetPrice: updatedEntry.discussionTargetPrice,
                 comment: comment || null,
                 updateMethod: "ADD_MODAL_EXISTING_ENTRY",
               }),
@@ -351,6 +374,11 @@ export async function POST(request: Request) {
         const exitTargetPrice =
           targetField === "exitTargetPrice" ? parsedTargetPrice : null;
 
+        const discussionTargetPrice =
+          targetField === "discussionTargetPrice"
+            ? parsedTargetPrice
+            : null;
+
         const createdEntry = await tx.watchlistEntry.create({
           data: {
             securityId: security.id,
@@ -358,6 +386,7 @@ export async function POST(request: Request) {
             targetPrice: entryTargetPrice,
             entryTargetPrice,
             exitTargetPrice,
+            discussionTargetPrice,
             notes: comment || null,
           },
         });
@@ -394,12 +423,13 @@ export async function POST(request: Request) {
             action: "WATCHLIST_ENTRY_CREATED",
             entityType: "WATCHLIST_ENTRY",
             entityId: createdEntry.id,
-            newValueJson: JSON.stringify({
+            nnewValueJson: JSON.stringify({
               ticker,
               side,
               targetType,
               entryTargetPrice,
               exitTargetPrice,
+              discussionTargetPrice,
               comment: comment || null,
             }),
           },
