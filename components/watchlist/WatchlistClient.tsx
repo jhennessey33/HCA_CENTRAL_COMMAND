@@ -1158,11 +1158,10 @@ function AddStockModal({
                           event.preventDefault();
                           handleSecurityChange(security.id);
                         }}
-                        className={`flex w-full items-start justify-between gap-4 rounded-xl px-3 py-2.5 text-left ${
-                          isHighlighted || isSelected
-                            ? "bg-slate-100"
-                            : "hover:bg-slate-50"
-                        }`}
+                        className={`flex w-full items-start justify-between gap-4 rounded-xl px-3 py-2.5 text-left ${isHighlighted || isSelected
+                          ? "bg-slate-100"
+                          : "hover:bg-slate-50"
+                          }`}
                       >
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
@@ -1244,7 +1243,7 @@ function AddStockModal({
             </div>
           ) : null}
 
-          
+
 
           <div>
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -1281,33 +1280,40 @@ function AddStockModal({
                 <>
                   <option value="BUY">Buy PT</option>
                   <option value="SELL">Sell PT</option>
+                  <option value="DISCUSSION">Discussion PT</option>
                 </>
               ) : (
                 <>
                   <option value="SELL">Sell PT</option>
                   <option value="COVER">Cover PT</option>
+                  <option value="DISCUSSION">Discussion PT</option>
                 </>
               )}
             </select>
 
+
             <p className="mt-1 text-xs text-slate-500">
-              {side === "LONG"
-                ? targetType === "BUY"
-                  ? "Price where the long position may be initiated or added."
-                  : "Price where the long position may be sold or exited."
-                : targetType === "SELL"
-                  ? "Price where the short position may be initiated or added."
-                  : "Price where the short position may be covered."}
+              {targetType === "DISCUSSION"
+                ? "Price where the investment team wants to revisit and discuss this security."
+                : side === "LONG"
+                  ? targetType === "BUY"
+                    ? "Price where the long position may be initiated or added."
+                    : "Price where the long position may be sold or exited."
+                  : targetType === "SELL"
+                    ? "Price where the short position may be initiated or added."
+                    : "Price where the short position may be covered."}
             </p>
           </div>
 
           <div>
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              {targetType === "BUY"
-                ? "Buy PT"
-                : targetType === "COVER"
-                  ? "Cover PT"
-                  : "Sell PT"}
+              {targetType === "DISCUSSION"
+                ? "Discussion PT"
+                : targetType === "BUY"
+                  ? "Buy PT"
+                  : targetType === "COVER"
+                    ? "Cover PT"
+                    : "Sell PT"}
             </label>
 
             <input
@@ -1319,13 +1325,14 @@ function AddStockModal({
               inputMode="decimal"
               disabled={isSaving}
               className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
-              placeholder={`Enter ${
-                targetType === "BUY"
-                  ? "buy"
-                  : targetType === "COVER"
-                    ? "cover"
-                    : "sell"
-              } price target`}
+              placeholder={`Enter ${targetType === "DISCUSSION"
+                  ? "discussion"
+                  : targetType === "BUY"
+                    ? "buy"
+                    : targetType === "COVER"
+                      ? "cover"
+                      : "sell"
+                } price target`}
             />
           </div>
 
