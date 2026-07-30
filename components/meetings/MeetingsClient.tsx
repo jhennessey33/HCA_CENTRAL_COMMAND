@@ -599,49 +599,22 @@ async function handleSavePtChange(meetingId: string) {
   setIsSavingPtChange(true);
 
   try {
-    const useCreateFlow = !selectedWatchlistEntry;
-
-    const response = useCreateFlow
-      ? await fetch("/api/watchlist", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            ticker: selectedNoteSecurity.ticker,
-            side: ptSide,
-            targetType:
-              ptEntryTargetPrice.trim() !== ""
-                ? ptSide === "SHORT"
-                  ? "SELL"
-                  : "BUY"
-                : ptSide === "SHORT"
-                  ? "COVER"
-                  : "SELL",
-            targetPrice:
-              ptEntryTargetPrice.trim() !== ""
-                ? ptEntryTargetPrice
-                : ptExitTargetPrice,
-            comment: ptChangeReason.trim(),
-            meetingId,
-          }),
-        })
-      : await fetch(`/api/watchlist/${selectedWatchlistEntry.id}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            side: ptSide,
-            entryTargetPrice: ptEntryTargetPrice,
-            exitTargetPrice: ptExitTargetPrice,
-            notes: selectedWatchlistEntry.notes || "",
-            ptChangeComment: ptChangeReason.trim(),
-            meetingId,
-          }),
-        });
+    const response = await fetch("/api/watchlist/pt-change", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        securityId: selectedNoteSecurity.id,
+        watchlistEntryId: selectedWatchlistEntry?.id ?? null,
+        meetingId,
+        side: ptSide,
+        entryTargetPrice: ptEntryTargetPrice,
+        exitTargetPrice: ptExitTargetPrice,
+        ptChangeComment: ptChangeReason.trim(),
+      }),
+    });
 
     const data = await response.json();
 
@@ -699,6 +672,7 @@ async function handleSavePtChange(meetingId: string) {
     setIsSavingPtChange(false);
   }
 }
+
 
 
   return (
