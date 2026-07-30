@@ -234,8 +234,9 @@ model WatchlistEntry {
 
   // LONG: entry = Buy PT, exit = Sell PT
   // SHORT: entry = Sell PT, exit = Cover PT
-  entryTargetPrice Float?
-  exitTargetPrice  Float?
+  entryTargetPrice      Float?
+  exitTargetPrice       Float?
+  discussionTargetPrice Float?
 
   notes String?
 
