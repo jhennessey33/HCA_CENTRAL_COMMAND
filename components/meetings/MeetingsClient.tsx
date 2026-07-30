@@ -249,8 +249,8 @@ export default function MeetingsClient({
 
   const selectedSecurityPortfolioPct =
     selectedSecurityMarketValue != null &&
-    latestNetEquity != null &&
-    latestNetEquity > 0
+      latestNetEquity != null &&
+      latestNetEquity > 0
       ? (selectedSecurityMarketValue / latestNetEquity) * 100
       : null;
 
@@ -553,9 +553,9 @@ export default function MeetingsClient({
         current.map((meeting: any) =>
           meeting.id === meetingId
             ? {
-                ...meeting,
-                comments: [data.comment, ...(meeting.comments || [])],
-              }
+              ...meeting,
+              comments: [data.comment, ...(meeting.comments || [])],
+            }
             : meeting,
         ),
       );
@@ -578,37 +578,56 @@ export default function MeetingsClient({
       setSavingMeetingNoteId(null);
     }
   }
-  async function handleSavePtChange(meetingId: string) {
-    setPtChangeError("");
+async function handleSavePtChange(meetingId: string) {
+  setPtChangeError("");
 
-    if (!selectedNoteSecurity) {
-      setPtChangeError("Select a security before changing price targets.");
-      return;
-    }
+  if (!selectedNoteSecurity) {
+    setPtChangeError("Select a security before changing price targets.");
+    return;
+  }
 
-    if (!selectedWatchlistEntry) {
-      setPtChangeError(
-        "This security does not have an active Portfolio entry.",
-      );
-      return;
-    }
+  if (!ptTargetChanged) {
+    setPtChangeError("Change at least one price target before saving.");
+    return;
+  }
 
-    if (!ptTargetChanged) {
-      setPtChangeError("Change at least one price target before saving.");
-      return;
-    }
+  if (!ptChangeReason.trim()) {
+    setPtChangeError("Please enter a reason for changing the price targets.");
+    return;
+  }
 
-    if (!ptChangeReason.trim()) {
-      setPtChangeError("Please enter a reason for changing the price targets.");
-      return;
-    }
+  setIsSavingPtChange(true);
 
-    setIsSavingPtChange(true);
+  try {
+    const useCreateFlow = !selectedWatchlistEntry;
 
-    try {
-      const response = await fetch(
-        `/api/watchlist/${selectedWatchlistEntry.id}`,
-        {
+    const response = useCreateFlow
+      ? await fetch("/api/watchlist", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            ticker: selectedNoteSecurity.ticker,
+            side: ptSide,
+            targetType:
+              ptEntryTargetPrice.trim() !== ""
+                ? ptSide === "SHORT"
+                  ? "SELL"
+                  : "BUY"
+                : ptSide === "SHORT"
+                  ? "COVER"
+                  : "SELL",
+            targetPrice:
+              ptEntryTargetPrice.trim() !== ""
+                ? ptEntryTargetPrice
+                : ptExitTargetPrice,
+            comment: ptChangeReason.trim(),
+            meetingId,
+          }),
+        })
+      : await fetch(`/api/watchlist/${selectedWatchlistEntry.id}`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
@@ -622,65 +641,65 @@ export default function MeetingsClient({
             ptChangeComment: ptChangeReason.trim(),
             meetingId,
           }),
-        },
+        });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.error || data.detail || "Failed to update price targets.",
       );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || data.detail || "Failed to update price targets.",
-        );
-      }
-
-      const generatedPtComments = Array.isArray(data.generatedPtComments)
-        ? data.generatedPtComments
-        : [];
-
-      setMeetings((current) =>
-        current.map((meeting: any) =>
-          meeting.id === meetingId
-            ? {
-                ...meeting,
-                comments: [
-                  ...generatedPtComments.slice().reverse(),
-                  ...(meeting.comments || []),
-                ],
-              }
-            : meeting,
-        ),
-      );
-
-      setNoteDrafts((current) => ({
-        ...current,
-        [meetingId]: "",
-      }));
-
-      setSelectedSecurityIds((current) => ({
-        ...current,
-        [meetingId]: "",
-      }));
-      setSelectedNoteTags((current) => ({
-        ...current,
-        [meetingId]: "NOTE",
-      }));
-
-      setSecuritySearchQuery("");
-      setIsSecurityDropdownOpen(false);
-      setPtChangeReason("");
-      setPtChangeError("");
-
-      setActiveMeetingForNote(null);
-    } catch (error) {
-      setPtChangeError(
-        error instanceof Error
-          ? error.message
-          : "Failed to update price targets.",
-      );
-    } finally {
-      setIsSavingPtChange(false);
     }
+
+    const generatedPtComments = Array.isArray(data.generatedPtComments)
+      ? data.generatedPtComments
+      : [];
+
+    setMeetings((current) =>
+      current.map((meeting: any) =>
+        meeting.id === meetingId
+          ? {
+              ...meeting,
+              comments: [
+                ...generatedPtComments.slice().reverse(),
+                ...(meeting.comments || []),
+              ],
+            }
+          : meeting,
+      ),
+    );
+
+    setNoteDrafts((current) => ({
+      ...current,
+      [meetingId]: "",
+    }));
+
+    setSelectedSecurityIds((current) => ({
+      ...current,
+      [meetingId]: "",
+    }));
+
+    setSelectedNoteTags((current) => ({
+      ...current,
+      [meetingId]: "NOTE",
+    }));
+
+    setSecuritySearchQuery("");
+    setIsSecurityDropdownOpen(false);
+    setPtChangeReason("");
+    setPtChangeError("");
+    setActiveMeetingForNote(null);
+  } catch (error) {
+    setPtChangeError(
+      error instanceof Error
+        ? error.message
+        : "Failed to update price targets.",
+    );
+  } finally {
+    setIsSavingPtChange(false);
   }
+}
+
 
   return (
     <main className="h-screen overflow-hidden bg-slate-100 text-slate-900">
@@ -794,10 +813,10 @@ export default function MeetingsClient({
                                     comment.tag === "PT"
                                       ? "amber"
                                       : comment.tag === "RISK" ||
-                                          comment.tag === "EXIT"
+                                        comment.tag === "EXIT"
                                         ? "red"
                                         : comment.tag === "CATALYST" ||
-                                            comment.tag === "THESIS"
+                                          comment.tag === "THESIS"
                                           ? "green"
                                           : "slate"
                                   }
@@ -978,12 +997,11 @@ export default function MeetingsClient({
 
                         handleNoteSecurityChange("");
                       }}
-                      className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left ${
-                        highlightedSecurityIndex === 0 ||
+                      className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left ${highlightedSecurityIndex === 0 ||
                         !selectedNoteSecurityId
-                          ? "bg-slate-100"
-                          : "hover:bg-slate-50"
-                      }`}
+                        ? "bg-slate-100"
+                        : "hover:bg-slate-50"
+                        }`}
                     >
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-200 text-xs font-semibold text-slate-600">
                         —
@@ -1026,11 +1044,10 @@ export default function MeetingsClient({
 
                               handleNoteSecurityChange(security.id);
                             }}
-                            className={`flex w-full items-start justify-between gap-4 rounded-xl px-3 py-2.5 text-left ${
-                              isHighlighted || isSelected
-                                ? "bg-slate-100"
-                                : "hover:bg-slate-50"
-                            }`}
+                            className={`flex w-full items-start justify-between gap-4 rounded-xl px-3 py-2.5 text-left ${isHighlighted || isSelected
+                              ? "bg-slate-100"
+                              : "hover:bg-slate-50"
+                              }`}
                           >
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
@@ -1139,7 +1156,7 @@ export default function MeetingsClient({
                   </div>
 
                   {fundEquitySnapshot &&
-                  selectedSecurityPortfolioPct != null ? (
+                    selectedSecurityPortfolioPct != null ? (
                     <p className="mt-2 text-[11px] text-slate-400">
                       Position percentage uses Net Equity as of{" "}
                       {new Date(fundEquitySnapshot.asOfDate).toLocaleDateString(
@@ -1172,15 +1189,14 @@ export default function MeetingsClient({
                           [activeMeetingForNote.id]: value,
                         }))
                       }
-                      className={`rounded-xl px-3 py-2 text-xs font-medium ${
-                        selectedNoteTag === value
-                          ? value === "PT"
-                            ? "bg-amber-600 text-white"
-                            : "bg-slate-900 text-white"
-                          : value === "PT"
-                            ? "border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
-                            : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                      }`}
+                      className={`rounded-xl px-3 py-2 text-xs font-medium ${selectedNoteTag === value
+                        ? value === "PT"
+                          ? "bg-amber-600 text-white"
+                          : "bg-slate-900 text-white"
+                        : value === "PT"
+                          ? "border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                          : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                        }`}
                     >
                       {label}
                     </button>
@@ -1200,7 +1216,7 @@ export default function MeetingsClient({
                     </p>
                   ) : !selectedWatchlistEntry ? (
                     <p className="mt-2 text-sm leading-6 text-amber-800">
-                      This security does not have an active Portfolio entry.
+                      No portfolio entry exists. Saving will automatically create one.
                     </p>
                   ) : (
                     <div className="mt-4 space-y-4">
@@ -1353,18 +1369,16 @@ export default function MeetingsClient({
                   disabled={
                     selectedNoteTag === "PT"
                       ? !selectedNoteSecurity ||
-                        !selectedWatchlistEntry ||
-                        !ptTargetChanged ||
-                        !ptChangeReason.trim() ||
-                        isSavingPtChange
+                      !ptTargetChanged ||
+                      !ptChangeReason.trim() ||
+                      isSavingPtChange
                       : !noteDrafts[activeMeetingForNote.id]?.trim() ||
-                        savingMeetingNoteId === activeMeetingForNote.id
+                      savingMeetingNoteId === activeMeetingForNote.id
                   }
-                  className={`rounded-2xl px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-60 ${
-                    selectedNoteTag === "PT"
-                      ? "bg-amber-600 hover:bg-amber-700"
-                      : "bg-slate-900 hover:bg-slate-800"
-                  }`}
+                  className={`rounded-2xl px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-60 ${selectedNoteTag === "PT"
+                    ? "bg-amber-600 hover:bg-amber-700"
+                    : "bg-slate-900 hover:bg-slate-800"
+                    }`}
                 >
                   {selectedNoteTag === "PT"
                     ? isSavingPtChange

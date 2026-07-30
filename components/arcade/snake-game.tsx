@@ -1,11 +1,9 @@
 "use client";
-
-import {
+import React, {
     useCallback,
     useEffect,
     useRef,
     useState,
-    type KeyboardEvent,
 } from "react";
 
 type Point = {
@@ -105,18 +103,26 @@ export default function PinkThemeSnake() {
     const [food, setFood] =
         useState<Point | null>(STARTING_FOOD);
 
-    const [direction, setDirection] =
-        useState<Direction>("RIGHT");
+    const foodRef =
+        useRef<Point | null>(STARTING_FOOD);
 
-    const [pendingDirection, setPendingDirection] =
-        useState<Direction>("RIGHT");
+    const directionRef =
+        useRef<Direction>("RIGHT");
+
+    const inputQueueRef =
+        useRef<Direction[]>([]);
 
     const [status, setStatus] = useState<
         "PAUSED" | "RUNNING" | "GAME_OVER" | "WON"
     >("PAUSED");
 
     const [score, setScore] = useState(0);
-    const boardRef = useRef<HTMLDivElement | null>(null);
+    const boardRef =
+        useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        foodRef.current = food;
+    }, [food]);
 
     useEffect(() => {
         const rootElement = document.documentElement;
@@ -144,8 +150,10 @@ export default function PinkThemeSnake() {
     const resetGame = useCallback(() => {
         setSnake(STARTING_SNAKE);
         setFood(STARTING_FOOD);
-        setDirection("RIGHT");
-        setPendingDirection("RIGHT");
+
+        directionRef.current = "RIGHT";
+        inputQueueRef.current = [];
+
         setScore(0);
         setStatus("PAUSED");
     }, []);
@@ -161,105 +169,173 @@ export default function PinkThemeSnake() {
             return;
         }
 
-        const intervalId = window.setInterval(() => {
-            setSnake((currentSnake) => {
-                const appliedDirection = isOppositeDirection(
-                    direction,
-                    pendingDirection,
-                )
-                    ? direction
-                    : pendingDirection;
+        const MOVE_INTERVAL = 90;
 
-                setDirection(appliedDirection);
+        let lastMoveTime =
+            performance.now();
 
-                const currentHead = currentSnake[0];
-                const nextHead = getNextHead(
-                    currentHead,
-                    appliedDirection,
-                );
+        let animationFrameId = 0;
 
-                const hitWall =
-                    nextHead.x < 0 ||
-                    nextHead.x >= BOARD_SIZE ||
-                    nextHead.y < 0 ||
-                    nextHead.y >= BOARD_SIZE;
+        function gameLoop(
+            currentTime: number,
+        ) {
+            while (
+                currentTime - lastMoveTime >= MOVE_INTERVAL
+            ) {
+                lastMoveTime += MOVE_INTERVAL;
 
-                if (hitWall) {
-                    setStatus("GAME_OVER");
-                    return currentSnake;
-                }
+                // move snake
 
-                const ateFood =
-                    food != null && pointsMatch(nextHead, food);
 
-                const collisionBody = ateFood
-                    ? currentSnake
-                    : currentSnake.slice(0, -1);
+                setSnake((currentSnake) => {
+                    const queuedDirection =
+                        inputQueueRef.current.shift();
 
-                const hitSnake = collisionBody.some((segment) =>
-                    pointsMatch(segment, nextHead),
-                );
+                    if (
+                        queuedDirection &&
+                        !isOppositeDirection(
+                            directionRef.current,
+                            queuedDirection,
+                        )
+                    ) {
+                        directionRef.current =
+                            queuedDirection;
+                    }
 
-                if (hitSnake) {
-                    setStatus("GAME_OVER");
-                    return currentSnake;
-                }
+                    const nextHead =
+                        getNextHead(
+                            currentSnake[0],
+                            directionRef.current,
+                        );
 
-                const nextSnake = [
-                    nextHead,
-                    ...currentSnake,
-                ];
+                    const hitWall =
+                        nextHead.x < 0 ||
+                        nextHead.x >= BOARD_SIZE ||
+                        nextHead.y < 0 ||
+                        nextHead.y >= BOARD_SIZE;
 
-                if (!ateFood) {
-                    nextSnake.pop();
+                    if (hitWall) {
+                        setStatus(
+                            "GAME_OVER",
+                        );
+
+                        return currentSnake;
+                    }
+
+                    const ateFood =
+                        foodRef.current != null &&
+                        pointsMatch(
+                            nextHead,
+                            foodRef.current,
+                        );
+
+                    const collisionBody =
+                        ateFood
+                            ? currentSnake
+                            : currentSnake.slice(
+                                0,
+                                -1,
+                            );
+
+                    const hitSnake =
+                        collisionBody.some(
+                            (segment) =>
+                                pointsMatch(
+                                    segment,
+                                    nextHead,
+                                ),
+                        );
+
+                    if (hitSnake) {
+                        setStatus(
+                            "GAME_OVER",
+                        );
+
+                        return currentSnake;
+                    }
+
+                    const nextSnake = [
+                        nextHead,
+                        ...currentSnake,
+                    ];
+
+                    if (!ateFood) {
+                        nextSnake.pop();
+                        return nextSnake;
+                    }
+
+                    setScore(
+                        (score) => score + 1,
+                    );
+
+                    const nextFood =
+                        createFood(nextSnake);
+
+                    setFood(nextFood);
+
+                    if (!nextFood) {
+                        setStatus("WON");
+                    }
+
                     return nextSnake;
-                }
+                });
+            }
 
-                setScore((currentScore) => currentScore + 1);
+            animationFrameId =
+                requestAnimationFrame(
+                    gameLoop,
+                );
+        }
 
-                const nextFood = createFood(nextSnake);
-                setFood(nextFood);
+        animationFrameId =
+            requestAnimationFrame(
+                gameLoop,
+            );
 
-                if (!nextFood) {
-                    setStatus("WON");
-                }
-
-                return nextSnake;
-            });
-        }, 150);
-
-        return () => {
-            window.clearInterval(intervalId);
-        };
-    }, [direction, food, pendingDirection, status]);
+        return () =>
+            cancelAnimationFrame(
+                animationFrameId,
+            );
+    }, [status]);
 
     function startGame() {
-        if (status === "GAME_OVER" || status === "WON") {
-            resetGame();
+        if (
+            status === "GAME_OVER" ||
+            status === "WON"
+        ) {
+            setSnake(STARTING_SNAKE);
+            setFood(STARTING_FOOD);
+            directionRef.current = "RIGHT";
+            inputQueueRef.current = [];
+            setScore(0);
         }
 
         setStatus("RUNNING");
 
-        window.requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
             boardRef.current?.focus();
         });
     }
 
     function handleKeyDown(
-        event: KeyboardEvent<HTMLDivElement>,
+        event: React.KeyboardEvent<HTMLDivElement>,
     ) {
-        const directionByKey: Partial<
-            Record<string, Direction>
+        const directionByKey: Record<
+            string,
+            Direction
         > = {
             ArrowUp: "UP",
             w: "UP",
             W: "UP",
+
             ArrowDown: "DOWN",
             s: "DOWN",
             S: "DOWN",
+
             ArrowLeft: "LEFT",
             a: "LEFT",
             A: "LEFT",
+
             ArrowRight: "RIGHT",
             d: "RIGHT",
             D: "RIGHT",
@@ -274,15 +350,38 @@ export default function PinkThemeSnake() {
 
         event.preventDefault();
 
+        if (event.repeat) {
+            return;
+        }
+
+        const queue =
+            inputQueueRef.current;
+
+        const referenceDirection =
+            queue.length > 0
+                ? queue[queue.length - 1]
+                : directionRef.current;
+
         if (
-            !isOppositeDirection(
-                direction,
+            isOppositeDirection(
+                referenceDirection,
                 nextDirection,
             )
         ) {
-            setPendingDirection(nextDirection);
+            return;
+        }
+
+        if (
+            referenceDirection === nextDirection
+        ) {
+            return;
+        }
+
+        if (queue.length < 3) {
+            queue.push(nextDirection);
         }
     }
+
 
     if (!isPinkThemeActive) {
         return null;
@@ -309,9 +408,9 @@ export default function PinkThemeSnake() {
 
                 <div
                     ref={boardRef}
-                    role="application"
                     tabIndex={0}
                     onKeyDown={handleKeyDown}
+                    onClick={() => boardRef.current?.focus()}
                     aria-label="Snake game board. Use arrow keys or WASD to move."
                     className="grid aspect-square w-full grid-cols-12 overflow-hidden rounded-xl border border-slate-700 bg-cover bg-center bg-no-repeat outline-none ring-pink-400 focus:ring-2"
                     style={{

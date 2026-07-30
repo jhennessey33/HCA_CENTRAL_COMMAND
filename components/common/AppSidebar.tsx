@@ -1,5 +1,5 @@
 import HcaLogo from "@/components/common/HcaLogo";
-import PinkThemeSnake from "@/components/easter-eggs/PinkThemeSnake";
+import PinkThemeSnake from "@/components/arcade/snake-game";
 
 function NavItem({
   href,
