@@ -180,6 +180,15 @@ export default function MeetingsClient({
   const [isSavingPtChange, setIsSavingPtChange] = useState(false);
 
   const [ptChangeError, setPtChangeError] = useState("");
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(
+    null,
+  );
+
+  const [confirmDeleteCommentId, setConfirmDeleteCommentId] = useState<
+    string | null
+  >(null);
+
+  const [deleteCommentError, setDeleteCommentError] = useState("");
 
   const filteredMeetings = useMemo(() => {
     const normalized = query.toLowerCase();
@@ -280,6 +289,18 @@ export default function MeetingsClient({
   const ptEntryTargetLabel = ptSide === "SHORT" ? "Sell PT" : "Buy PT";
 
   const ptExitTargetLabel = ptSide === "SHORT" ? "Cover PT" : "Sell PT";
+
+  useEffect(() => {
+    if (!confirmDeleteCommentId) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setConfirmDeleteCommentId(null);
+    }, 5000);
+
+    return () => clearTimeout(timeout);
+  }, [confirmDeleteCommentId]);
 
   useEffect(() => {
     if (!activeMeetingForNote) {
@@ -578,6 +599,51 @@ export default function MeetingsClient({
       setSavingMeetingNoteId(null);
     }
   }
+
+  async function handleDeleteComment(
+    meetingId: string,
+    commentId: string,
+  ) {
+    setDeletingCommentId(commentId);
+    setDeleteCommentError("");
+
+    try {
+      const response = await fetch(`/api/comments/${commentId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete comment.");
+      }
+
+      setMeetings((current) =>
+        current.map((meeting: any) =>
+          meeting.id === meetingId
+            ? {
+              ...meeting,
+              comments: (meeting.comments || []).filter(
+                (comment: any) => comment.id !== commentId,
+              ),
+            }
+            : meeting,
+        ),
+      );
+
+      setConfirmDeleteCommentId(null);
+    } catch (error) {
+      setDeleteCommentError(
+        error instanceof Error
+          ? error.message
+          : "Failed to delete comment.",
+      );
+    } finally {
+      setDeletingCommentId(null);
+    }
+  }
+
   async function handleSavePtChange(meetingId: string) {
     setPtChangeError("");
 
@@ -732,6 +798,12 @@ export default function MeetingsClient({
               />
             </div>
 
+            {deleteCommentError ? (
+              <div className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                {deleteCommentError}
+              </div>
+            ) : null}
+
             <div className="mt-5 space-y-5">
               {filteredMeetings.map((meeting: any) => (
                 <div
@@ -799,10 +871,63 @@ export default function MeetingsClient({
                                 </Badge>
                               </div>
 
-                              <LocalDateTime
-                                value={comment.createdAt}
-                                className="text-xs text-slate-400"
-                              />
+                              <div className="flex items-center gap-2">
+                                <LocalDateTime
+                                  value={comment.createdAt}
+                                  className="text-xs text-slate-400"
+                                />
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (confirmDeleteCommentId === comment.id) {
+                                      void handleDeleteComment(meeting.id, comment.id);
+                                      return;
+                                    }
+
+                                    setDeleteCommentError("");
+                                    setConfirmDeleteCommentId(comment.id);
+                                  }}
+                                  disabled={deletingCommentId === comment.id}
+                                  title={
+                                    confirmDeleteCommentId === comment.id
+                                      ? "Confirm delete"
+                                      : "Delete comment"
+                                  }
+                                  aria-label={
+                                    confirmDeleteCommentId === comment.id
+                                      ? "Confirm delete comment"
+                                      : "Delete comment"
+                                  }
+                                  className={`inline-flex items-center justify-center rounded-xl disabled:cursor-not-allowed disabled:opacity-50 ${confirmDeleteCommentId === comment.id
+                                      ? "bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-700"
+                                      : "h-8 w-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                                    }`}
+                                >
+                                  {deletingCommentId === comment.id ? (
+                                    <span className="text-xs font-semibold">...</span>
+                                  ) : confirmDeleteCommentId === comment.id ? (
+                                    "Confirm Delete"
+                                  ) : (
+                                    <svg
+                                      viewBox="0 0 24 24"
+                                      aria-hidden="true"
+                                      className="h-5 w-5"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    >
+                                      <path d="M3 6h18" />
+                                      <path d="M8 6V4h8v2" />
+                                      <path d="M6 6l1 15h10l1-15" />
+                                      <path d="M10 11v6" />
+                                      <path d="M14 11v6" />
+                                    </svg>
+                                  )}
+                                </button>
+                              </div>
                             </div>
 
                             <p className="mt-3 text-sm text-slate-700">

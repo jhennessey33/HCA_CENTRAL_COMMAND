@@ -1244,28 +1244,7 @@ function AddStockModal({
             </div>
           ) : null}
 
-          {mode === "PORTFOLIO" && portfolioSecurities.length ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Current Portfolio
-              </p>
-
-              <div className="flex max-h-32 flex-wrap gap-2 overflow-auto">
-                {portfolioSecurities.map((security) => (
-                  <button
-                    key={security.id}
-                    type="button"
-                    onClick={() => handleSecurityChange(security.id)}
-                    disabled={isSaving}
-                    className="rounded-xl bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-                    title={security.name}
-                  >
-                    {security.ticker}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
+          
 
           <div>
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
