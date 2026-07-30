@@ -833,28 +833,187 @@ function AddStockModal({
   portfolioSecurities: PortfolioSecurity[];
   securities: SecurityOption[];
   mode: "WATCHLIST" | "PORTFOLIO";
-
 }) {
-  const [ticker, setTicker] = useState("");
+  const [selectedSecurityId, setSelectedSecurityId] = useState("");
+  const [securitySearchQuery, setSecuritySearchQuery] = useState("");
+  const [isSecurityDropdownOpen, setIsSecurityDropdownOpen] = useState(false);
+  const [highlightedSecurityIndex, setHighlightedSecurityIndex] = useState(0);
+
   const [side, setSide] = useState("LONG");
   const [targetType, setTargetType] = useState("BUY");
   const [targetPrice, setTargetPrice] = useState("");
   const [comment, setComment] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
-  const isActivePortfolioSecurity = portfolioSecurities.some(
-    (security) => security.ticker.toUpperCase() === ticker.trim().toUpperCase(),
+
+  const securityComboboxRef = useRef<HTMLDivElement | null>(null);
+
+  const selectedSecurity =
+    securities.find((security) => security.id === selectedSecurityId) ?? null;
+
+  const filteredSecurities = useMemo(() => {
+    const normalizedQuery = securitySearchQuery.trim().toLowerCase();
+
+    return securities
+      .filter((security) => {
+        if (!normalizedQuery) {
+          return true;
+        }
+
+        const searchable = [
+          security.ticker,
+          security.name,
+          security.sector,
+          security.industry,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return searchable.includes(normalizedQuery);
+      })
+      .slice(0, 50);
+  }, [securities, securitySearchQuery]);
+
+  const activePortfolioSecurityIds = useMemo(
+    () => new Set(portfolioSecurities.map((security) => security.id)),
+    [portfolioSecurities],
   );
 
+  const isActivePortfolioSecurity = selectedSecurity
+    ? activePortfolioSecurityIds.has(selectedSecurity.id)
+    : false;
+
+  useEffect(() => {
+    setHighlightedSecurityIndex(0);
+  }, [securitySearchQuery]);
+
+  useEffect(() => {
+    if (!open) {
+      setIsSecurityDropdownOpen(false);
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target as Node;
+
+      if (
+        securityComboboxRef.current &&
+        !securityComboboxRef.current.contains(target)
+      ) {
+        setIsSecurityDropdownOpen(false);
+        setSecuritySearchQuery(
+          selectedSecurity
+            ? `${selectedSecurity.ticker} — ${selectedSecurity.name}`
+            : "",
+        );
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+    };
+  }, [open, selectedSecurity]);
+
   if (!open) return null;
+
+  function resetForm() {
+    setSelectedSecurityId("");
+    setSecuritySearchQuery("");
+    setIsSecurityDropdownOpen(false);
+    setHighlightedSecurityIndex(0);
+    setSide("LONG");
+    setTargetType("BUY");
+    setTargetPrice("");
+    setComment("");
+    setError("");
+  }
+
+  function handleClose() {
+    if (isSaving) {
+      return;
+    }
+
+    resetForm();
+    onClose();
+  }
+
+  function handleSecurityChange(securityId: string) {
+    const security =
+      securities.find((option) => option.id === securityId) ?? null;
+
+    setSelectedSecurityId(securityId);
+    setSecuritySearchQuery(
+      security ? `${security.ticker} — ${security.name}` : "",
+    );
+    setIsSecurityDropdownOpen(false);
+    setHighlightedSecurityIndex(0);
+    setError("");
+  }
+
+  function handleClearSecurity() {
+    setSelectedSecurityId("");
+    setSecuritySearchQuery("");
+    setIsSecurityDropdownOpen(true);
+    setHighlightedSecurityIndex(0);
+    setError("");
+  }
+
+  function handleSecurityKeyDown(
+    event: React.KeyboardEvent<HTMLInputElement>,
+  ) {
+    const optionCount = filteredSecurities.length;
+
+    if (event.key === "Escape") {
+      setIsSecurityDropdownOpen(false);
+      setSecuritySearchQuery(
+        selectedSecurity
+          ? `${selectedSecurity.ticker} — ${selectedSecurity.name}`
+          : "",
+      );
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setIsSecurityDropdownOpen(true);
+      setHighlightedSecurityIndex((currentIndex) =>
+        Math.min(currentIndex + 1, Math.max(optionCount - 1, 0)),
+      );
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setIsSecurityDropdownOpen(true);
+      setHighlightedSecurityIndex((currentIndex) =>
+        Math.max(currentIndex - 1, 0),
+      );
+      return;
+    }
+
+    if (event.key === "Enter" && isSecurityDropdownOpen) {
+      event.preventDefault();
+
+      const highlightedSecurity =
+        filteredSecurities[highlightedSecurityIndex];
+
+      if (highlightedSecurity) {
+        handleSecurityChange(highlightedSecurity.id);
+      }
+    }
+  }
 
   async function handleSubmit() {
     setError("");
 
-    if (!ticker.trim()) {
-      setError("Ticker is required.");
+    if (!selectedSecurity) {
+      setError("Select a security from the search results.");
       return;
     }
+
     if (mode === "WATCHLIST" && isActivePortfolioSecurity) {
       setError(
         "This security is already an active portfolio position. Use the Portfolio view instead.",
@@ -866,18 +1025,14 @@ function AddStockModal({
 
     try {
       await onAdd({
-        ticker,
+        ticker: selectedSecurity.ticker,
         side,
         targetType,
         targetPrice,
         comment,
       });
 
-      setTicker("");
-      setSide("LONG");
-      setTargetType("BUY");
-      setTargetPrice("");
-      setComment("");
+      resetForm();
       onClose();
     } catch (error) {
       setError(
@@ -892,7 +1047,7 @@ function AddStockModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-xl font-semibold text-slate-950">
@@ -904,25 +1059,188 @@ function AddStockModal({
           </div>
 
           <button
-            onClick={onClose}
-            className="rounded-xl p-2 text-slate-500 hover:bg-slate-100"
+            type="button"
+            onClick={handleClose}
+            disabled={isSaving}
+            className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
             ✕
           </button>
         </div>
 
         <div className="mt-5 space-y-3">
-          <input
-            value={ticker}
-            onChange={(event) => setTicker(event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
-            placeholder="Ticker, e.g. AMD"
-          />
+          <div ref={securityComboboxRef} className="relative">
+            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Security
+            </label>
+
+            <div className="relative mt-2">
+              <input
+                value={securitySearchQuery}
+                onFocus={() => {
+                  if (selectedSecurityId) {
+                    setSecuritySearchQuery("");
+                  }
+
+                  setIsSecurityDropdownOpen(true);
+                }}
+                onChange={(event) => {
+                  setSecuritySearchQuery(event.target.value);
+
+                  if (selectedSecurityId) {
+                    setSelectedSecurityId("");
+                  }
+
+                  setIsSecurityDropdownOpen(true);
+                  setError("");
+                }}
+                onKeyDown={handleSecurityKeyDown}
+                placeholder="Search ticker, company, sector, or industry..."
+                autoComplete="off"
+                role="combobox"
+                aria-expanded={isSecurityDropdownOpen}
+                aria-controls="watchlist-security-options"
+                aria-autocomplete="list"
+                disabled={isSaving}
+                className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-4 pr-20 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-50"
+              />
+
+              <div className="absolute inset-y-0 right-3 flex items-center gap-1">
+                {selectedSecurityId || securitySearchQuery ? (
+                  <button
+                    type="button"
+                    onClick={handleClearSecurity}
+                    disabled={isSaving}
+                    aria-label="Clear selected security"
+                    className="rounded-lg px-2 py-1 text-sm text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    ✕
+                  </button>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setIsSecurityDropdownOpen((current) => !current)
+                  }
+                  disabled={isSaving}
+                  aria-label="Toggle security options"
+                  className="rounded-lg px-2 py-1 text-xs text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  ▼
+                </button>
+              </div>
+            </div>
+
+            {isSecurityDropdownOpen ? (
+              <div
+                id="watchlist-security-options"
+                role="listbox"
+                className="absolute z-40 mt-2 max-h-80 w-full overflow-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl"
+              >
+                {filteredSecurities.length ? (
+                  filteredSecurities.map((security, index) => {
+                    const isHighlighted = highlightedSecurityIndex === index;
+                    const isSelected = selectedSecurityId === security.id;
+                    const isPortfolioSecurity =
+                      activePortfolioSecurityIds.has(security.id);
+
+                    return (
+                      <button
+                        key={security.id}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        onMouseEnter={() =>
+                          setHighlightedSecurityIndex(index)
+                        }
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          handleSecurityChange(security.id);
+                        }}
+                        className={`flex w-full items-start justify-between gap-4 rounded-xl px-3 py-2.5 text-left ${
+                          isHighlighted || isSelected
+                            ? "bg-slate-100"
+                            : "hover:bg-slate-50"
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-slate-950">
+                              {security.ticker}
+                            </span>
+
+                            {security.sector ? (
+                              <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                                {security.sector}
+                              </span>
+                            ) : null}
+
+                            {isPortfolioSecurity ? (
+                              <span className="rounded-lg bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                                Portfolio
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <p className="mt-0.5 truncate text-xs text-slate-600">
+                            {security.name}
+                          </p>
+
+                          {security.industry ? (
+                            <p className="mt-0.5 truncate text-[11px] text-slate-400">
+                              {security.industry}
+                            </p>
+                          ) : null}
+                        </div>
+
+                        {isSelected ? (
+                          <span className="shrink-0 text-sm font-semibold text-emerald-600">
+                            ✓
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="px-4 py-6 text-center">
+                    <p className="text-sm font-medium text-slate-700">
+                      No securities matched
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Try another ticker, company, sector, or industry.
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
 
           {mode === "WATCHLIST" && isActivePortfolioSecurity ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
               This security is currently an active portfolio position and will
               appear in the Portfolio view instead of the Watchlist.
+            </div>
+          ) : null}
+
+          {selectedSecurity ? (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-950">
+                    {selectedSecurity.ticker}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-slate-600">
+                    {selectedSecurity.name}
+                  </p>
+                </div>
+
+                {selectedSecurity.sector ? (
+                  <span className="rounded-lg bg-white px-2 py-1 text-[10px] font-medium text-slate-500 ring-1 ring-slate-200">
+                    {selectedSecurity.sector}
+                  </span>
+                ) : null}
+              </div>
             </div>
           ) : null}
 
@@ -933,12 +1251,13 @@ function AddStockModal({
               </p>
 
               <div className="flex max-h-32 flex-wrap gap-2 overflow-auto">
-                {portfolioSecurities.map((security: any) => (
+                {portfolioSecurities.map((security) => (
                   <button
                     key={security.id}
                     type="button"
-                    onClick={() => setTicker(security.ticker)}
-                    className="rounded-xl bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100"
+                    onClick={() => handleSecurityChange(security.id)}
+                    disabled={isSaving}
+                    className="rounded-xl bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                     title={security.name}
                   >
                     {security.ticker}
@@ -957,16 +1276,17 @@ function AddStockModal({
               value={side}
               onChange={(event) => {
                 const nextSide = event.target.value;
-
                 setSide(nextSide);
                 setTargetType(nextSide === "SHORT" ? "SELL" : "BUY");
               }}
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+              disabled={isSaving}
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
             >
               <option value="LONG">Long Watchlist</option>
               <option value="SHORT">Short Watchlist</option>
             </select>
           </div>
+
           <div>
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Target Type
@@ -975,7 +1295,8 @@ function AddStockModal({
             <select
               value={targetType}
               onChange={(event) => setTargetType(event.target.value)}
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+              disabled={isSaving}
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
             >
               {side === "LONG" ? (
                 <>
@@ -1000,6 +1321,7 @@ function AddStockModal({
                   : "Price where the short position may be covered."}
             </p>
           </div>
+
           <div>
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               {targetType === "BUY"
@@ -1016,20 +1338,23 @@ function AddStockModal({
               min="0"
               step="any"
               inputMode="decimal"
-              className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
-              placeholder={`Enter ${targetType === "BUY"
-                ? "buy"
-                : targetType === "COVER"
-                  ? "cover"
-                  : "sell"
-                } price target`}
+              disabled={isSaving}
+              className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
+              placeholder={`Enter ${
+                targetType === "BUY"
+                  ? "buy"
+                  : targetType === "COVER"
+                    ? "cover"
+                    : "sell"
+              } price target`}
             />
           </div>
 
           <textarea
             value={comment}
             onChange={(event) => setComment(event.target.value)}
-            className="h-28 w-full resize-none rounded-2xl border border-slate-200 p-4 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+            disabled={isSaving}
+            className="h-28 w-full resize-none rounded-2xl border border-slate-200 p-4 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
             placeholder="Comment section..."
           />
         </div>
@@ -1040,16 +1365,21 @@ function AddStockModal({
 
         <div className="mt-5 flex justify-end gap-2">
           <button
-            onClick={onClose}
-            className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            type="button"
+            onClick={handleClose}
+            disabled={isSaving}
+            className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Cancel
           </button>
 
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={
-              isSaving || (mode === "WATCHLIST" && isActivePortfolioSecurity)
+              isSaving ||
+              !selectedSecurity ||
+              (mode === "WATCHLIST" && isActivePortfolioSecurity)
             }
             className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -1060,6 +1390,7 @@ function AddStockModal({
     </div>
   );
 }
+
 
 function EditWatchlistModal({
   entry,
