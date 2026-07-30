@@ -578,100 +578,100 @@ export default function MeetingsClient({
       setSavingMeetingNoteId(null);
     }
   }
-async function handleSavePtChange(meetingId: string) {
-  setPtChangeError("");
+  async function handleSavePtChange(meetingId: string) {
+    setPtChangeError("");
 
-  if (!selectedNoteSecurity) {
-    setPtChangeError("Select a security before changing price targets.");
-    return;
-  }
-
-  if (!ptTargetChanged) {
-    setPtChangeError("Change at least one price target before saving.");
-    return;
-  }
-
-  if (!ptChangeReason.trim()) {
-    setPtChangeError("Please enter a reason for changing the price targets.");
-    return;
-  }
-
-  setIsSavingPtChange(true);
-
-  try {
-    const response = await fetch("/api/watchlist/pt-change", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify({
-        securityId: selectedNoteSecurity.id,
-        watchlistEntryId: selectedWatchlistEntry?.id ?? null,
-        meetingId,
-        side: ptSide,
-        entryTargetPrice: ptEntryTargetPrice,
-        exitTargetPrice: ptExitTargetPrice,
-        ptChangeComment: ptChangeReason.trim(),
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data.error || data.detail || "Failed to update price targets.",
-      );
+    if (!selectedNoteSecurity) {
+      setPtChangeError("Select a security before changing price targets.");
+      return;
     }
 
-    const generatedPtComments = Array.isArray(data.generatedPtComments)
-      ? data.generatedPtComments
-      : [];
+    if (!ptTargetChanged) {
+      setPtChangeError("Change at least one price target before saving.");
+      return;
+    }
 
-    setMeetings((current) =>
-      current.map((meeting: any) =>
-        meeting.id === meetingId
-          ? {
+    if (!ptChangeReason.trim()) {
+      setPtChangeError("Please enter a reason for changing the price targets.");
+      return;
+    }
+
+    setIsSavingPtChange(true);
+
+    try {
+      const response = await fetch("/api/watchlist/pt-change", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          securityId: selectedNoteSecurity.id,
+          watchlistEntryId: selectedWatchlistEntry?.id ?? null,
+          meetingId,
+          side: ptSide,
+          entryTargetPrice: ptEntryTargetPrice,
+          exitTargetPrice: ptExitTargetPrice,
+          ptChangeComment: ptChangeReason.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || data.detail || "Failed to update price targets.",
+        );
+      }
+
+      const generatedPtComments = Array.isArray(data.generatedPtComments)
+        ? data.generatedPtComments
+        : [];
+
+      setMeetings((current) =>
+        current.map((meeting: any) =>
+          meeting.id === meetingId
+            ? {
               ...meeting,
               comments: [
                 ...generatedPtComments.slice().reverse(),
                 ...(meeting.comments || []),
               ],
             }
-          : meeting,
-      ),
-    );
+            : meeting,
+        ),
+      );
 
-    setNoteDrafts((current) => ({
-      ...current,
-      [meetingId]: "",
-    }));
+      setNoteDrafts((current) => ({
+        ...current,
+        [meetingId]: "",
+      }));
 
-    setSelectedSecurityIds((current) => ({
-      ...current,
-      [meetingId]: "",
-    }));
+      setSelectedSecurityIds((current) => ({
+        ...current,
+        [meetingId]: "",
+      }));
 
-    setSelectedNoteTags((current) => ({
-      ...current,
-      [meetingId]: "NOTE",
-    }));
+      setSelectedNoteTags((current) => ({
+        ...current,
+        [meetingId]: "NOTE",
+      }));
 
-    setSecuritySearchQuery("");
-    setIsSecurityDropdownOpen(false);
-    setPtChangeReason("");
-    setPtChangeError("");
-    setActiveMeetingForNote(null);
-  } catch (error) {
-    setPtChangeError(
-      error instanceof Error
-        ? error.message
-        : "Failed to update price targets.",
-    );
-  } finally {
-    setIsSavingPtChange(false);
+      setSecuritySearchQuery("");
+      setIsSecurityDropdownOpen(false);
+      setPtChangeReason("");
+      setPtChangeError("");
+      setActiveMeetingForNote(null);
+    } catch (error) {
+      setPtChangeError(
+        error instanceof Error
+          ? error.message
+          : "Failed to update price targets.",
+      );
+    } finally {
+      setIsSavingPtChange(false);
+    }
   }
-}
 
 
 
@@ -1188,110 +1188,114 @@ async function handleSavePtChange(meetingId: string) {
                     <p className="mt-2 text-sm leading-6 text-amber-800">
                       Select a security to change its price targets.
                     </p>
-                  ) : !selectedWatchlistEntry ? (
-                    <p className="mt-2 text-sm leading-6 text-amber-800">
-                      No portfolio entry exists. Saving will automatically create one.
-                    </p>
                   ) : (
-                    <div className="mt-4 space-y-4">
-                      <div>
-                        <label className="text-xs font-semibold uppercase tracking-wide text-amber-800">
-                          Portfolio Side
-                        </label>
-
-                        <select
-                          value={ptSide}
-                          onChange={(event) => setPtSide(event.target.value)}
-                          disabled={isSavingPtChange}
-                          className="mt-2 w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-50"
-                        >
-                          <option value="LONG">Long</option>
-
-                          <option value="SHORT">Short</option>
-                        </select>
-
-                        <p className="mt-1 text-xs text-amber-700">
-                          Changing sides relabels the entry and exit targets but
-                          preserves their values.
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-xs font-semibold uppercase tracking-wide text-amber-800">
-                            {ptEntryTargetLabel}
-                          </label>
-
-                          <input
-                            value={ptEntryTargetPrice}
-                            onChange={(event) =>
-                              setPtEntryTargetPrice(event.target.value)
-                            }
-                            type="number"
-                            min="0"
-                            step="any"
-                            inputMode="decimal"
-                            disabled={isSavingPtChange}
-                            placeholder={`Enter ${ptEntryTargetLabel.toLowerCase()}`}
-                            className="mt-2 w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-50"
-                          />
-
-                          <p className="mt-1 text-xs text-amber-700">
-                            {ptSide === "SHORT"
-                              ? "Price where the short may be initiated or added."
-                              : "Price where the long may be initiated or added."}
-                          </p>
-                        </div>
-
-                        <div>
-                          <label className="text-xs font-semibold uppercase tracking-wide text-amber-800">
-                            {ptExitTargetLabel}
-                          </label>
-
-                          <input
-                            value={ptExitTargetPrice}
-                            onChange={(event) =>
-                              setPtExitTargetPrice(event.target.value)
-                            }
-                            type="number"
-                            min="0"
-                            step="any"
-                            inputMode="decimal"
-                            disabled={isSavingPtChange}
-                            placeholder={`Enter ${ptExitTargetLabel.toLowerCase()}`}
-                            className="mt-2 w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-50"
-                          />
-
-                          <p className="mt-1 text-xs text-amber-700">
-                            {ptSide === "SHORT"
-                              ? "Price where the short may be covered."
-                              : "Price where the long may be sold or exited."}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-semibold uppercase tracking-wide text-amber-800">
-                          Reason for PT Change Required
-                        </label>
-
-                        <textarea
-                          value={ptChangeReason}
-                          onChange={(event) =>
-                            setPtChangeReason(event.target.value)
-                          }
-                          disabled={isSavingPtChange}
-                          placeholder="Explain why one or both price targets are changing..."
-                          className="mt-2 h-24 w-full resize-none rounded-2xl border border-amber-200 bg-white p-4 text-sm outline-none focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-50"
-                        />
-                      </div>
-
-                      {ptChangeError ? (
-                        <p className="text-sm font-medium text-rose-700">
-                          {ptChangeError}
+                    <>
+                      {!selectedWatchlistEntry ? (
+                        <p className="mt-2 text-sm leading-6 text-amber-800">
+                          No portfolio entry exists. Saving will automatically create one.
                         </p>
                       ) : null}
-                    </div>
+
+                      <div className="mt-4 space-y-4">
+                        <div>
+                          <label className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+                            Portfolio Side
+                          </label>
+
+                          <select
+                            value={ptSide}
+                            onChange={(event) => setPtSide(event.target.value)}
+                            disabled={isSavingPtChange}
+                            className="mt-2 w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-50"
+                          >
+                            <option value="LONG">Long</option>
+
+                            <option value="SHORT">Short</option>
+                          </select>
+
+                          <p className="mt-1 text-xs text-amber-700">
+                            Changing sides relabels the entry and exit targets but
+                            preserves their values.
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+                              {ptEntryTargetLabel}
+                            </label>
+
+                            <input
+                              value={ptEntryTargetPrice}
+                              onChange={(event) =>
+                                setPtEntryTargetPrice(event.target.value)
+                              }
+                              type="number"
+                              min="0"
+                              step="any"
+                              inputMode="decimal"
+                              disabled={isSavingPtChange}
+                              placeholder={`Enter ${ptEntryTargetLabel.toLowerCase()}`}
+                              className="mt-2 w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-50"
+                            />
+
+                            <p className="mt-1 text-xs text-amber-700">
+                              {ptSide === "SHORT"
+                                ? "Price where the short may be initiated or added."
+                                : "Price where the long may be initiated or added."}
+                            </p>
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+                              {ptExitTargetLabel}
+                            </label>
+
+                            <input
+                              value={ptExitTargetPrice}
+                              onChange={(event) =>
+                                setPtExitTargetPrice(event.target.value)
+                              }
+                              type="number"
+                              min="0"
+                              step="any"
+                              inputMode="decimal"
+                              disabled={isSavingPtChange}
+                              placeholder={`Enter ${ptExitTargetLabel.toLowerCase()}`}
+                              className="mt-2 w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-50"
+                            />
+
+                            <p className="mt-1 text-xs text-amber-700">
+                              {ptSide === "SHORT"
+                                ? "Price where the short may be covered."
+                                : "Price where the long may be sold or exited."}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+                            Reason for PT Change Required
+                          </label>
+
+                          <textarea
+                            value={ptChangeReason}
+                            onChange={(event) =>
+                              setPtChangeReason(event.target.value)
+                            }
+                            disabled={isSavingPtChange}
+                            placeholder="Explain why one or both price targets are changing..."
+                            className="mt-2 h-24 w-full resize-none rounded-2xl border border-amber-200 bg-white p-4 text-sm outline-none focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-50"
+                          />
+                        </div>
+
+                        {ptChangeError ? (
+                          <p className="text-sm font-medium text-rose-700">
+                            {ptChangeError}
+                          </p>
+                        ) : null}
+                      </div>
+                    </>
                   )}
                 </div>
               ) : (
