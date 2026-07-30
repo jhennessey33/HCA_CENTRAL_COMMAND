@@ -181,7 +181,7 @@ export async function PATCH(
 
     let entryTargetPrice: number | null;
     let exitTargetPrice: number | null;
-
+    let discussionTargetPrice: number | null;
     try {
       entryTargetPrice = parseTargetPrice(
         body.entryTargetPrice,
@@ -191,6 +191,11 @@ export async function PATCH(
       exitTargetPrice = parseTargetPrice(
         body.exitTargetPrice,
         side === "SHORT" ? "Cover PT" : "Sell PT",
+      );
+
+      discussionTargetPrice = parseTargetPrice(
+        body.discussionTargetPrice,
+        "Discussion PT",
       );
     } catch (error) {
       return NextResponse.json(
@@ -209,6 +214,8 @@ export async function PATCH(
       existingEntry.entryTargetPrice ?? existingEntry.targetPrice;
 
     const existingExitTargetPrice = existingEntry.exitTargetPrice;
+    const existingDiscussionTargetPrice =
+      existingEntry.discussionTargetPrice;
 
     const didEntryTargetChange = targetPriceChanged(
       existingEntryTargetPrice,
@@ -220,9 +227,19 @@ export async function PATCH(
       exitTargetPrice,
     );
 
+    const didDiscussionTargetChange = targetPriceChanged(
+      existingDiscussionTargetPrice,
+      discussionTargetPrice,
+    );
+
     const didSideChange = existingEntry.side !== side;
 
-    if ((didEntryTargetChange || didExitTargetChange) && !ptChangeComment) {
+    if (
+      (didEntryTargetChange ||
+        didExitTargetChange ||
+        didDiscussionTargetChange) &&
+      !ptChangeComment
+    ) {
       return NextResponse.json(
         {
           error: "Changing a price target requires a PT change comment.",
@@ -267,6 +284,7 @@ export async function PATCH(
             side,
             entryTargetPrice,
             exitTargetPrice,
+            discussionTargetPrice,
 
             // Keep the legacy target synchronized with the entry
             // target until targetPrice is removed in a later migration.
@@ -322,6 +340,29 @@ export async function PATCH(
           commentIds.push(comment.id);
         }
 
+        if (didDiscussionTargetChange && ptChangeComment) {
+          const comment = await tx.comment.create({
+            data: {
+              securityId: existingEntry.securityId,
+              watchlistEntryId: existingEntry.id,
+              meetingId,
+              authorId: author.id,
+              tag: "PT",
+              content: buildTargetChangeComment({
+                label: "discussion",
+                previousValue: existingDiscussionTargetPrice,
+                nextValue: discussionTargetPrice,
+                reason: ptChangeComment,
+              }),
+            },
+            select: {
+              id: true,
+            },
+          });
+
+          commentIds.push(comment.id);
+        }
+
         await tx.auditLog.create({
           data: {
             actorId: author.id,
@@ -333,6 +374,7 @@ export async function PATCH(
               side: existingEntry.side,
               entryTargetPrice: existingEntryTargetPrice,
               exitTargetPrice: existingExitTargetPrice,
+              discussionTargetPrice: existingDiscussionTargetPrice,
               notes: existingEntry.notes,
             }),
             newValueJson: JSON.stringify({
@@ -340,10 +382,13 @@ export async function PATCH(
               side,
               entryTargetPrice,
               exitTargetPrice,
+              discussionTargetPrice,
               notes,
               sideChanged: didSideChange,
               targetChangeReason:
-                didEntryTargetChange || didExitTargetChange
+                didEntryTargetChange ||
+                  didExitTargetChange ||
+                  didDiscussionTargetChange
                   ? ptChangeComment
                   : null,
             }),
@@ -356,34 +401,35 @@ export async function PATCH(
     const generatedPtComments =
       generatedPtCommentIds.length > 0
         ? await prisma.comment.findMany({
-            where: {
-              id: {
-                in: generatedPtCommentIds,
+          where: {
+            id: {
+              in: generatedPtCommentIds,
+            },
+          },
+          include: {
+            security: true,
+            author: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
               },
             },
-            include: {
-              security: true,
-              author: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  role: true,
-                },
-              },
-              watchlistEntry: {
-                select: {
-                  id: true,
-                  side: true,
-                  entryTargetPrice: true,
-                  exitTargetPrice: true,
-                },
+            watchlistEntry: {
+              select: {
+                id: true,
+                side: true,
+                entryTargetPrice: true,
+                exitTargetPrice: true,
+                discussionTargetPrice: true,
               },
             },
-            orderBy: {
-              createdAt: "asc",
-            },
-          })
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        })
         : [];
 
     const updatedEntry = await prisma.watchlistEntry.findUniqueOrThrow({
