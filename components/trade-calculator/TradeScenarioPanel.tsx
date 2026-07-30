@@ -947,7 +947,7 @@ export default function TradeScenarioPanel({
               label="Projected Position"
               value={
                 <span>
-                  {formatNumber(result.projectedExposure)}{" "}
+                  {formatWholeShares(result.projectedExposure)}{" "}
                   <span className="text-sm text-slate-500">
                     {getSideLabel(result.projectedSide)}
                   </span>

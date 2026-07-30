@@ -286,9 +286,9 @@ export default function TradesClient({
         trades: (position.trades || []).map((trade: any) =>
           trade.id === tradeId
             ? {
-                ...trade,
-                ...updates,
-              }
+              ...trade,
+              ...updates,
+            }
             : trade,
         ),
       })),
@@ -444,11 +444,10 @@ export default function TradesClient({
                 <button
                   key={filter}
                   onClick={() => setTradeFilter(filter)}
-                  className={`rounded-xl px-3 py-2 text-sm ${
-                    tradeFilter === filter
+                  className={`rounded-xl px-3 py-2 text-sm ${tradeFilter === filter
                       ? "bg-slate-900 text-white"
                       : "border border-slate-200 bg-white"
-                  }`}
+                    }`}
                 >
                   {filter}
                 </button>
@@ -534,12 +533,12 @@ export default function TradesClient({
                               title={
                                 applicableFundEquity
                                   ? `Calculated using Net Equity of ${formatMoney(
-                                      dayNetEquity,
-                                    )} as of ${formatDay(
-                                      getSnapshotDateKey(
-                                        applicableFundEquity.asOfDate,
-                                      ),
-                                    )}`
+                                    dayNetEquity,
+                                  )} as of ${formatDay(
+                                    getSnapshotDateKey(
+                                      applicableFundEquity.asOfDate,
+                                    ),
+                                  )}`
                                   : "No Net Equity snapshot was available on or before this trade date."
                               }
                               className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 tabular-nums"
@@ -551,12 +550,12 @@ export default function TradesClient({
                               title={
                                 applicableFundEquity
                                   ? `Calculated using Net Equity of ${formatMoney(
-                                      dayNetEquity,
-                                    )} as of ${formatDay(
-                                      getSnapshotDateKey(
-                                        applicableFundEquity.asOfDate,
-                                      ),
-                                    )}`
+                                    dayNetEquity,
+                                  )} as of ${formatDay(
+                                    getSnapshotDateKey(
+                                      applicableFundEquity.asOfDate,
+                                    ),
+                                  )}`
                                   : "No Net Equity snapshot was available on or before this trade date."
                               }
                               className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 tabular-nums"
@@ -614,7 +613,7 @@ export default function TradesClient({
                             <Badge
                               tone={
                                 trade.tradeType === "BUY" ||
-                                trade.tradeType === "SHORT"
+                                  trade.tradeType === "SHORT"
                                   ? "green"
                                   : "red"
                               }
@@ -632,7 +631,7 @@ export default function TradesClient({
                           <div>
                             {formatMoney(
                               Number(trade.shares || 0) *
-                                Number(trade.avgPrice || 0),
+                              Number(trade.avgPrice || 0),
                             )}
                           </div>
 
@@ -667,7 +666,7 @@ export default function TradesClient({
 
                           <div className="flex items-center gap-1">
                             {trade.source === "MANUAL" &&
-                            trade.reconciliationStatus === "MANUAL_PENDING" ? (
+                              trade.reconciliationStatus === "MANUAL_PENDING" ? (
                               <>
                                 <button
                                   type="button"
@@ -693,11 +692,10 @@ export default function TradesClient({
 
                                       setConfirmDeleteTradeId(trade.id);
                                     }}
-                                    className={`inline-flex min-h-7 items-center justify-center rounded-xl px-2 py-1 text-[11px] font-medium ${
-                                      confirmDeleteTradeId === trade.id
+                                    className={`inline-flex min-h-7 items-center justify-center rounded-xl px-2 py-1 text-[11px] font-medium ${confirmDeleteTradeId === trade.id
                                         ? "bg-rose-600 text-white hover:bg-rose-700"
                                         : "text-rose-600 hover:bg-rose-50"
-                                    }`}
+                                      }`}
                                   >
                                     {confirmDeleteTradeId === trade.id
                                       ? "Confirm"
