@@ -4,16 +4,24 @@ import AppSidebar from "@/components/common/AppSidebar";
 
 import LocalDateTime from "@/components/common/LocalDateTime";
 import Badge from "@/components/common/Badge";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { canCreateComments, canEditWatchlist } from "@/lib/client-permissions";
 import CurrentUserPill from "@/components/auth/CurrentUserPill";
+
+type SecurityOption = {
+  id: string;
+  ticker: string;
+  name: string;
+  sector?: string | null;
+  industry?: string | null;
+};
 
 type WatchlistClientProps = {
   initialEntries: WatchlistEntry[];
   portfolioSecurities: PortfolioSecurity[];
+  securities: SecurityOption[];
   mode?: "WATCHLIST" | "PORTFOLIO";
 };
-
 type WatchlistAuthor = {
   id?: string;
   name?: string | null;
@@ -810,6 +818,7 @@ function AddStockModal({
   onClose,
   onAdd,
   portfolioSecurities,
+  securities,
   mode,
 }: {
   open: boolean;
@@ -822,7 +831,9 @@ function AddStockModal({
     comment: string;
   }) => Promise<void>;
   portfolioSecurities: PortfolioSecurity[];
+  securities: SecurityOption[];
   mode: "WATCHLIST" | "PORTFOLIO";
+
 }) {
   const [ticker, setTicker] = useState("");
   const [side, setSide] = useState("LONG");
@@ -1431,6 +1442,7 @@ function CommentModal({
 export default function WatchlistClient({
   initialEntries,
   portfolioSecurities,
+  securities,
   mode = "WATCHLIST",
 }: WatchlistClientProps) {
   const [entries, setEntries] = useState<any[]>(initialEntries);
@@ -1873,6 +1885,7 @@ export default function WatchlistClient({
         onClose={() => setAddModalOpen(false)}
         onAdd={handleAddEntry}
         portfolioSecurities={portfolioSecurities}
+        securities={securities}
         mode={mode}
       />
 
