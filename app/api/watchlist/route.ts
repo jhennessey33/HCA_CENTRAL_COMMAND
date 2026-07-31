@@ -423,7 +423,7 @@ export async function POST(request: Request) {
             action: "WATCHLIST_ENTRY_CREATED",
             entityType: "WATCHLIST_ENTRY",
             entityId: createdEntry.id,
-            nnewValueJson: JSON.stringify({
+            newValueJson: JSON.stringify({
               ticker,
               side,
               targetType,

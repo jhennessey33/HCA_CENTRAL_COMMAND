@@ -30,6 +30,34 @@ function formatMoney(value: number | null | undefined) {
     maximumFractionDigits: 0,
   });
 }
+
+function formatAccountingMoney(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
+    return "—";
+  }
+
+  const formattedValue = Math.abs(value).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+
+  return value < 0 ? `(${formattedValue})` : formattedValue;
+}
+
+function formatExposurePercent(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
+    return "—";
+  }
+
+  const formattedValue = Math.abs(value).toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  });
+
+  return value < 0 ? `(${formattedValue}%)` : `${formattedValue}%`;
+}
+
 function formatBps(value: number | null) {
   if (value == null || !Number.isFinite(value)) {
     return "—";
@@ -269,15 +297,63 @@ export default function TradesClient({
     return Array.from(groups.entries());
   }, [filteredTrades]);
 
-  const grossNotional = filteredTrades.reduce(
-    (sum, trade) =>
-      sum + Math.abs(Number(trade.shares || 0) * Number(trade.avgPrice || 0)),
-    0,
-  );
+  const investmentSummary = useMemo(() => {
+    return localPositions.reduce(
+      (totals, position) => {
+        if (position.status && position.status !== "ACTIVE") {
+          return totals;
+        }
 
-  const pendingTradeCount = filteredTrades.filter(
-    (trade) => trade.reconciliationStatus === "MANUAL_PENDING",
-  ).length;
+        const marketValue = Number(position.marketValue);
+
+        if (!Number.isFinite(marketValue)) {
+          return totals;
+        }
+
+        const absoluteMarketValue = Math.abs(marketValue);
+
+        if (position.side === "SHORT") {
+          totals.shortInvestments += absoluteMarketValue;
+        } else if (position.side === "LONG") {
+          totals.longInvestments += absoluteMarketValue;
+        }
+
+        return totals;
+      },
+      {
+        longInvestments: 0,
+        shortInvestments: 0,
+      },
+    );
+  }, [localPositions]);
+
+  const grossInvestments =
+    investmentSummary.longInvestments +
+    investmentSummary.shortInvestments;
+
+  const netInvestments =
+    investmentSummary.longInvestments -
+    investmentSummary.shortInvestments;
+
+  const latestFundEquitySnapshot = useMemo(() => {
+    return [...fundEquitySnapshots].sort(
+      (a, b) =>
+        new Date(b.asOfDate).getTime() - new Date(a.asOfDate).getTime(),
+    )[0] ?? null;
+  }, [fundEquitySnapshots]);
+
+  const latestNetEquity = Number(latestFundEquitySnapshot?.netEquity);
+
+  const hasValidLatestNetEquity =
+    Number.isFinite(latestNetEquity) && latestNetEquity > 0;
+
+  const grossInvestmentPercent = hasValidLatestNetEquity
+    ? (grossInvestments / latestNetEquity) * 100
+    : null;
+
+  const netInvestmentPercent = hasValidLatestNetEquity
+    ? (netInvestments / latestNetEquity) * 100
+    : null;
 
   function updateLocalTrade(tradeId: string, updates: Record<string, unknown>) {
     setLocalPositions((currentPositions) =>
@@ -412,13 +488,70 @@ export default function TradesClient({
               </p>
             </div>
 
-            <div className="mb-6 grid grid-cols-4 gap-4">
+            <div className="mb-6 grid grid-cols-3 gap-4">
               <SummaryCard
-                label="Gross Notional"
-                value={formatMoney(grossNotional)}
+                label="Gross Investments"
+                value={formatAccountingMoney(grossInvestments)}
+                detail={
+                  <>
+                    <Badge tone="green">
+                      Long {formatAccountingMoney(investmentSummary.longInvestments)}
+                    </Badge>
+
+                    <Badge tone="red">
+                      Short {formatAccountingMoney(investmentSummary.shortInvestments)}
+                    </Badge>
+                  </>
+                }
               />
 
-              <SummaryCard label="Pending Trades" value={pendingTradeCount} />
+              <SummaryCard
+                label="Net Investments"
+                value={formatAccountingMoney(netInvestments)}
+                detail={
+                  <Badge tone={netInvestments < 0 ? "red" : "green"}>
+                    {netInvestments < 0 ? "Net Short" : "Net Long"}
+                  </Badge>
+                }
+              />
+
+              <SummaryCard
+                label="Gross / Net"
+                value={
+                  <span>
+                    {formatExposurePercent(grossInvestmentPercent)}
+                    <span className="mx-2 text-slate-300">/</span>
+                    <span
+                      className={
+                        netInvestmentPercent != null && netInvestmentPercent < 0
+                          ? "text-rose-600"
+                          : "text-emerald-600"
+                      }
+                    >
+                      {formatExposurePercent(netInvestmentPercent)}
+                    </span>
+                  </span>
+                }
+                detail={
+                  latestFundEquitySnapshot ? (
+                    <span
+                      className="text-xs text-slate-500"
+                      title={`Calculated using Net Equity of ${formatMoney(
+                        latestNetEquity,
+                      )} as of ${formatDay(
+                        getSnapshotDateKey(latestFundEquitySnapshot.asOfDate),
+                      )}`}
+                    >
+                      Net Equity as of{" "}
+                      {formatDay(
+                        getSnapshotDateKey(latestFundEquitySnapshot.asOfDate),
+                      )}
+                    </span>
+                  ) : (
+                    <Badge tone="amber">No Net Equity</Badge>
+                  )
+                }
+              />
             </div>
 
             <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-3">
@@ -445,8 +578,8 @@ export default function TradesClient({
                   key={filter}
                   onClick={() => setTradeFilter(filter)}
                   className={`rounded-xl px-3 py-2 text-sm ${tradeFilter === filter
-                      ? "bg-slate-900 text-white"
-                      : "border border-slate-200 bg-white"
+                    ? "bg-slate-900 text-white"
+                    : "border border-slate-200 bg-white"
                     }`}
                 >
                   {filter}
@@ -693,8 +826,8 @@ export default function TradesClient({
                                       setConfirmDeleteTradeId(trade.id);
                                     }}
                                     className={`inline-flex min-h-7 items-center justify-center rounded-xl px-2 py-1 text-[11px] font-medium ${confirmDeleteTradeId === trade.id
-                                        ? "bg-rose-600 text-white hover:bg-rose-700"
-                                        : "text-rose-600 hover:bg-rose-50"
+                                      ? "bg-rose-600 text-white hover:bg-rose-700"
+                                      : "text-rose-600 hover:bg-rose-50"
                                       }`}
                                   >
                                     {confirmDeleteTradeId === trade.id

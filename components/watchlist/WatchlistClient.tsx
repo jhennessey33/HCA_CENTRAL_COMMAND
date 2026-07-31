@@ -82,6 +82,7 @@ type WatchlistEntry = {
   targetPrice?: number | null;
   entryTargetPrice?: number | null;
   exitTargetPrice?: number | null;
+  discussionTargetPrice?: number | null;
 
   notes?: string | null;
 
@@ -265,6 +266,8 @@ function WatchlistGrid({
 
           const exitTargetPrice = getExitTargetPrice(entry);
 
+
+
           const fromEntryTarget = calculateFromTarget(
             currentPrice,
             entryTargetPrice,
@@ -274,6 +277,8 @@ function WatchlistGrid({
             currentPrice,
             exitTargetPrice,
           );
+
+
 
           const openFlag = entry.flags?.[0];
           const latestComment = getWatchlistComments(entry).find(
@@ -298,6 +303,11 @@ function WatchlistGrid({
                 <span className="ml-1 truncate font-normal text-slate-500">
                   {entry.security.name}
                 </span>
+                {entry.discussionTargetPrice != null ? (
+                  <span className="ml-2 shrink-0 rounded-lg bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+                    Discuss {formatMoney(entry.discussionTargetPrice)}
+                  </span>
+                ) : null}
               </button>
 
               <div>{formatMoney(currentPrice)}</div>
@@ -567,9 +577,23 @@ function WatchlistDetailPanel({
 
   const exitTargetPrice = getExitTargetPrice(entry);
 
-  const fromEntryTarget = calculateFromTarget(currentPrice, entryTargetPrice);
+  const discussionTargetPrice =
+    entry.discussionTargetPrice ?? null;
 
-  const fromExitTarget = calculateFromTarget(currentPrice, exitTargetPrice);
+  const fromEntryTarget = calculateFromTarget(
+    currentPrice,
+    entryTargetPrice,
+  );
+
+  const fromExitTarget = calculateFromTarget(
+    currentPrice,
+    exitTargetPrice,
+  );
+
+  const fromDiscussionTarget = calculateFromTarget(
+    currentPrice,
+    discussionTargetPrice,
+  );
 
   const entryTargetLabel = getEntryTargetLabel(entry.side);
 
@@ -661,6 +685,30 @@ function WatchlistDetailPanel({
 
             <p className={`mt-1 font-semibold ${pctClass(fromExitTarget)}`}>
               {formatPercent(fromExitTarget)}
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50 p-3">
+            <p className="text-xs text-slate-500">
+              Discussion PT
+            </p>
+
+            <p className="mt-1 font-semibold text-slate-950">
+              {formatMoney(discussionTargetPrice)}
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50 p-3">
+            <p className="text-xs text-slate-500">
+              % From Discussion PT
+            </p>
+
+            <p
+              className={`mt-1 font-semibold ${pctClass(
+                fromDiscussionTarget,
+              )}`}
+            >
+              {formatPercent(fromDiscussionTarget)}
             </p>
           </div>
         </div>
@@ -1326,12 +1374,12 @@ function AddStockModal({
               disabled={isSaving}
               className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
               placeholder={`Enter ${targetType === "DISCUSSION"
-                  ? "discussion"
-                  : targetType === "BUY"
-                    ? "buy"
-                    : targetType === "COVER"
-                      ? "cover"
-                      : "sell"
+                ? "discussion"
+                : targetType === "BUY"
+                  ? "buy"
+                  : targetType === "COVER"
+                    ? "cover"
+                    : "sell"
                 } price target`}
             />
           </div>
@@ -1393,6 +1441,7 @@ function EditWatchlistModal({
       side: string;
       entryTargetPrice: string;
       exitTargetPrice: string;
+      discussionTargetPrice: string;
       notes: string;
       ptChangeComment: string;
     },
@@ -1401,6 +1450,7 @@ function EditWatchlistModal({
   const [side, setSide] = useState("LONG");
   const [entryTargetPrice, setEntryTargetPrice] = useState("");
   const [exitTargetPrice, setExitTargetPrice] = useState("");
+  const [discussionTargetPrice, setDiscussionTargetPrice] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [ptChangeComment, setPtChangeComment] = useState("");
@@ -1415,13 +1465,26 @@ function EditWatchlistModal({
   const originalExitTargetPrice =
     entry?.exitTargetPrice != null ? String(entry.exitTargetPrice) : "";
 
+  const originalDiscussionTargetPrice =
+    entry?.discussionTargetPrice != null
+      ? String(entry.discussionTargetPrice)
+      : "";
+
+
   const entryTargetChanged =
     String(entryTargetPrice || "") !== originalEntryTargetPrice;
 
   const exitTargetChanged =
     String(exitTargetPrice || "") !== originalExitTargetPrice;
 
-  const targetPriceChanged = entryTargetChanged || exitTargetChanged;
+  const discussionTargetChanged =
+    String(discussionTargetPrice || "") !==
+    originalDiscussionTargetPrice;
+
+  const targetPriceChanged =
+    entryTargetChanged ||
+    exitTargetChanged ||
+    discussionTargetChanged;
 
   const entryTargetLabel = side === "SHORT" ? "Sell PT" : "Buy PT";
 
@@ -1443,7 +1506,11 @@ function EditWatchlistModal({
     setExitTargetPrice(
       entry.exitTargetPrice != null ? String(entry.exitTargetPrice) : "",
     );
-
+    setDiscussionTargetPrice(
+      entry.discussionTargetPrice != null
+        ? String(entry.discussionTargetPrice)
+        : "",
+    );
     setPtChangeComment("");
     setError("");
   }, [entry]);
@@ -1465,6 +1532,7 @@ function EditWatchlistModal({
         side,
         entryTargetPrice,
         exitTargetPrice,
+        discussionTargetPrice,
         notes: entry.notes || "",
         ptChangeComment,
       });
@@ -1578,6 +1646,31 @@ function EditWatchlistModal({
                   : "Price where the long may be sold or exited."}
               </p>
             </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Discussion PT
+            </label>
+
+            <input
+              value={discussionTargetPrice}
+              onChange={(event) =>
+                setDiscussionTargetPrice(event.target.value)
+              }
+              type="number"
+              min="0"
+              step="any"
+              inputMode="decimal"
+              disabled={isSaving}
+              className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
+              placeholder="Enter discussion price target"
+            />
+
+            <p className="mt-1 text-xs text-slate-500">
+              Price where the investment team wants to revisit and discuss this
+              security.
+            </p>
           </div>
 
           {targetPriceChanged ? (
@@ -1853,6 +1946,8 @@ export default function WatchlistClient({
         getExitTargetLabel(entry.side),
         getEntryTargetPrice(entry),
         getExitTargetPrice(entry),
+        entry.discussionTargetPrice,
+        "Discussion PT",
         entry.notes,
         commentText,
         flagText,
