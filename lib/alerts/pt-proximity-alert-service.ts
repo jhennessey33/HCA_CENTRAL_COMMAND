@@ -36,6 +36,7 @@ function getTargetCandidates(entry: {
   targetPrice: number | null;
   entryTargetPrice: number | null;
   exitTargetPrice: number | null;
+  discussionTargetPrice: number | null;
 }): PtTargetCandidate[] {
   const candidates: PtTargetCandidate[] = [];
 
@@ -60,6 +61,16 @@ function getTargetCandidates(entry: {
     candidates.push({
       targetKind: "EXIT",
       targetPrice: Number(entry.exitTargetPrice),
+    });
+  }
+  if (
+    entry.discussionTargetPrice != null &&
+    Number.isFinite(Number(entry.discussionTargetPrice)) &&
+    Number(entry.discussionTargetPrice) > 0
+  ) {
+    candidates.push({
+      targetKind: "DISCUSSION",
+      targetPrice: Number(entry.discussionTargetPrice),
     });
   }
 
@@ -122,6 +133,11 @@ export async function evaluateSecurityPtAlerts({
             not: null,
           },
         },
+        {
+          discussionTargetPrice: {
+            not: null,
+          },
+        },
       ],
     },
     select: {
@@ -131,6 +147,7 @@ export async function evaluateSecurityPtAlerts({
       targetPrice: true,
       entryTargetPrice: true,
       exitTargetPrice: true,
+      discussionTargetPrice: true,
     },
   });
 

@@ -1542,7 +1542,7 @@ export default function AlertsClient({
                     {ptAlertFlags.length ? (
                       <AlertGroup
                         title="PT Alerts"
-                        description="Securities within 2% of a monitored entry or exit price target"
+                        description="Securities within 2% of a monitored entry, exit, or discussion price target"
                         count={ptAlertFlags.length}
                         tone="blue"
                       >

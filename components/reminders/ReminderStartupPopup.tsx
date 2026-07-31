@@ -254,7 +254,7 @@ function PtAlertList({
           <h3 className="text-sm font-semibold">PT Alerts</h3>
 
           <p className="mt-0.5 text-xs opacity-80">
-            Securities within 2% of a monitored price target
+            Securities within 2% of an entry, exit, or discussion price target
           </p>
         </div>
 

@@ -4,11 +4,19 @@ export const PT_ALERT_TRIGGER_PERCENT = 2;
 
 export type PtAlertContext = "WATCHLIST" | "POSITION";
 
-export type PtAlertTargetKind = "ENTRY" | "EXIT";
+export type PtAlertTargetKind =
+  | "ENTRY"
+  | "EXIT"
+  | "DISCUSSION";
 
 export type PtAlertSide = "LONG" | "SHORT";
 
-export type PtAlertTargetLabel = "Buy PT" | "Sell PT" | "Short PT" | "Cover PT";
+export type PtAlertTargetLabel =
+  | "Buy PT"
+  | "Sell PT"
+  | "Short PT"
+  | "Cover PT"
+  | "Discussion PT";
 
 export type EvaluatePtProximityInput = {
   context: PtAlertContext;
@@ -69,6 +77,10 @@ export function getPtAlertTargetLabel({
   side: PtAlertSide;
   targetKind: PtAlertTargetKind;
 }): PtAlertTargetLabel {
+  if (targetKind === "DISCUSSION") {
+    return "Discussion PT";
+  }
+
   if (side === "SHORT") {
     return targetKind === "ENTRY" ? "Short PT" : "Cover PT";
   }
