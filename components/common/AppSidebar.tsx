@@ -1,5 +1,5 @@
 import HcaLogo from "@/components/common/HcaLogo";
-import PinkThemeSnake from "@/components/arcade/snake-game";
+import ArcadeLauncher from "@/components/arcade/arcade-launcher";
 
 function NavItem({
   href,
@@ -59,7 +59,7 @@ export default function AppSidebar({ activePage }: { activePage: string }) {
           />
         ))}
       </nav>
-      <PinkThemeSnake />
+      <ArcadeLauncher />
     </aside>
   );
 }

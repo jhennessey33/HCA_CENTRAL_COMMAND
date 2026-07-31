@@ -94,8 +94,7 @@ function isOppositeDirection(
 }
 
 export default function PinkThemeSnake() {
-    const [isPinkThemeActive, setIsPinkThemeActive] =
-        useState(false);
+   
 
     const [snake, setSnake] =
         useState<Point[]>(STARTING_SNAKE);
@@ -124,28 +123,7 @@ export default function PinkThemeSnake() {
         foodRef.current = food;
     }, [food]);
 
-    useEffect(() => {
-        const rootElement = document.documentElement;
-
-        function syncPinkThemeState() {
-            setIsPinkThemeActive(
-                rootElement.classList.contains("hca-pink-theme"),
-            );
-        }
-
-        syncPinkThemeState();
-
-        const observer = new MutationObserver(syncPinkThemeState);
-
-        observer.observe(rootElement, {
-            attributes: true,
-            attributeFilter: ["class"],
-        });
-
-        return () => {
-            observer.disconnect();
-        };
-    }, []);
+    
 
     const resetGame = useCallback(() => {
         setSnake(STARTING_SNAKE);
@@ -158,11 +136,7 @@ export default function PinkThemeSnake() {
         setStatus("PAUSED");
     }, []);
 
-    useEffect(() => {
-        if (!isPinkThemeActive) {
-            resetGame();
-        }
-    }, [isPinkThemeActive, resetGame]);
+    
 
     useEffect(() => {
         if (status !== "RUNNING") {
@@ -383,12 +357,10 @@ export default function PinkThemeSnake() {
     }
 
 
-    if (!isPinkThemeActive) {
-        return null;
-    }
+   
 
     return (
-        <div className="mt-auto pt-4">
+        
             <div className="rounded-2xl border border-pink-200 bg-white/95 p-3 shadow-sm backdrop-blur">
                 <div className="mb-2 flex items-center justify-between gap-2">
                     <div>
@@ -496,6 +468,6 @@ export default function PinkThemeSnake() {
                     </div>
                 </div>
             </div>
-        </div>
+        
     );
 }
