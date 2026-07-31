@@ -266,7 +266,8 @@ function WatchlistGrid({
 
           const exitTargetPrice = getExitTargetPrice(entry);
 
-
+          const discussionTargetPrice =
+            entry.discussionTargetPrice ?? null;
 
           const fromEntryTarget = calculateFromTarget(
             currentPrice,
@@ -276,6 +277,11 @@ function WatchlistGrid({
           const fromExitTarget = calculateFromTarget(
             currentPrice,
             exitTargetPrice,
+          );
+
+          const fromDiscussionTarget = calculateFromTarget(
+            currentPrice,
+            discussionTargetPrice,
           );
 
 
@@ -303,11 +309,7 @@ function WatchlistGrid({
                 <span className="ml-1 truncate font-normal text-slate-500">
                   {entry.security.name}
                 </span>
-                {entry.discussionTargetPrice != null ? (
-                  <span className="ml-2 shrink-0 rounded-lg bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
-                    Discuss {formatMoney(entry.discussionTargetPrice)}
-                  </span>
-                ) : null}
+
               </button>
 
               <div>{formatMoney(currentPrice)}</div>
@@ -320,12 +322,28 @@ function WatchlistGrid({
                 {formatPercent(fromEntryTarget)}
               </div>
 
-              <div className="font-semibold text-slate-900">
-                {formatMoney(exitTargetPrice)}
+              <div>
+                <p className="font-semibold text-slate-900">
+                  {formatMoney(exitTargetPrice)}
+                </p>
+
+                {discussionTargetPrice != null ? (
+                  <span className="mt-1 inline-flex rounded-lg bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+                    Discuss {formatMoney(discussionTargetPrice)}
+                  </span>
+                ) : null}
               </div>
 
-              <div className={`font-semibold ${pctClass(fromExitTarget)}`}>
-                {formatPercent(fromExitTarget)}
+              <div>
+                <p className={`font-semibold ${pctClass(fromExitTarget)}`}>
+                  {formatPercent(fromExitTarget)}
+                </p>
+
+                {fromDiscussionTarget != null ? (
+                  <span className="mt-1 inline-flex rounded-lg bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+                    % From Discuss {formatPercent(fromDiscussionTarget)}
+                  </span>
+                ) : null}
               </div>
 
               <div>
@@ -576,6 +594,8 @@ function WatchlistDetailPanel({
   const entryTargetPrice = getEntryTargetPrice(entry);
 
   const exitTargetPrice = getExitTargetPrice(entry);
+
+
 
   const discussionTargetPrice =
     entry.discussionTargetPrice ?? null;
