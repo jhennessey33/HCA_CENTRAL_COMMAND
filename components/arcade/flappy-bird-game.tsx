@@ -22,11 +22,15 @@ const JUMP_FORCE = -5.5;
 
 const PIPE_SPACING = 130;
 
+
+
 type Pipe = {
     x: number;
     gapY: number;
     passed?: boolean;
 };
+
+
 
 export default function FlappyBirdGame() {
     const canvasRef =
@@ -43,9 +47,18 @@ export default function FlappyBirdGame() {
 
     const pipesRef = useRef<Pipe[]>([]);
 
+    const highScoreRef = useRef(0);
+
+
+
 
 
     const [score, setScore] = useState(0);
+    const [highScore, setHighScore] =
+        useState(0);
+
+    const [recordHolder, setRecordHolder] =
+        useState("Nobody");
 
     const [status, setStatus] = useState<
         "PAUSED" | "RUNNING" | "GAME_OVER"
@@ -69,10 +82,55 @@ export default function FlappyBirdGame() {
         setScore(0);
         setStatus("PAUSED");
     }, []);
+    const loadRecord = useCallback(async () => {
+        try {
+            const response = await fetch(
+                "/api/arcade/high-score?game=flappy-bird",
+            );
+
+            if (!response.ok) {
+                return;
+            }
+
+            const data =
+                await response.json();
+
+            setHighScore(data.score ?? 0);
+
+            setRecordHolder(
+                data.holderName ?? "Nobody",
+            );
+
+            highScoreRef.current =
+                data.score ?? 0;
+        } catch (error) {
+            console.error(
+                "Failed to load record",
+                error,
+            );
+        }
+    }, []);
+
+
+    useEffect(() => {
+        highScoreRef.current =
+            highScore;
+    }, [highScore]);
+
+    useEffect(() => {
+        void loadRecord();
+    }, [loadRecord]);
 
     useEffect(() => {
         resetGame();
     }, [resetGame]);
+
+    useEffect(() => {
+        if (status === "GAME_OVER") {
+            void loadRecord();
+        }
+    }, [status, loadRecord]);
+
 
     const flap = useCallback(() => {
         if (status !== "RUNNING") {
@@ -89,7 +147,7 @@ export default function FlappyBirdGame() {
 
             pipesRef.current = [
                 {
-                    x: GAME_WIDTH + 40,
+                    x: GAME_WIDTH - 40,
                     gapY:
                         50 +
                         Math.random() * 100,
@@ -119,6 +177,20 @@ export default function FlappyBirdGame() {
                 event.key === "ArrowUp"
             ) {
                 event.preventDefault();
+
+                if (
+                    status === "GAME_OVER" ||
+                    status === "PAUSED"
+                ) {
+                    startGame();
+
+                    requestAnimationFrame(() => {
+                        birdVelocityRef.current =
+                            JUMP_FORCE;
+                    });
+
+                    return;
+                }
 
                 if (status === "RUNNING") {
                     flap();
@@ -275,11 +347,38 @@ export default function FlappyBirdGame() {
                                 pipe.passed =
                                     true;
 
-                                setScore(
-                                    (current) =>
-                                        current +
-                                        1,
-                                );
+                                setScore((current) => {
+                                    const nextScore = current + 1;
+
+                                    if (
+                                        nextScore >
+                                        highScoreRef.current
+                                    ) {
+                                        highScoreRef.current =
+                                            nextScore;
+
+                                        setHighScore(nextScore);
+
+                                        void fetch(
+                                            "/api/arcade/high-score",
+                                            {
+                                                method: "POST",
+
+                                                headers: {
+                                                    "Content-Type":
+                                                        "application/json",
+                                                },
+
+                                                body: JSON.stringify({
+                                                    game: "flappy-bird",
+                                                    score: nextScore,
+                                                }),
+                                            },
+                                        );
+                                    }
+
+                                    return nextScore;
+                                });
                             }
 
                             return (
@@ -424,9 +523,15 @@ export default function FlappyBirdGame() {
         <div className="rounded-2xl border border-pink-200 bg-white/95 p-3 shadow-sm backdrop-blur">
             <div className="mb-2 flex items-center justify-between">
                 <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-pink-700">
-                        Flappy Bird
-                    </p>
+                    <div className="flex items-center gap-2">
+                        <p className="text-xs font-bold uppercase tracking-wider text-pink-700">
+                            Flappy Bird
+                        </p>
+
+                        <span className="text-[10px] font-semibold text-slate-500">
+                            🏆 {recordHolder} • {highScore}
+                        </span>
+                    </div>
 
                     <p className="text-[10px] text-slate-500">
                         Space / W / ↑

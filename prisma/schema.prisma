@@ -27,6 +27,20 @@ model User {
 
   registrationApprovalsCreated RegistrationApproval[] @relation("RegistrationApprovalsApprovedBy")
   registrationApproval         RegistrationApproval?  @relation("RegistrationApprovalRegisteredUser")
+
+}
+
+
+model ArcadeScore {
+  id        String   @id @default(cuid())
+
+  game      String   @unique
+
+  bestScore Int
+  holderName String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model FundEquitySnapshot {
@@ -436,3 +450,4 @@ model RegistrationApproval {
   @@index([status])
   @@index([approvedById])
 }
+

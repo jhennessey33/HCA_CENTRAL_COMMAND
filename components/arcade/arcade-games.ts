@@ -1,5 +1,6 @@
 import PinkThemeSnake from "./snake-game";
 import FlappyBirdGame from "./flappy-bird-game";
+import CrossyCubicle from "@/components/arcade/CrossyCubicle";
 export type ArcadeGame = {
     id: string;
     name: string;
@@ -19,11 +20,19 @@ export const arcadeGames: ArcadeGame[] = [
 
 
 
-{
-    id: "flappy-bird",
-    name: "Flappy Bird",
-    description: "Thread the pipes",
-    icon: "🐦",
-    component: FlappyBirdGame,
-}
+    {
+        id: "flappy-bird",
+        name: "Flappy Bird",
+        description: "Thread the pipes",
+        icon: "🐦",
+        component: FlappyBirdGame,
+    },
+
+    {
+        id: "crossy-cubicle",
+        name: "Crossy Cubicle",
+        description: "Cross the road, dodge traffic, and climb the leaderboard.",
+        icon: "🚸",
+        component: CrossyCubicle,
+    },
 ];
