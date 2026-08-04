@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
-
+import { reconcileWatchlistPtAlerts }
+  from "@/lib/alerts/pt-proximity-alert-reconciliation";
 import { getCurrentUser } from "@/lib/auth";
 import { canEditWatchlist } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
@@ -307,6 +308,11 @@ export async function POST(request: Request) {
               targetPrice: entryTargetPrice,
             },
           });
+
+        await reconcileWatchlistPtAlerts(
+          tx,
+          watchlistEntry,
+        );
 
         const generatedPtCommentIds: string[] = [];
 

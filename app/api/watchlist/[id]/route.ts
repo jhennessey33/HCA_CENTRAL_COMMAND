@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { canEditWatchlist } from "@/lib/permissions";
+import { reconcileWatchlistPtAlerts }
+  from "@/lib/alerts/pt-proximity-alert-reconciliation";
 
 function parseTargetPrice(value: unknown, label: string) {
   if (value === null || value === undefined || value === "") {
@@ -276,7 +278,7 @@ export async function PATCH(
       async (tx: Prisma.TransactionClient) => {
         const commentIds: string[] = [];
 
-        await tx.watchlistEntry.update({
+        const updatedWatchlistEntry = await tx.watchlistEntry.update({
           where: {
             id,
           },
@@ -293,6 +295,11 @@ export async function PATCH(
             notes,
           },
         });
+
+        await reconcileWatchlistPtAlerts(
+          tx,
+          updatedWatchlistEntry,
+        );
 
         if (didEntryTargetChange && ptChangeComment) {
           const comment = await tx.comment.create({
