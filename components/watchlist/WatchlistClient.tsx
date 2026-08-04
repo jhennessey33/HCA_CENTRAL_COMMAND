@@ -14,14 +14,25 @@ type SecurityOption = {
   name: string;
   sector?: string | null;
   industry?: string | null;
+  marketData?: any[];
+  positions?: any[];
+  watchlistEntries?: any[];
 };
 
+type FundEquitySnapshot = {
+  id: string;
+  asOfDate: string | Date;
+  netEquity: number;
+  source: string;
+};
 type WatchlistClientProps = {
   initialEntries: WatchlistEntry[];
   portfolioSecurities: PortfolioSecurity[];
   securities: SecurityOption[];
+  fundEquitySnapshot: FundEquitySnapshot | null;
   mode?: "WATCHLIST" | "PORTFOLIO";
 };
+
 type WatchlistAuthor = {
   id?: string;
   name?: string | null;
@@ -99,6 +110,77 @@ type WatchlistEntry = {
     marketData?: WatchlistMarketData[];
   };
 };
+
+
+function toFiniteNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const numericValue = Number(value);
+
+  return Number.isFinite(numericValue) ? numericValue : null;
+}
+function getSecurityMarketValue(security: any) {
+  const positions = Array.isArray(security?.positions)
+    ? security.positions
+    : [];
+
+  if (!positions.length) {
+    return null;
+  }
+
+  return positions.reduce(
+    (total: number, position: any) =>
+      total + Math.abs(toFiniteNumber(position.marketValue) ?? 0),
+    0,
+  );
+}
+function formatPositionPercent(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
+    return "—";
+  }
+
+  return `${value.toFixed(2)}%`;
+}
+
+
+function getSecurityCurrentPrice(security: any) {
+  const marketData = security?.marketData?.[0];
+
+  const quotedPrice = toFiniteNumber(marketData?.currentPrice);
+
+  if (quotedPrice != null) {
+    return quotedPrice;
+  }
+
+  const position = security?.positions?.[0];
+
+  const shares = toFiniteNumber(position?.shares);
+
+  const marketValue = toFiniteNumber(position?.marketValue);
+
+  if (shares == null || marketValue == null || shares === 0) {
+    return null;
+  }
+
+  return Math.abs(marketValue / shares);
+}
+
+
+function formatPrice(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
+    return "—";
+  }
+
+  return value.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 
 function SectionBar({ title, tone }: { title: string; tone: "green" | "red" }) {
   const toneClass =
@@ -887,6 +969,7 @@ function AddStockModal({
   onAdd,
   portfolioSecurities,
   securities,
+  fundEquitySnapshot,
   mode,
 }: {
   open: boolean;
@@ -900,6 +983,7 @@ function AddStockModal({
   }) => Promise<void>;
   portfolioSecurities: PortfolioSecurity[];
   securities: SecurityOption[];
+  fundEquitySnapshot: FundEquitySnapshot | null;
   mode: "WATCHLIST" | "PORTFOLIO";
 }) {
   const [selectedSecurityId, setSelectedSecurityId] = useState("");
@@ -918,6 +1002,29 @@ function AddStockModal({
 
   const selectedSecurity =
     securities.find((security) => security.id === selectedSecurityId) ?? null;
+
+
+  const selectedSecurityMarketValue = selectedSecurity
+    ? getSecurityMarketValue(selectedSecurity)
+    : null;
+
+  const selectedSecurityCurrentPrice = selectedSecurity
+    ? getSecurityCurrentPrice(selectedSecurity)
+    : null;
+
+  
+
+  const latestNetEquity = toFiniteNumber(
+    fundEquitySnapshot?.netEquity,
+  );
+
+  const selectedSecurityPortfolioPct =
+    selectedSecurityMarketValue != null &&
+      latestNetEquity != null &&
+      latestNetEquity > 0
+      ? (selectedSecurityMarketValue / latestNetEquity) * 100
+      : null;
+
 
   const filteredSecurities = useMemo(() => {
     const normalizedQuery = securitySearchQuery.trim().toLowerCase();
@@ -1291,13 +1398,14 @@ function AddStockModal({
           ) : null}
 
           {selectedSecurity ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-              <div className="flex items-start justify-between gap-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-semibold text-slate-950">
+                  <p className="font-semibold text-slate-900">
                     {selectedSecurity.ticker}
                   </p>
-                  <p className="mt-0.5 truncate text-xs text-slate-600">
+
+                  <p className="mt-0.5 truncate text-xs text-slate-500">
                     {selectedSecurity.name}
                   </p>
                 </div>
@@ -1307,6 +1415,55 @@ function AddStockModal({
                     {selectedSecurity.sector}
                   </span>
                 ) : null}
+              </div>
+
+              <div className="mt-3 grid grid-cols-3 gap-3">
+                <div className="rounded-2xl bg-slate-50 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    Current Price
+                  </p>
+
+                  <p className="mt-1 font-semibold tabular-nums text-slate-950">
+                    {formatPrice(selectedSecurityCurrentPrice)}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    % of Net Equity
+                  </p>
+
+                  <p className="mt-1 font-semibold tabular-nums text-slate-950">
+                    {formatPositionPercent(selectedSecurityPortfolioPct)}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    Market Value
+                  </p>
+
+                  <p className="mt-1 font-semibold tabular-nums text-slate-950">
+                    {formatMoney(selectedSecurityMarketValue)}
+                  </p>
+
+                  {fundEquitySnapshot &&
+                    selectedSecurityPortfolioPct != null ? (
+                    <p className="mt-2 text-[11px] text-slate-400">
+                      Position percentage uses Net Equity as of{" "}
+                      {new Date(fundEquitySnapshot.asOfDate).toLocaleDateString(
+                        "en-US",
+                        {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                          timeZone: "UTC",
+                        },
+                      )}
+                      .
+                    </p>
+                  ) : null}
+                </div>
               </div>
             </div>
           ) : null}
@@ -1873,6 +2030,7 @@ export default function WatchlistClient({
   initialEntries,
   portfolioSecurities,
   securities,
+  fundEquitySnapshot,
   mode = "WATCHLIST",
 }: WatchlistClientProps) {
   const [entries, setEntries] = useState<any[]>(initialEntries);
@@ -2318,7 +2476,9 @@ export default function WatchlistClient({
         onAdd={handleAddEntry}
         portfolioSecurities={portfolioSecurities}
         securities={securities}
+        fundEquitySnapshot={fundEquitySnapshot}
         mode={mode}
+        
       />
 
       <EditWatchlistModal

@@ -97,25 +97,49 @@ export default async function WatchlistPage() {
     orderBy: {
       ticker: "asc",
     },
-    select: {
-      id: true,
-      ticker: true,
-      name: true,
-      sector: true,
-      industry: true,
+    include: {
+      marketData: {
+        take: 1,
+        orderBy: {
+          updatedAt: "desc",
+        },
+      },
+      positions: {
+        where: {
+          status: "ACTIVE",
+        },
+      },
+      watchlistEntries: {
+        where: {
+          archivedAt: null,
+        },
+        take: 1,
+      },
     },
   });
+
+  const fundEquitySnapshot =
+    await prisma.fundEquitySnapshot.findFirst({
+      orderBy: {
+        asOfDate: "desc",
+      },
+    });
   const serializedEntries = JSON.parse(JSON.stringify(entries));
   const serializedPortfolioSecurities = JSON.parse(
     JSON.stringify(portfolioSecurities),
   );
   const serializedSecurities = JSON.parse(JSON.stringify(securities));
 
+  const serializedFundEquitySnapshot = JSON.parse(
+    JSON.stringify(fundEquitySnapshot),
+  );
+
   return (
     <WatchlistClient
       initialEntries={serializedEntries}
       portfolioSecurities={serializedPortfolioSecurities}
       securities={serializedSecurities}
+      fundEquitySnapshot={serializedFundEquitySnapshot}
       mode="PORTFOLIO"
     />
   );
