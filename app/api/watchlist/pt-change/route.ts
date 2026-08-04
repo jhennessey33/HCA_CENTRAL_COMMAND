@@ -148,15 +148,22 @@ export async function POST(request: Request) {
 
     let entryTargetPrice: number | null;
     let exitTargetPrice: number | null;
+    let discussionTargetPrice: number | null;
 
     try {
       entryTargetPrice = parseTargetPrice(
         body.entryTargetPrice,
         side === "SHORT" ? "Sell PT" : "Buy PT",
       );
+
       exitTargetPrice = parseTargetPrice(
         body.exitTargetPrice,
         side === "SHORT" ? "Cover PT" : "Sell PT",
+      );
+
+      discussionTargetPrice = parseTargetPrice(
+        body.discussionTargetPrice,
+        "Discussion PT",
       );
     } catch (error) {
       return NextResponse.json(
@@ -218,8 +225,8 @@ export async function POST(request: Request) {
       async (tx: Prisma.TransactionClient) => {
         let existingEntry = requestedEntryId
           ? await tx.watchlistEntry.findUnique({
-              where: { id: requestedEntryId },
-            })
+            where: { id: requestedEntryId },
+          })
           : null;
 
         if (!existingEntry) {
@@ -239,6 +246,10 @@ export async function POST(request: Request) {
           ? existingEntry.entryTargetPrice ?? existingEntry.targetPrice
           : null;
         const previousExitTargetPrice = existingEntry?.exitTargetPrice ?? null;
+
+        const previousDiscussionTargetPrice =
+          existingEntry?.discussionTargetPrice ?? null;
+
         const previousSide = existingEntry?.side ?? null;
 
         const didEntryTargetChange = targetPriceChanged(
@@ -249,40 +260,53 @@ export async function POST(request: Request) {
           previousExitTargetPrice,
           exitTargetPrice,
         );
+
+        const didDiscussionTargetChange = targetPriceChanged(
+          previousDiscussionTargetPrice,
+          discussionTargetPrice,
+        );
         const didSideChange = previousSide !== side;
 
         if (
           !created &&
           !didEntryTargetChange &&
           !didExitTargetChange &&
+          !didDiscussionTargetChange &&
           !didSideChange
         ) {
           throw new Error("NO_CHANGES");
         }
 
-        if (created && entryTargetPrice == null && exitTargetPrice == null) {
+        if (
+          created &&
+          entryTargetPrice == null &&
+          exitTargetPrice == null &&
+          discussionTargetPrice == null
+        ) {
           throw new Error("TARGET_REQUIRED");
         }
 
         const watchlistEntry = existingEntry
           ? await tx.watchlistEntry.update({
-              where: { id: existingEntry.id },
-              data: {
-                side,
-                entryTargetPrice,
-                exitTargetPrice,
-                targetPrice: entryTargetPrice,
-              },
-            })
+            where: { id: existingEntry.id },
+            data: {
+              side,
+              entryTargetPrice,
+              exitTargetPrice,
+              discussionTargetPrice,
+              targetPrice: entryTargetPrice,
+            },
+          })
           : await tx.watchlistEntry.create({
-              data: {
-                securityId,
-                side,
-                entryTargetPrice,
-                exitTargetPrice,
-                targetPrice: entryTargetPrice,
-              },
-            });
+            data: {
+              securityId,
+              side,
+              entryTargetPrice,
+              exitTargetPrice,
+              discussionTargetPrice,
+              targetPrice: entryTargetPrice,
+            },
+          });
 
         const generatedPtCommentIds: string[] = [];
 
@@ -328,6 +352,29 @@ export async function POST(request: Request) {
           generatedPtCommentIds.push(comment.id);
         }
 
+        if (didDiscussionTargetChange) {
+          const comment = await tx.comment.create({
+            data: {
+              securityId,
+              watchlistEntryId: watchlistEntry.id,
+              meetingId,
+              authorId: author.id,
+              tag: "PT",
+              content: buildTargetChangeComment({
+                label: "discussion",
+                previousValue: previousDiscussionTargetPrice,
+                nextValue: discussionTargetPrice,
+                reason: ptChangeComment,
+              }),
+            },
+            select: {
+              id: true,
+            },
+          });
+
+          generatedPtCommentIds.push(comment.id);
+        }
+
         await tx.auditLog.create({
           data: {
             actorId: author.id,
@@ -339,17 +386,19 @@ export async function POST(request: Request) {
             previousValueJson: created
               ? null
               : JSON.stringify({
-                  ticker: security.ticker,
-                  side: previousSide,
-                  entryTargetPrice: previousEntryTargetPrice,
-                  exitTargetPrice: previousExitTargetPrice,
-                  notes: existingEntry?.notes ?? null,
-                }),
+                ticker: security.ticker,
+                side: previousSide,
+                entryTargetPrice: previousEntryTargetPrice,
+                exitTargetPrice: previousExitTargetPrice,
+                discussionTargetPrice: previousDiscussionTargetPrice,
+                notes: existingEntry?.notes ?? null,
+              }),
             newValueJson: JSON.stringify({
               ticker: security.ticker,
               side,
               entryTargetPrice,
               exitTargetPrice,
+              discussionTargetPrice,
               sideChanged: didSideChange,
               targetChangeReason: ptChangeComment,
               meetingId,
@@ -375,30 +424,31 @@ export async function POST(request: Request) {
       }),
       transactionResult.generatedPtCommentIds.length > 0
         ? prisma.comment.findMany({
-            where: {
-              id: { in: transactionResult.generatedPtCommentIds },
-            },
-            include: {
-              security: true,
-              author: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  role: true,
-                },
-              },
-              watchlistEntry: {
-                select: {
-                  id: true,
-                  side: true,
-                  entryTargetPrice: true,
-                  exitTargetPrice: true,
-                },
+          where: {
+            id: { in: transactionResult.generatedPtCommentIds },
+          },
+          include: {
+            security: true,
+            author: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
               },
             },
-            orderBy: { createdAt: "asc" },
-          })
+            watchlistEntry: {
+              select: {
+                id: true,
+                side: true,
+                entryTargetPrice: true,
+                exitTargetPrice: true,
+                discussionTargetPrice: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        })
         : Promise.resolve([]),
     ]);
 

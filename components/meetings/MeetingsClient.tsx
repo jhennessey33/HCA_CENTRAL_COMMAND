@@ -175,6 +175,8 @@ export default function MeetingsClient({
 
   const [ptExitTargetPrice, setPtExitTargetPrice] = useState("");
 
+  const [ptDiscussionTargetPrice, setPtDiscussionTargetPrice] = useState("");
+
   const [ptChangeReason, setPtChangeReason] = useState("");
 
   const [isSavingPtChange, setIsSavingPtChange] = useState(false);
@@ -278,13 +280,26 @@ export default function MeetingsClient({
       ? String(selectedWatchlistEntry.exitTargetPrice)
       : "";
 
+  const originalPtDiscussionTargetPrice =
+    selectedWatchlistEntry?.discussionTargetPrice != null
+      ? String(selectedWatchlistEntry.discussionTargetPrice)
+      : "";
+
+
   const ptEntryTargetChanged =
     ptEntryTargetPrice.trim() !== originalPtEntryTargetPrice;
 
   const ptExitTargetChanged =
     ptExitTargetPrice.trim() !== originalPtExitTargetPrice;
 
-  const ptTargetChanged = ptEntryTargetChanged || ptExitTargetChanged;
+  const ptDiscussionTargetChanged =
+    ptDiscussionTargetPrice.trim() !==
+    originalPtDiscussionTargetPrice;
+
+  const ptTargetChanged =
+    ptEntryTargetChanged ||
+    ptExitTargetChanged ||
+    ptDiscussionTargetChanged;
 
   const ptEntryTargetLabel = ptSide === "SHORT" ? "Sell PT" : "Buy PT";
 
@@ -356,35 +371,47 @@ export default function MeetingsClient({
     setHighlightedSecurityIndex(0);
   }, [securitySearchQuery]);
 
-  useEffect(() => {
-    if (!selectedWatchlistEntry) {
-      setPtSide("LONG");
-      setPtEntryTargetPrice("");
-      setPtExitTargetPrice("");
-      setPtChangeReason("");
-      setPtChangeError("");
-      return;
-    }
+useEffect(() => {
+  if (!selectedWatchlistEntry) {
+    const inferredSide =
+      selectedNoteSecurity?.positions?.[0]?.side ?? "LONG";
 
-    setPtSide(selectedWatchlistEntry.side || "LONG");
+    setPtSide(inferredSide);
 
-    setPtEntryTargetPrice(
-      selectedWatchlistEntry.entryTargetPrice != null
-        ? String(selectedWatchlistEntry.entryTargetPrice)
-        : selectedWatchlistEntry.targetPrice != null
-          ? String(selectedWatchlistEntry.targetPrice)
-          : "",
-    );
-
-    setPtExitTargetPrice(
-      selectedWatchlistEntry.exitTargetPrice != null
-        ? String(selectedWatchlistEntry.exitTargetPrice)
-        : "",
-    );
-
+    setPtEntryTargetPrice("");
+    setPtExitTargetPrice("");
+    setPtDiscussionTargetPrice("");
     setPtChangeReason("");
     setPtChangeError("");
-  }, [selectedWatchlistEntry]);
+
+    return;
+  }
+
+  setPtSide(selectedWatchlistEntry.side || "LONG");
+
+  setPtEntryTargetPrice(
+    selectedWatchlistEntry.entryTargetPrice != null
+      ? String(selectedWatchlistEntry.entryTargetPrice)
+      : selectedWatchlistEntry.targetPrice != null
+        ? String(selectedWatchlistEntry.targetPrice)
+        : "",
+  );
+
+  setPtExitTargetPrice(
+    selectedWatchlistEntry.exitTargetPrice != null
+      ? String(selectedWatchlistEntry.exitTargetPrice)
+      : "",
+  );
+
+  setPtDiscussionTargetPrice(
+    selectedWatchlistEntry.discussionTargetPrice != null
+      ? String(selectedWatchlistEntry.discussionTargetPrice)
+      : "",
+  );
+
+  setPtChangeReason("");
+  setPtChangeError("");
+}, [selectedWatchlistEntry, selectedNoteSecurity]);
 
   const totalNotes = meetings.reduce(
     (count: number, meeting: any) => count + (meeting.comments?.length || 0),
@@ -678,6 +705,7 @@ export default function MeetingsClient({
           side: ptSide,
           entryTargetPrice: ptEntryTargetPrice,
           exitTargetPrice: ptExitTargetPrice,
+          discussionTargetPrice: ptDiscussionTargetPrice,
           ptChangeComment: ptChangeReason.trim(),
         }),
       });
@@ -727,6 +755,7 @@ export default function MeetingsClient({
       setIsSecurityDropdownOpen(false);
       setPtChangeReason("");
       setPtChangeError("");
+      setPtDiscussionTargetPrice("");
       setActiveMeetingForNote(null);
     } catch (error) {
       setPtChangeError(
@@ -900,8 +929,8 @@ export default function MeetingsClient({
                                       : "Delete comment"
                                   }
                                   className={`inline-flex items-center justify-center rounded-xl disabled:cursor-not-allowed disabled:opacity-50 ${confirmDeleteCommentId === comment.id
-                                      ? "bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-700"
-                                      : "h-8 w-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                                    ? "bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-700"
+                                    : "h-8 w-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
                                     }`}
                                 >
                                   {deletingCommentId === comment.id ? (
@@ -1396,6 +1425,31 @@ export default function MeetingsClient({
                                 : "Price where the long may be sold or exited."}
                             </p>
                           </div>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+                            Discussion PT
+                          </label>
+
+                          <input
+                            value={ptDiscussionTargetPrice}
+                            onChange={(event) =>
+                              setPtDiscussionTargetPrice(event.target.value)
+                            }
+                            type="number"
+                            min="0"
+                            step="any"
+                            inputMode="decimal"
+                            disabled={isSavingPtChange}
+                            placeholder="Enter discussion price target"
+                            className="mt-2 w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-50"
+                          />
+
+                          <p className="mt-1 text-xs text-amber-700">
+                            Price where the investment team wants to revisit and discuss this
+                            security.
+                          </p>
                         </div>
 
                         <div>
