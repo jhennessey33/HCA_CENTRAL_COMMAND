@@ -149,7 +149,7 @@ function Open-Url {
         [string]$Url
     )
 
-    if (:IsNullOrWhiteSpace($Url)) {
+    if ([System.String]::IsNullOrWhiteSpace($Url)) {
         [System.Windows.Forms.MessageBox]::Show(
             "No HCA URL is currently available.",
             "HCA Central Command",
