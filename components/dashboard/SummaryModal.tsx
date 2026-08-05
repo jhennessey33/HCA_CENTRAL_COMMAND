@@ -255,25 +255,28 @@ export default function SummaryModal({
     ) as number[]) {
       netSecuritiesMarketValue += marketValue;
     }
+
     const cashMarketValue = hasValidNetEquity
       ? netEquity - netSecuritiesMarketValue
       : null;
 
+    const categoryMarketValues = {
+      ...signedSectorMarketValues,
+    };
+
+    if (hasValidNetEquity && cashMarketValue != null) {
+      categoryMarketValues.Cash =
+        (categoryMarketValues.Cash ?? 0) + cashMarketValue;
+    }
+
     const categoryEquityRows = hasValidNetEquity
-      ? [
-        ...Object.entries(signedSectorMarketValues).map(
-          ([category, marketValue]) => ({
-            category,
-            marketValue: Number(marketValue),
-            equityPct: (Number(marketValue) / netEquity) * 100,
-          }),
-        ),
-        {
-          category: "Cash",
-          marketValue: cashMarketValue ?? 0,
-          equityPct: ((cashMarketValue ?? 0) / netEquity) * 100,
-        },
-      ].sort((a, b) => a.category.localeCompare(b.category))
+      ? Object.entries(categoryMarketValues)
+        .map(([category, marketValue]) => ({
+          category,
+          marketValue: Number(marketValue),
+          equityPct: (Number(marketValue) / netEquity) * 100,
+        }))
+        .sort((a, b) => a.category.localeCompare(b.category))
       : [];
 
     const totalEquityPct = categoryEquityRows.reduce(
