@@ -1,6 +1,8 @@
 import PinkThemeSnake from "./snake-game";
 import FlappyBirdGame from "./flappy-bird-game";
 import CrossyCubicle from "@/components/arcade/CrossyCubicle";
+import MarketMatchGame from "./market-match-game";
+
 export type ArcadeGame = {
     id: string;
     name: string;
@@ -34,5 +36,13 @@ export const arcadeGames: ArcadeGame[] = [
         description: "Cross the road, dodge traffic, and climb the leaderboard.",
         icon: "🚸",
         component: CrossyCubicle,
+    },
+    
+    {
+        id: "market-match",
+        name: "Market Match",
+        description: "Match sectors and chase market combos.",
+        icon: "📈",
+        component: MarketMatchGame,
     },
 ];
