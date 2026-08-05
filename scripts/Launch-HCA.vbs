@@ -14,7 +14,7 @@ scriptFolder = fso.GetParentFolderName(WScript.ScriptFullName)
 repoRoot = fso.GetParentFolderName(scriptFolder)
 
 launcher = fso.BuildPath(scriptFolder, "hca-launcher.ps1")
-iconPath = fso.BuildPath(repoRoot, "\public\assets\Designer.ico")
+iconPath = fso.BuildPath(repoRoot, "\public\assets\hca.ico")
 
 ' Create the desktop shortcut only if it does not already exist
 desktop = shell.SpecialFolders("Desktop")
