@@ -1608,25 +1608,65 @@ function SectorModal({
   position,
   availableSectors,
   onClose,
+  onSectorCreated,
   onSectorUpdated,
 }: {
   position: any | null;
   availableSectors: string[];
   onClose: () => void;
+  onSectorCreated: (sector: string) => void;
   onSectorUpdated: (securityId: string, sector: string) => void;
 }) {
   const [sector, setSector] = useState("");
-
+  const [newSectorName, setNewSectorName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     setSector(position?.security?.sector || "");
+    setNewSectorName("");
+    setError("");
   }, [position]);
 
   if (!position) return null;
 
+  function handleCreateSector() {
+    const trimmedSector = newSectorName.trim();
+
+    if (!trimmedSector) {
+      setError("Enter a sector name.");
+      return;
+    }
+
+    const existingSector = availableSectors.find(
+      (availableSector) =>
+        availableSector.trim().toLowerCase() ===
+        trimmedSector.toLowerCase(),
+    );
+
+    if (existingSector) {
+      setSector(existingSector);
+      setNewSectorName("");
+      setError("");
+      return;
+    }
+
+    onSectorCreated(trimmedSector);
+    setSector(trimmedSector);
+    setNewSectorName("");
+    setError("");
+  }
+
   async function handleSave() {
+    const trimmedSector = sector.trim();
+
+    if (!trimmedSector) {
+      setError("Select or create a sector.");
+      return;
+    }
+
     setIsSaving(true);
+    setError("");
 
     try {
       const response = await fetch(
@@ -1637,20 +1677,27 @@ function SectorModal({
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            sector,
+            sector: trimmedSector,
           }),
         },
       );
 
+      const data = await response.json().catch(() => null);
+
       if (!response.ok) {
-        throw new Error();
+        throw new Error(
+          data?.error || data?.detail || "Failed to update sector.",
+        );
       }
 
-      onSectorUpdated(position.security.id, sector);
-
+      onSectorUpdated(position.security.id, trimmedSector);
       onClose();
-    } catch {
-      window.alert("Failed to update sector.");
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to update sector.",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -1671,21 +1718,70 @@ function SectorModal({
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="rounded-xl p-2 text-slate-500 hover:bg-slate-100"
+            disabled={isSaving}
+            className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
             ✕
           </button>
         </div>
 
         <div className="mt-5">
-          <label className="text-sm font-medium text-slate-700">Sector</label>
+          <label className="text-sm font-medium text-slate-700">
+            Create New Sector
+          </label>
+
+          <div className="mt-2 flex gap-2">
+            <input
+              value={newSectorName}
+              onChange={(event) => {
+                setNewSectorName(event.target.value);
+                setError("");
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  handleCreateSector();
+                }
+              }}
+              disabled={isSaving}
+              placeholder="Create new sector..."
+              className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-50"
+            />
+
+            <button
+              type="button"
+              onClick={handleCreateSector}
+              disabled={isSaving || !newSectorName.trim()}
+              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              + Sector
+            </button>
+          </div>
+
+          <p className="mt-1 text-xs text-slate-500">
+            The new sector will be selected automatically. Click Save Sector
+            to assign it to this security.
+          </p>
+        </div>
+
+        <div className="mt-5">
+          <label className="text-sm font-medium text-slate-700">
+            Sector
+          </label>
 
           <select
             value={sector}
-            onChange={(event) => setSector(event.target.value)}
-            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+            onChange={(event) => {
+              setSector(event.target.value);
+              setError("");
+            }}
+            disabled={isSaving}
+            className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-50"
           >
+            <option value="">Select Sector</option>
+
             {availableSectors.map((value) => (
               <option key={value} value={value}>
                 {value}
@@ -1694,18 +1790,27 @@ function SectorModal({
           </select>
         </div>
 
+        {error ? (
+          <p className="mt-3 text-sm font-medium text-rose-600">
+            {error}
+          </p>
+        ) : null}
+
         <div className="mt-5 flex justify-end gap-2">
           <button
+            type="button"
             onClick={onClose}
-            className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            disabled={isSaving}
+            className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Cancel
           </button>
 
           <button
+            type="button"
             onClick={handleSave}
-            disabled={isSaving}
-            className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+            disabled={isSaving || !sector.trim()}
+            className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving ? "Saving..." : "Save Sector"}
           </button>
@@ -2128,7 +2233,46 @@ export default function DashboardClient({
     });
   }
 
+  function handleSectorCreated(sector: string) {
+    const trimmedSector = sector.trim();
+
+    if (!trimmedSector) {
+      return;
+    }
+
+    setAvailableSectors((currentSectors) => {
+      const existingSector = currentSectors.find(
+        (currentSector) =>
+          currentSector.trim().toLowerCase() ===
+          trimmedSector.toLowerCase(),
+      );
+
+      if (existingSector) {
+        return currentSectors;
+      }
+
+      return [...currentSectors, trimmedSector].sort((a, b) =>
+        a.localeCompare(b),
+      );
+    });
+  }
+
   function handleSectorUpdated(securityId: string, sector: string) {
+    setAvailableSectors((currentSectors) => {
+      const existingSector = currentSectors.some(
+        (currentSector) =>
+          currentSector.toLowerCase() === sector.toLowerCase(),
+      );
+
+      if (existingSector) {
+        return currentSectors;
+      }
+
+      return [...currentSectors, sector].sort((a, b) =>
+        a.localeCompare(b),
+      );
+    });
+
     setLocalPositions((currentPositions) =>
       currentPositions.map((position) => {
         if (position.security.id !== securityId) {
@@ -2406,6 +2550,7 @@ export default function DashboardClient({
               position={sectorPosition}
               availableSectors={availableSectors}
               onClose={() => setSectorPosition(null)}
+              onSectorCreated={handleSectorCreated}
               onSectorUpdated={handleSectorUpdated}
             />
           </div>

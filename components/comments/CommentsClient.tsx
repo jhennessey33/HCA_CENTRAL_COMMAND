@@ -305,55 +305,7 @@ export default function CommentsClient({
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-4">
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Total Comments
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-950">
-                    {localComments.length}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Across all entities
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Risk Notes
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-rose-600">
-                    {riskComments}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Tagged risk comments
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Exit Notes
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-yellow-700">
-                    {exitComments}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Closed-position rationale
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Trade Notes
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-blue-600">
-                    {tradeComments}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Execution/context notes
-                  </p>
-                </div>
-              </div>
+              
 
               {deleteCommentError ? (
                 <div className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">

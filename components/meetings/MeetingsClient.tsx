@@ -371,47 +371,42 @@ export default function MeetingsClient({
     setHighlightedSecurityIndex(0);
   }, [securitySearchQuery]);
 
-useEffect(() => {
-  if (!selectedWatchlistEntry) {
-    const inferredSide =
-      selectedNoteSecurity?.positions?.[0]?.side ?? "LONG";
+  useEffect(() => {
+    if (!selectedWatchlistEntry) {
+      setPtSide("LONG");
+      setPtEntryTargetPrice("");
+      setPtExitTargetPrice("");
+      setPtDiscussionTargetPrice("");
+      setPtChangeReason("");
+      setPtChangeError("");
+      return;
+    }
 
-    setPtSide(inferredSide);
+    setPtSide(selectedWatchlistEntry.side || "LONG");
 
-    setPtEntryTargetPrice("");
-    setPtExitTargetPrice("");
-    setPtDiscussionTargetPrice("");
+    setPtEntryTargetPrice(
+      selectedWatchlistEntry.entryTargetPrice != null
+        ? String(selectedWatchlistEntry.entryTargetPrice)
+        : selectedWatchlistEntry.targetPrice != null
+          ? String(selectedWatchlistEntry.targetPrice)
+          : "",
+    );
+
+    setPtExitTargetPrice(
+      selectedWatchlistEntry.exitTargetPrice != null
+        ? String(selectedWatchlistEntry.exitTargetPrice)
+        : "",
+    );
+
+    setPtDiscussionTargetPrice(
+      selectedWatchlistEntry.discussionTargetPrice != null
+        ? String(selectedWatchlistEntry.discussionTargetPrice)
+        : "",
+    );
+
     setPtChangeReason("");
     setPtChangeError("");
-
-    return;
-  }
-
-  setPtSide(selectedWatchlistEntry.side || "LONG");
-
-  setPtEntryTargetPrice(
-    selectedWatchlistEntry.entryTargetPrice != null
-      ? String(selectedWatchlistEntry.entryTargetPrice)
-      : selectedWatchlistEntry.targetPrice != null
-        ? String(selectedWatchlistEntry.targetPrice)
-        : "",
-  );
-
-  setPtExitTargetPrice(
-    selectedWatchlistEntry.exitTargetPrice != null
-      ? String(selectedWatchlistEntry.exitTargetPrice)
-      : "",
-  );
-
-  setPtDiscussionTargetPrice(
-    selectedWatchlistEntry.discussionTargetPrice != null
-      ? String(selectedWatchlistEntry.discussionTargetPrice)
-      : "",
-  );
-
-  setPtChangeReason("");
-  setPtChangeError("");
-}, [selectedWatchlistEntry, selectedNoteSecurity]);
+  }, [selectedWatchlistEntry]);
 
   const totalNotes = meetings.reduce(
     (count: number, meeting: any) => count + (meeting.comments?.length || 0),

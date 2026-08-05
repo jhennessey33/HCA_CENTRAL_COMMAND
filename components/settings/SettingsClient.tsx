@@ -693,55 +693,7 @@ export default function SettingsClient({
                 </p>
               </div>
 
-              <div className="grid grid-cols-4 gap-4">
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Users
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-950">
-                    {users.length}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Seeded local users
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Audit Logs
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-950">
-                    {auditLogCount}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Internal workflow actions
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Ingestion Runs
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-950">
-                    {ingestionRuns.length}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Integration refresh history
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Auth Mode
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-amber-600">
-                    Local
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    SSO future placeholder
-                  </p>
-                </div>
-              </div>
+              
 
               <div className="grid grid-cols-2 gap-4">
                 <SettingsCard
@@ -1229,71 +1181,9 @@ export default function SettingsClient({
                         </div>
                       ) : null}
 
+                      
                       <DataOperationStep
                         step="2"
-                        title="SEC Enrichment Refresh"
-                        description="Runs SEC CIK refresh first, then SEC fundamentals refresh. Use this after new tickers appear from Wells or Watchlist, or when fundamentals look stale."
-                        details="Updates: Security.cik and SEC-derived fundamental fields in MarketDataCache. Does not update prices, positions, tax lots, or trade history."
-                      >
-                        {userCanViewAuditLogs ? (
-                          <button
-                            onClick={handleRefreshSecEnrichment}
-                            disabled={isRefreshingSecEnrichment}
-                            className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {isRefreshingSecEnrichment
-                              ? "Refreshing..."
-                              : "Refresh SEC Enrichment"}
-                          </button>
-                        ) : (
-                          <div className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-medium text-slate-500">
-                            Admin / Compliance only
-                          </div>
-                        )}
-                      </DataOperationStep>
-
-                      {secEnrichmentRefreshResult ? (
-                        <div className="rounded-2xl bg-emerald-50 p-3 text-sm text-emerald-700">
-                          <p className="font-semibold">
-                            SEC enrichment refresh complete.
-                          </p>
-
-                          <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                            <span>CIKs updated</span>
-                            <span className="font-semibold">
-                              {secEnrichmentRefreshResult.cik?.updatedCount ??
-                                "N/A"}
-                            </span>
-
-                            <span>CIKs failed</span>
-                            <span className="font-semibold">
-                              {secEnrichmentRefreshResult.cik?.failedCount ??
-                                "N/A"}
-                            </span>
-
-                            <span>Fundamentals updated</span>
-                            <span className="font-semibold">
-                              {secEnrichmentRefreshResult.fundamentals
-                                ?.updatedCount ?? "N/A"}
-                            </span>
-
-                            <span>Fundamentals failed</span>
-                            <span className="font-semibold">
-                              {secEnrichmentRefreshResult.fundamentals
-                                ?.failedCount ?? "N/A"}
-                            </span>
-                          </div>
-                        </div>
-                      ) : null}
-
-                      {secEnrichmentRefreshError ? (
-                        <div className="rounded-2xl bg-rose-50 p-3 text-sm text-rose-700">
-                          {secEnrichmentRefreshError}
-                        </div>
-                      ) : null}
-
-                      <DataOperationStep
-                        step="3"
                         title="Current Price Refresh"
                         description="Refreshes current prices and day-change data from Finnhub for active Wells positions and active watchlist securities."
                         details="Updates: current price, day change, day %, volume, and market-data fields. Does not update Wells economics, tax lots, trades, or SEC fundamentals."

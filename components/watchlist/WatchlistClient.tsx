@@ -1398,75 +1398,83 @@ function AddStockModal({
           ) : null}
 
           {selectedSecurity ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="font-semibold text-slate-900">
-                    {selectedSecurity.ticker}
-                  </p>
-
-                  <p className="mt-0.5 truncate text-xs text-slate-500">
-                    {selectedSecurity.name}
-                  </p>
-                </div>
-
-                {selectedSecurity.sector ? (
-                  <span className="rounded-lg bg-white px-2 py-1 text-[10px] font-medium text-slate-500 ring-1 ring-slate-200">
-                    {selectedSecurity.sector}
-                  </span>
-                ) : null}
-              </div>
-
-              <div className="mt-3 grid grid-cols-3 gap-3">
-                <div className="rounded-2xl bg-slate-50 p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                    Current Price
-                  </p>
-
-                  <p className="mt-1 font-semibold tabular-nums text-slate-950">
-                    {formatPrice(selectedSecurityCurrentPrice)}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-slate-50 p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                    % of Net Equity
-                  </p>
-
-                  <p className="mt-1 font-semibold tabular-nums text-slate-950">
-                    {formatPositionPercent(selectedSecurityPortfolioPct)}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-slate-50 p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                    Market Value
-                  </p>
-
-                  <p className="mt-1 font-semibold tabular-nums text-slate-950">
-                    {formatMoney(selectedSecurityMarketValue)}
-                  </p>
-
-                  {fundEquitySnapshot &&
-                    selectedSecurityPortfolioPct != null ? (
-                    <p className="mt-2 text-[11px] text-slate-400">
-                      Position percentage uses Net Equity as of{" "}
-                      {new Date(fundEquitySnapshot.asOfDate).toLocaleDateString(
-                        "en-US",
-                        {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                          timeZone: "UTC",
-                        },
-                      )}
-                      .
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          ) : null}
+                          <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="font-semibold text-slate-900">
+                                  {selectedSecurity.ticker}
+                                </p>
+          
+                                <p className="mt-0.5 truncate text-xs text-slate-500">
+                                  {selectedSecurity.name}
+                                </p>
+                              </div>
+          
+                              {selectedSecurity.positions?.length ? (
+                                <Badge
+                                  tone={
+                                    selectedSecurity.positions[0]?.side === "SHORT"
+                                      ? "red"
+                                      : "green"
+                                  }
+                                >
+                                  {selectedSecurity.positions[0]?.side || "ACTIVE"}
+                                </Badge>
+                              ) : (
+                                <Badge tone="slate">No Active Position</Badge>
+                              )}
+                            </div>
+          
+                            <div className="mt-3 grid grid-cols-3 gap-3">
+                              <div className="rounded-2xl bg-slate-50 p-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                  Current Price
+                                </p>
+          
+                                <p className="mt-1 font-semibold tabular-nums text-slate-950">
+                                  {formatPrice(selectedSecurityCurrentPrice)}
+                                </p>
+                              </div>
+          
+                              <div className="rounded-2xl bg-slate-50 p-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                  % of Net Equity
+                                </p>
+          
+                                <p className="mt-1 font-semibold tabular-nums text-slate-950">
+                                  {formatPositionPercent(selectedSecurityPortfolioPct)}
+                                </p>
+                              </div>
+          
+                              <div className="rounded-2xl bg-slate-50 p-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                  Market Value
+                                </p>
+          
+                                <p className="mt-1 font-semibold tabular-nums text-slate-950">
+                                  {formatMoney(selectedSecurityMarketValue)}
+                                </p>
+                              </div>
+                            </div>
+          
+                            {fundEquitySnapshot &&
+                              selectedSecurityPortfolioPct != null ? (
+                              <p className="mt-2 text-[11px] text-slate-400">
+                                Position percentage uses Net Equity as of{" "}
+                                {new Date(fundEquitySnapshot.asOfDate).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                    timeZone: "UTC",
+                                  },
+                                )}
+                                .
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : null}
 
 
 
@@ -2401,20 +2409,7 @@ export default function WatchlistClient({
                     </p>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Commented Names
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold text-slate-950">
-                      {
-                        entries.filter((entry) => entry.comments?.length > 0)
-                          .length
-                      }
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      With comment history
-                    </p>
-                  </div>
+                  
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-3">
