@@ -192,22 +192,58 @@ export default function MeetingsClient({
 
   const [deleteCommentError, setDeleteCommentError] = useState("");
 
-  const filteredMeetings = useMemo(() => {
-    const normalized = query.toLowerCase();
+  const [expandedMeetingNotes, setExpandedMeetingNotes] = useState<
+    Record<string, boolean>
+  >({});
 
-    if (!normalized) {
+  const filteredMeetings = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    if (!normalizedQuery) {
       return meetings;
     }
 
     return meetings.filter((meeting: any) => {
+      const meetingDate = new Date(meeting.meetingDate);
+
+      const longDate = meetingDate.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
+
+      const shortMonthDate = meetingDate.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+
+      const numericDate = meetingDate.toLocaleDateString("en-US");
+
+      const monthAndDay = meetingDate.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+      });
+
+      const shortMonthAndDay = meetingDate.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+
       const searchable = [
         meeting.title,
+        longDate,
+        shortMonthDate,
+        numericDate,
+        monthAndDay,
+        shortMonthAndDay,
         ...(meeting.comments || []).map((comment: any) => comment.content),
       ]
+        .filter(Boolean)
         .join(" ")
         .toLowerCase();
 
-      return searchable.includes(normalized);
+      return searchable.includes(normalizedQuery);
     });
   }, [meetings, query]);
 
@@ -817,7 +853,7 @@ export default function MeetingsClient({
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search meetings and notes..."
+                placeholder="Search meetings by title, date, or note..."
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"
               />
             </div>
@@ -865,7 +901,11 @@ export default function MeetingsClient({
                   <div className="p-5">
                     <div className="mt-4 space-y-3">
                       {meeting.comments?.length ? (
-                        meeting.comments.map((comment: any) => (
+                        (
+                          expandedMeetingNotes[meeting.id]
+                            ? meeting.comments
+                            : meeting.comments.slice(0, 5)
+                        ).map((comment: any) => (
                           <div
                             key={comment.id}
                             className="rounded-2xl border border-slate-200 p-4"
@@ -968,6 +1008,23 @@ export default function MeetingsClient({
                           No notes yet.
                         </div>
                       )}
+                      {meeting.comments?.length > 5 ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedMeetingNotes((current) => ({
+                              ...current,
+                              [meeting.id]: !current[meeting.id],
+                            }))
+                          }
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                        >
+                          {expandedMeetingNotes[meeting.id]
+                            ? "Show Fewer Notes"
+                            : `Show ${meeting.comments.length - 5} More Note${meeting.comments.length - 5 === 1 ? "" : "s"
+                            }`}
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 </div>

@@ -54,6 +54,37 @@ function formatCommentGroupDate(value: string | Date) {
   }).format(new Date(value));
 }
 
+function getCommentSearchDates(value: string | Date) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return [];
+  }
+
+  return [
+    date.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }),
+    date.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+    }),
+    date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }),
+    date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    }),
+    date.toLocaleDateString("en-US"),
+    getCommentDateKey(date),
+  ];
+}
+
 export default function CommentsClient({
   initialComments,
 }: CommentsClientProps) {
@@ -85,7 +116,9 @@ export default function CommentsClient({
   const filteredComments = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    if (!normalizedQuery) return localComments;
+    if (!normalizedQuery) {
+      return localComments;
+    }
 
     return localComments.filter((comment) => {
       const searchable = [
@@ -97,6 +130,7 @@ export default function CommentsClient({
         comment.author?.name,
         comment.author?.email,
         getContextLabel(comment),
+        ...getCommentSearchDates(comment.createdAt),
       ]
         .filter(Boolean)
         .join(" ")
@@ -105,7 +139,6 @@ export default function CommentsClient({
       return searchable.includes(normalizedQuery);
     });
   }, [localComments, query]);
-
   const groupedComments = useMemo(() => {
     const sortedComments = [...filteredComments].sort(
       (a, b) =>
@@ -305,7 +338,7 @@ export default function CommentsClient({
                 </div>
               </div>
 
-              
+
 
               {deleteCommentError ? (
                 <div className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
@@ -316,7 +349,7 @@ export default function CommentsClient({
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search ticker, company, comment text, author, category..."
+                  placeholder="Search by date, ticker, company, comment text, author, or category..."
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-slate-900"
                 />
                 <p className="mt-2 px-1 text-xs text-slate-500">
@@ -445,11 +478,10 @@ export default function CommentsClient({
                                       ? "Confirm delete"
                                       : "Delete comment"
                                   }
-                                  className={`inline-flex items-center justify-center rounded-xl disabled:cursor-not-allowed disabled:opacity-50 ${
-                                    confirmDeleteCommentId === comment.id
+                                  className={`inline-flex items-center justify-center rounded-xl disabled:cursor-not-allowed disabled:opacity-50 ${confirmDeleteCommentId === comment.id
                                       ? "bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-700"
                                       : "h-8 w-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                                  }`}
+                                    }`}
                                 >
                                   {deletingCommentId === comment.id ? (
                                     <span className="text-xs font-semibold">

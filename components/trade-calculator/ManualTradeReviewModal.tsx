@@ -149,7 +149,7 @@ export default function ManualTradeReviewModal({
             </div>
 
             <p className="mt-1 text-sm text-slate-500">
-              {draft.ticker} â€¢ {draft.companyName}
+              {draft.ticker} - {draft.companyName}
             </p>
           </div>
 
@@ -159,7 +159,7 @@ export default function ManualTradeReviewModal({
             disabled={isSubmitting}
             className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            âœ•
+            ✕
           </button>
         </div>
 
@@ -197,7 +197,7 @@ export default function ManualTradeReviewModal({
               <ReviewValue
                 label="Estimated Notional"
                 value={formatMoney(result.proposedNotional)}
-                detail="Shares Ã— estimated price"
+                detail="Shares — estimated price"
               />
 
               <ReviewValue
@@ -321,7 +321,7 @@ export default function ManualTradeReviewModal({
               <ReviewValue
                 label="Portfolio Risk"
                 value={formatPercent(result.portfolioRiskPct)}
-                detail="Risk Ã· projected gross portfolio"
+                detail="Risk · projected gross portfolio"
               />
 
               <ReviewValue
