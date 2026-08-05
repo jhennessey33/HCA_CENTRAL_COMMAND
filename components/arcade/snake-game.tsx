@@ -200,7 +200,7 @@ export default function PinkThemeSnake() {
             return;
         }
 
-        const MOVE_INTERVAL = 90;
+        const MOVE_INTERVAL = 78;
 
         let lastMoveTime =
             performance.now();
@@ -210,10 +210,10 @@ export default function PinkThemeSnake() {
         function gameLoop(
             currentTime: number,
         ) {
-            while (
+            if (
                 currentTime - lastMoveTime >= MOVE_INTERVAL
             ) {
-                lastMoveTime += MOVE_INTERVAL;
+                lastMoveTime = currentTime;
 
                 // move snake
 
@@ -452,7 +452,7 @@ export default function PinkThemeSnake() {
             return;
         }
 
-        if (queue.length < 3) {
+        if (queue.length < 2) {
             queue.push(nextDirection);
         }
     }
