@@ -258,7 +258,10 @@ function PositionGrid({
                 {formatPercent(totalPctChange)}
               </div>
 
-              <div>{position.security.sector || "—"}</div>
+              <div className="w-full px-1 text-center leading-tight">
+                {position.security.sector || "—"}
+              </div>
+
 
               <div className="flex justify-center">
                 <button
