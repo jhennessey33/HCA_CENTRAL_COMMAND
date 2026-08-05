@@ -202,7 +202,7 @@ function pnlClass(value: number | null | undefined) {
 
 function SectionBar() {
   return (
-    <div className="rounded-t-2xl bg-yellow-300 px-4 py-2 text-center text-xs font-bold uppercase tracking-widest text-slate-950">
+    <div className="rounded-t-2xl bg-slate-800 px-4 py-2 text-center text-xs font-bold uppercase tracking-widest text-white">
       Past Positions
     </div>
   );
@@ -353,164 +353,264 @@ function PastPositionsGrid({
   onComment: (position: any) => void;
   canComment: boolean;
 }) {
+  const [expandedPositionIds, setExpandedPositionIds] = useState<
+    Record<string, boolean>
+  >({});
+
+  function togglePositionDetails(positionId: string) {
+    setExpandedPositionIds((current) => ({
+      ...current,
+      [positionId]:!current[positionId],
+    }));
+  }
+
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <SectionBar />
 
-      <div className="grid grid-cols-12 border-b bg-slate-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-        <div>Ticker</div>
-        <div className="col-span-2">Company</div>
-        <div>Side</div>
-        <div>Opened</div>
-        <div>Closed</div>
-        <div>Days</div>
-        <div>Entry</div>
-        <div>Exit</div>
-        <div>Total %</div>
-        <div>P&L</div>
-        <div>Review</div>
-      </div>
+      <div className="overflow-x-auto">
+        <div className="grid min-w-[1250px] grid-cols-12 items-center gap-3 border-b bg-slate-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <div className="col-span-3">Security</div>
 
-      {positions.length === 0 ? (
-        <div className="px-4 py-10 text-center text-sm text-slate-500">
-          No closed positions found. Past positions appear when a Wells position
-          is marked CLOSED during position ingestion.
+          <div>Side</div>
+
+          <div className="col-span-2">Holding Period</div>
+
+          <div className="col-span-2">Entry → Exit</div>
+
+          <div>Return</div>
+
+          <div className="col-span-3">Realized P&amp;L / Review</div>
         </div>
-      ) : null}
-      {positions.map((position) => {
-        const entryPrice = getEntryPrice(position);
-        const exitPrice = getExitPrice(position);
-        const totalPctChange = getTotalPctChange(position);
 
-        const entryLabel =
-          position.side === "SHORT"
-            ? `${formatMoney(entryPrice)} Sold Short`
-            : `${formatMoney(entryPrice)} Bought`;
-
-        const exitLabel =
-          position.side === "SHORT"
-            ? `${formatMoney(exitPrice)} Covered`
-            : `${formatMoney(exitPrice)} Sold`;
-
-        return (
-          <div
-            key={position.id}
-            className="border-b border-slate-100 px-4 py-3 text-xs hover:bg-slate-50"
-          >
-            <div className="grid grid-cols-12 items-center gap-2">
-              <div className="font-semibold text-slate-950">
-                {position.security.ticker}
-              </div>
-
-              <div className="col-span-2 truncate text-slate-600">
-                {position.security.name}
-              </div>
-
-              <div>
-                <span
-                  className={
-                    position.side === "SHORT"
-                      ? "rounded-full bg-rose-50 px-2 py-1 font-semibold text-rose-700 ring-1 ring-rose-200"
-                      : "rounded-full bg-emerald-50 px-2 py-1 font-semibold text-emerald-700 ring-1 ring-emerald-200"
-                  }
-                >
-                  {position.side}
-                </span>
-              </div>
-
-              <div className="text-slate-600">
-                {formatDate(position.openedAt)}
-              </div>
-
-              <div className="text-slate-600">
-                {formatDate(position.closedAt)}
-              </div>
-
-              <div className="text-slate-600">
-                {getDaysHeld(position) != null
-                  ? `${getDaysHeld(position)}d`
-                  : "—"}
-              </div>
-
-              <div className="font-medium text-slate-900">
-                {formatMoney(entryPrice)}
-              </div>
-
-              <div className="font-medium text-slate-900">
-                {formatMoney(exitPrice)}
-              </div>
-
-              <div className={`font-semibold ${pnlClass(totalPctChange)}`}>
-                {formatPercent(totalPctChange)}
-              </div>
-
-              <div
-                className={`font-semibold ${pnlClass(getRealizedPnl(position))}`}
-              >
-                {formatMoney(getRealizedPnl(position))}
-              </div>
-              <div className="flex items-center gap-2">
-                {getOpenFlagCount(position) > 0 ? (
-                  <span className="rounded-full bg-amber-50 px-2 py-1 font-medium text-amber-700 ring-1 ring-amber-200">
-                    {getOpenFlagCount(position)} flag
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-500">
-                    No flags
-                  </span>
-                )}
-
-                {canComment ? (
-                  <button
-                    onClick={() => onComment(position)}
-                    className="rounded-xl bg-blue-50 px-2 py-1 font-medium text-blue-700 hover:bg-blue-100"
-                  >
-                    Comment
-                  </button>
-                ) : (
-                  <span className="rounded-xl bg-slate-100 px-2 py-1 font-medium text-slate-400">
-                    Read Only
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-2 grid grid-cols-12 gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
-              <div className="col-span-3">
-                <span className="font-semibold text-slate-700">
-                  Final shares:
-                </span>{" "}
-                {formatNumber(position.shares)}
-              </div>
-
-              <div className="col-span-3">
-                <span className="font-semibold text-slate-700">
-                  Cost basis:
-                </span>{" "}
-                {formatMoney(position.costBasis)}
-              </div>
-
-              <div className="col-span-3">
-                <span className="font-semibold text-slate-700">Trades:</span>{" "}
-                {(position.trades?.length ?? 0) +
-                  (position.security?.trades?.length ?? 0)}
-              </div>
-
-              <div className="col-span-3">
-                <span className="font-semibold text-slate-700">Comments:</span>{" "}
-                {position.comments?.length ?? 0}
-              </div>
-
-              <div className="col-span-12 pt-1">
-                <span className="font-semibold text-slate-700">
-                  Exit rationale:
-                </span>{" "}
-                {getLatestComment(position) ?? "No exit rationale recorded."}
-              </div>
-            </div>
+        {positions.length === 0 ? (
+          <div className="px-4 py-10 text-center text-sm text-slate-500">
+            No closed positions found. Past positions appear when a Wells
+            position is marked CLOSED during position ingestion.
           </div>
-        );
-      })}
+        ) : null}
+
+        {positions.map((position) => {
+          const entryPrice = getEntryPrice(position);
+          const exitPrice = getExitPrice(position);
+          const totalPctChange = getTotalPctChange(position);
+          const realizedPnl = getRealizedPnl(position);
+          const daysHeld = getDaysHeld(position);
+          const openFlagCount = getOpenFlagCount(position);
+          const visibleTrades = getVisibleTrades(position);
+          const isExpanded = Boolean(expandedPositionIds[position.id]);
+
+          const entryAction =
+            position.side === "SHORT" ? "Sold Short" : "Bought";
+
+          const exitAction =
+            position.side === "SHORT" ? "Covered" : "Sold";
+
+          return (
+            <div
+              key={position.id}
+              className="border-b border-slate-100 last:border-b-0"
+            >
+              <div className="grid min-w-[1250px] grid-cols-12 items-center gap-3 px-4 py-4 text-xs transition hover:bg-slate-50">
+                {/* Security */}
+                <div className="col-span-3 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-slate-950">
+                      {position.security.ticker}
+                    </span>
+
+                    {position.security?.sector ? (
+                      <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                        {position.security.sector}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <p
+                    title={position.security.name}
+                    className="mt-1 truncate text-slate-600"
+                  >
+                    {position.security.name}
+                  </p>
+                </div>
+
+                {/* Side */}
+                <div>
+                  <span
+                    className={
+                      position.side === "SHORT"
+                        ? "inline-flex rounded-full bg-rose-50 px-2.5 py-1 font-semibold text-rose-700 ring-1 ring-rose-200"
+                        : "inline-flex rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700 ring-1 ring-emerald-200"
+                    }
+                  >
+                    {position.side}
+                  </span>
+                </div>
+
+                {/* Holding period */}
+                <div className="col-span-2">
+                  <div className="flex items-center gap-2 whitespace-nowrap text-slate-700">
+                    <span>{formatDate(position.openedAt)}</span>
+
+                    <span className="text-slate-300">→</span>
+
+                    <span>{formatDate(position.closedAt)}</span>
+                  </div>
+
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    {daysHeld != null
+                      ? `${daysHeld.toLocaleString("en-US")} day${
+                          daysHeld === 1 ? "" : "s"
+                        } held`
+                      : "Holding period unavailable"}
+                  </p>
+                </div>
+
+                {/* Entry and exit */}
+                <div className="col-span-2">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <p className="font-semibold tabular-nums text-slate-950">
+                        {formatMoney(entryPrice)}
+                      </p>
+
+                      <p className="mt-0.5 text-[10px] uppercase tracking-wide text-slate-400">
+                        {entryAction}
+                      </p>
+                    </div>
+
+                    <span className="text-slate-300">→</span>
+
+                    <div>
+                      <p className="font-semibold tabular-nums text-slate-950">
+                        {formatMoney(exitPrice)}
+                      </p>
+
+                      <p className="mt-0.5 text-[10px] uppercase tracking-wide text-slate-400">
+                        {exitAction}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Return */}
+                <div>
+                  <p
+                    className={`text-sm font-semibold tabular-nums ${pnlClass(
+                      totalPctChange,
+                    )}`}
+                  >
+                    {formatPercent(totalPctChange)}
+                  </p>
+                </div>
+
+                {/* Realized P&L and review */}
+                <div className="col-span-3">
+                  <p
+                    className={`text-sm font-semibold tabular-nums ${pnlClass(
+                      realizedPnl,
+                    )}`}
+                  >
+                    {formatMoney(realizedPnl)}
+                  </p>
+
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    {openFlagCount > 0 ? (
+                      <span className="rounded-lg bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
+                        {openFlagCount} open flag
+                        {openFlagCount === 1 ? "" : "s"}
+                      </span>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      onClick={() => togglePositionDetails(position.id)}
+                      aria-expanded={isExpanded}
+                      className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-100"
+                    >
+                      {isExpanded ? "Hide Details" : "Details"}
+                    </button>
+
+                    {canComment ? (
+                      <button
+                        type="button"
+                        onClick={() => onComment(position)}
+                        className="rounded-lg bg-blue-50 px-2 py-1 text-[10px] font-semibold text-blue-700 hover:bg-blue-100"
+                      >
+                        Comment
+                      </button>
+                    ) : (
+                      <span className="rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-400">
+                        Read Only
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Expandable secondary details */}
+              {isExpanded ? (
+                <div className="border-t border-slate-100 bg-slate-50/70 px-4 py-4">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-xl border border-slate-200 bg-white p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                        Final Shares
+                      </p>
+
+                      <p className="mt-1 font-semibold tabular-nums text-slate-800">
+                        {formatNumber(position.shares)}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-white p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                        Cost Basis
+                      </p>
+
+                      <p className="mt-1 font-semibold tabular-nums text-slate-800">
+                        {formatMoney(position.costBasis)}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-white p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                        Trades
+                      </p>
+
+                      <p className="mt-1 font-semibold tabular-nums text-slate-800">
+                        {visibleTrades.length.toLocaleString("en-US")}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-white p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                        Comments
+                      </p>
+
+                      <p className="mt-1 font-semibold tabular-nums text-slate-800">
+                        {(position.comments?.length ?? 0).toLocaleString(
+                          "en-US",
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 rounded-xl border border-slate-200 bg-white p-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                      Exit Rationale / Latest Review
+                    </p>
+
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                      {getLatestComment(position) ??
+                        "No exit rationale recorded."}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
