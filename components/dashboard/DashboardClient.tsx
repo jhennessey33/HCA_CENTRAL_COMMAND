@@ -278,7 +278,7 @@ function PositionGrid({
                     onClick={() => onComment(position)}
                     className="rounded-xl bg-blue-50 px-2 py-1 font-medium text-blue-700 hover:bg-blue-100"
                   >
-                    {latestComment ? "Comment" : "Add Comment"}
+                    {"Comment"}
                   </button>
                 ) : (
                   <span className="rounded-xl bg-slate-100 px-2 py-1 font-medium text-slate-400">

@@ -255,7 +255,12 @@ export default function TradesClient({
         trade.source,
         trade.reconciliationStatus,
         formatSource(trade.source),
-        formatReconciliationStatus(trade.reconciliationStatus, trade.source),
+        trade.source === "WELLS_FARGO"
+          ? null
+          : formatReconciliationStatus(
+            trade.reconciliationStatus,
+            trade.source,
+          ),
       ]
         .filter(Boolean)
         .join(" ")
@@ -775,19 +780,21 @@ export default function TradesClient({
                           </div>
 
                           <div>
-                            <Badge
-                              tone={
-                                reconciliationTone(
+                            {trade.source === "WELLS_FARGO" ? null : (
+                              <Badge
+                                tone={
+                                  reconciliationTone(
+                                    trade.reconciliationStatus,
+                                    trade.source,
+                                  ) as any
+                                }
+                              >
+                                {formatReconciliationStatus(
                                   trade.reconciliationStatus,
                                   trade.source,
-                                ) as any
-                              }
-                            >
-                              {formatReconciliationStatus(
-                                trade.reconciliationStatus,
-                                trade.source,
-                              )}
-                            </Badge>
+                                )}
+                              </Badge>
+                            )}
                           </div>
 
                           <div
