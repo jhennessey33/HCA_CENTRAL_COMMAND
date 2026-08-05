@@ -133,12 +133,6 @@ export default async function WatchlistPage() {
   );
   const serializedSecurities = JSON.parse(JSON.stringify(securities));
 
-const aem = securities.find((s) => s.ticker === "AEM");
-
-console.log(
-  "AEM SECURITY",
-  JSON.stringify(aem, null, 2)
-);
 
   return (
     <WatchlistClient
