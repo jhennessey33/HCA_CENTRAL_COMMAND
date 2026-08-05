@@ -33,6 +33,7 @@ function formatMeetingDate(value: string) {
     month: "long",
     day: "numeric",
     year: "numeric",
+    timeZone: "UTC",
   }).format(new Date(value));
 }
 
@@ -197,6 +198,12 @@ export default function MeetingsClient({
   >({});
 
   const filteredMeetings = useMemo(() => {
+
+    const dateFormatOptions = {
+      timeZone: "UTC",
+    } as const;
+
+
     const normalizedQuery = query.trim().toLowerCase();
 
     if (!normalizedQuery) {
@@ -210,24 +217,30 @@ export default function MeetingsClient({
         month: "long",
         day: "numeric",
         year: "numeric",
+        timeZone: "UTC",
       });
 
       const shortMonthDate = meetingDate.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
         year: "numeric",
+        timeZone: "UTC",
       });
 
-      const numericDate = meetingDate.toLocaleDateString("en-US");
+      const numericDate = meetingDate.toLocaleDateString("en-US", {
+        timeZone: "UTC",
+      });
 
       const monthAndDay = meetingDate.toLocaleDateString("en-US", {
         month: "long",
         day: "numeric",
+        timeZone: "UTC",
       });
 
       const shortMonthAndDay = meetingDate.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
+        timeZone: "UTC",
       });
 
       const searchable = [
@@ -469,7 +482,7 @@ export default function MeetingsClient({
         credentials: "include",
         body: JSON.stringify({
           title: meetingTitle.trim(),
-          meetingDate: new Date(meetingDate).toISOString(),
+          meetingDate: `${meetingDate}T00:00:00.000Z`,
         }),
       });
 
