@@ -113,7 +113,7 @@ function toFiniteNumber(value: unknown): number | null {
 }
 
 function roundShares(value: number) {
-  return Math.max(0, Math.round((value + Number.EPSILON) * 10_000) / 10_000);
+  return Math.max(0, Math.round(value));
 }
 
 function getPositionSide(signedShares: number): PositionSide {
