@@ -4,54 +4,84 @@ import { prisma } from "@/lib/prisma";
 
 const VALID_TRADE_TYPES = ["BUY", "SELL", "SHORT", "COVER"] as const;
 
-const VALID_ORIGINS = ["DASHBOARD", "TRADE_CALCULATOR"] as const;
+type ValidTradeType = (typeof VALID_TRADE_TYPES)[number];
 
 class RequestValidationError extends Error {}
 
-function parsePositiveNumber(value: unknown, fieldName: string) {
-  const parsed = Number(value);
+function parseRequiredId(value: unknown, fieldName: string) {
+  const parsedValue = String(value || "").trim();
 
-  if (!Number.isFinite(parsed)) {
+  if (!parsedValue) {
+    throw new RequestValidationError(`${fieldName} is required.`);
+  }
+
+  return parsedValue;
+}
+
+function parsePositiveNumber(value: unknown, fieldName: string) {
+  const parsedValue = Number(value);
+
+  if (!Number.isFinite(parsedValue)) {
     throw new RequestValidationError(`${fieldName} must be a valid number.`);
   }
 
-  if (parsed <= 0) {
+  if (parsedValue <= 0) {
     throw new RequestValidationError(`${fieldName} must be greater than zero.`);
   }
 
-  return parsed;
+  return parsedValue;
 }
 
-function parseTradeType(value: unknown) {
+function parseTradeType(value: unknown): ValidTradeType {
   const tradeType = String(value || "")
     .trim()
     .toUpperCase();
 
-  if (
-    !VALID_TRADE_TYPES.includes(tradeType as (typeof VALID_TRADE_TYPES)[number])
-  ) {
+  if (!VALID_TRADE_TYPES.includes(tradeType as ValidTradeType)) {
     throw new RequestValidationError(
       "Trade type must be BUY, SELL, SHORT, or COVER.",
     );
   }
 
-  return tradeType as (typeof VALID_TRADE_TYPES)[number];
+  return tradeType as ValidTradeType;
 }
 
-function parseOrigin(value: unknown) {
+function parseProposedTradeAt(value: unknown) {
   if (value === null || value === undefined || value === "") {
-    return "DASHBOARD";
-  }
-
-  const origin = String(value).trim().toUpperCase();
-
-  if (!VALID_ORIGINS.includes(origin as (typeof VALID_ORIGINS)[number])) {
     throw new RequestValidationError(
-      "Trade origin must be DASHBOARD or TRADE_CALCULATOR.",
+      "Proposed trade date and time are required.",
     );
   }
 
-  return origin as (typeof VALID_ORIGINS)[number];
+  const proposedTradeAt = new Date(String(value));
+
+  if (Number.isNaN(proposedTradeAt.getTime())) {
+    throw new RequestValidationError(
+      "Proposed trade date and time must be valid.",
+    );
+  }
+
+  return proposedTradeAt;
+}
+
+function parseOptionalComment(value: unknown) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const comment = String(value).trim();
+
+  if (!comment) {
+    return null;
+  }
+
+  if (comment.length > 5000) {
+    throw new RequestValidationError(
+      "Comment must be 5,000 characters or fewer.",
+    );
+  }
+
+  return comment;
 }
 
 function parseShortLocateNumber(value: unknown) {
@@ -59,33 +89,19 @@ function parseShortLocateNumber(value: unknown) {
     return null;
   }
 
-  const locateNumber = String(value).trim();
+  const shortLocateNumber = String(value).trim();
 
-  if (!locateNumber) {
+  if (!shortLocateNumber) {
     return null;
   }
 
-  if (locateNumber.length > 200) {
+  if (shortLocateNumber.length > 200) {
     throw new RequestValidationError(
       "Short Locate Number must be 200 characters or fewer.",
     );
   }
 
-  return locateNumber;
-}
-
-function parseTradeDate(value: unknown) {
-  if (value === null || value === undefined || value === "") {
-    return new Date();
-  }
-
-  const parsedDate = new Date(String(value));
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    throw new RequestValidationError("Trade date and time must be valid.");
-  }
-
-  return parsedDate;
+  return shortLocateNumber;
 }
 
 function canLogManualTrade(role?: string | null) {
@@ -110,7 +126,7 @@ export async function POST(request: Request) {
     if (!canLogManualTrade(currentUser.role)) {
       return NextResponse.json(
         {
-          error: "You do not have permission to log trades.",
+          error: "You do not have permission to add trades to the queue.",
         },
         {
           status: 403,
@@ -120,32 +136,22 @@ export async function POST(request: Request) {
 
     const body = await request.json();
 
-    const securityId = String(body.securityId || "").trim();
+    const securityId = parseRequiredId(body.securityId, "securityId");
 
-    const positionId = body.positionId ? String(body.positionId).trim() : null;
-
-    if (!securityId) {
-      return NextResponse.json(
-        {
-          error: "securityId is required.",
-        },
-        {
-          status: 400,
-        },
-      );
-    }
+    const positionId = parseRequiredId(body.positionId, "positionId");
 
     const tradeType = parseTradeType(body.tradeType);
 
-    const rawShares = parsePositiveNumber(body.shares, "Shares");
+    const shares = parsePositiveNumber(body.shares, "Shares");
 
-    const avgPrice = parsePositiveNumber(body.avgPrice, "Average price");
+    const executionPrice = parsePositiveNumber(
+      body.executionPrice,
+      "Execution price",
+    );
 
-    const dateTraded = parseTradeDate(body.dateTraded);
+    const proposedTradeAt = parseProposedTradeAt(body.proposedTradeAt);
 
-    const origin = parseOrigin(body.origin);
-
-    const userComment = body.comment ? String(body.comment).trim() : null;
+    const comment = parseOptionalComment(body.comment);
 
     const shortLocateNumber = parseShortLocateNumber(body.shortLocateNumber);
 
@@ -154,21 +160,6 @@ export async function POST(request: Request) {
         "Short Locate Number is required for a short trade.",
       );
     }
-
-    const shortLocateNote =
-      tradeType === "SHORT" && shortLocateNumber
-        ? `Short Locate Number: ${shortLocateNumber}`
-        : null;
-
-    const comment =
-      userComment && shortLocateNote
-        ? `${userComment}\n\n${shortLocateNote}`
-        : userComment || shortLocateNote || null;
-
-    const shares =
-      tradeType === "SELL" || tradeType === "SHORT"
-        ? -Math.abs(rawShares)
-        : Math.abs(rawShares);
 
     const security = await prisma.security.findUnique({
       where: {
@@ -192,104 +183,109 @@ export async function POST(request: Request) {
       );
     }
 
-    if (positionId) {
-      const position = await prisma.position.findUnique({
-        where: {
-          id: positionId,
+    const position = await prisma.position.findUnique({
+      where: {
+        id: positionId,
+      },
+      select: {
+        id: true,
+        securityId: true,
+        status: true,
+      },
+    });
+
+    if (!position) {
+      return NextResponse.json(
+        {
+          error: "Position not found.",
         },
-        select: {
-          id: true,
-          securityId: true,
-          status: true,
+        {
+          status: 404,
         },
-      });
-
-      if (!position) {
-        return NextResponse.json(
-          {
-            error: "Position not found.",
-          },
-          {
-            status: 404,
-          },
-        );
-      }
-
-      if (position.securityId !== securityId) {
-        return NextResponse.json(
-          {
-            error:
-              "The selected position does not belong to the selected Security.",
-          },
-          {
-            status: 400,
-          },
-        );
-      }
-
-      if (position.status !== "ACTIVE") {
-        return NextResponse.json(
-          {
-            error: "Manual trades can only be added to an active position.",
-          },
-          {
-            status: 409,
-          },
-        );
-      }
+      );
     }
 
-    const trade = await prisma.$transaction(async (tx) => {
-      const createdTrade = await tx.trade.create({
+    if (position.securityId !== securityId) {
+      return NextResponse.json(
+        {
+          error:
+            "The selected position does not belong to the selected Security.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    if (position.status !== "ACTIVE") {
+      return NextResponse.json(
+        {
+          error: "Trades can only be queued for an active position.",
+        },
+        {
+          status: 409,
+        },
+      );
+    }
+
+    const queueItem = await prisma.$transaction(async (tx) => {
+      const createdQueueItem = await tx.tradeQueueItem.create({
         data: {
           securityId,
           positionId,
-          dateTraded,
-          shares,
-          avgPrice,
+          createdById: currentUser.id,
           tradeType,
-          notional: shares * avgPrice,
+          shares,
+          executionPrice,
+          proposedTradeAt,
           comment,
-          source: "MANUAL",
-          reconciliationStatus: "MANUAL_PENDING",
-          manualEnteredById: currentUser.id,
-          isHidden: false,
+          shortLocateNumber,
+          status: "QUEUED",
         },
         include: {
           security: true,
+          position: true,
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
         },
       });
 
       await tx.auditLog.create({
         data: {
           actorId: currentUser.id,
-          action: "MANUAL_TRADE_CREATED",
-          entityType: "TRADE",
-          entityId: createdTrade.id,
+          action: "TRADE_QUEUE_CREATED",
+          entityType: "TRADE_QUEUE_ITEM",
+          entityId: createdQueueItem.id,
           newValueJson: JSON.stringify({
+            tradeQueueItemId: createdQueueItem.id,
             securityId,
             ticker: security.ticker,
             positionId,
             tradeType,
             shares,
-            avgPrice,
-            notional: createdTrade.notional,
-            dateTraded,
+            executionPrice,
+            proposedTradeAt,
             comment,
             shortLocateNumber,
-            source: createdTrade.source,
-            reconciliationStatus: createdTrade.reconciliationStatus,
-            origin,
+            status: createdQueueItem.status,
+            createdById: currentUser.id,
+            origin: "TRADE_CALCULATOR",
           }),
         },
       });
 
-      return createdTrade;
+      return createdQueueItem;
     });
 
     return NextResponse.json(
       {
-        trade,
+        queueItem,
       },
       {
         status: 201,
@@ -318,11 +314,11 @@ export async function POST(request: Request) {
       );
     }
 
-    console.error("POST /api/trades/manual failed", error);
+    console.error("POST /api/trade-queue failed", error);
 
     return NextResponse.json(
       {
-        error: "Failed to create manual trade.",
+        error: "Failed to add trade to the queue.",
       },
       {
         status: 500,
