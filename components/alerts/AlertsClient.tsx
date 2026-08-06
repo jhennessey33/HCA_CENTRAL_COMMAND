@@ -1,4 +1,6 @@
 "use client";
+
+import { useRouter } from "next/navigation";
 import LocalDateTime from "@/components/common/LocalDateTime";
 import Badge from "@/components/common/Badge";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -32,6 +34,10 @@ function getContextLabel(flag: any) {
 
 function isPtProximityAlert(flag: any) {
   return flag.flagType === "PT Proximity Alert";
+}
+
+function isTradeQueueExecutionAlert(flag: any) {
+  return flag.flagType === "Trade Queue Execution Alert";
 }
 
 function parseFlagMetadata(flag: any) {
@@ -79,6 +85,18 @@ function formatPtDistance(value: unknown) {
   }
 
   return `${numericValue.toFixed(2)}%`;
+}
+function formatQueueShares(value: unknown) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return "—";
+  }
+
+  return numericValue.toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4,
+  });
 }
 
 function getPtContextLabel(flag: any, metadata: any) {
@@ -162,7 +180,8 @@ function AlertCard({
 
           <p className="mt-1 text-sm text-slate-600">
             {flag.description ||
-              `${flag.flagType} alert for ${flag.security?.ticker || "General"
+              `${flag.flagType} alert for ${
+                flag.security?.ticker || "General"
               }.`}
           </p>
           {flag.reminderAt ? (
@@ -695,6 +714,280 @@ function PtProximityAlertCard({
   );
 }
 
+function TradeQueueExecutionAlertCard({
+  flag,
+  onResolve,
+  onOpenTradeQueue,
+  canResolve,
+}: {
+  flag: any;
+  onResolve: (flagId: string) => Promise<void>;
+  onOpenTradeQueue: (flag: any) => void;
+  canResolve: boolean;
+}) {
+  const metadata = parseFlagMetadata(flag);
+  const [confirmingResolve, setConfirmingResolve] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
+  const [resolveError, setResolveError] = useState("");
+
+  const tradeQueueItemId =
+    flag.tradeQueueItemId || metadata?.tradeQueueItemId || null;
+
+  const ticker =
+    flag.security?.ticker || metadata?.ticker || "Unknown Security";
+
+  useEffect(() => {
+    if (!confirmingResolve) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setConfirmingResolve(false);
+    }, 5000);
+
+    return () => clearTimeout(timeout);
+  }, [confirmingResolve]);
+
+  async function handleConfirmResolve() {
+    try {
+      setIsResolving(true);
+      setResolveError("");
+      await onResolve(flag.id);
+    } catch (error) {
+      setResolveError(
+        error instanceof Error
+          ? error.message
+          : "Failed to resolve Trade Queue alert.",
+      );
+    } finally {
+      setIsResolving(false);
+      setConfirmingResolve(false);
+    }
+  }
+
+  return (
+    <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone="green">Trade Queue Alert</Badge>
+
+            {metadata?.tradeType ? (
+              <Badge
+                tone={
+                  metadata.tradeType === "SELL" ||
+                  metadata.tradeType === "SHORT"
+                    ? "red"
+                    : "green"
+                }
+              >
+                {metadata.tradeType}
+              </Badge>
+            ) : null}
+
+            <Badge tone={priorityTone(flag.priority) as any}>
+              {flag.priority}
+            </Badge>
+
+            <Badge tone={statusTone(flag.status) as any}>{flag.status}</Badge>
+          </div>
+
+          <h3 className="mt-3 text-lg font-semibold text-slate-950">
+            {ticker} reached its Trade Queue execution threshold
+          </h3>
+
+          <p className="mt-1 text-sm leading-6 text-slate-700">
+            {flag.description ||
+              "A queued trade reached its action-aware execution threshold."}
+          </p>
+
+          <p className="mt-2 text-xs text-slate-500">
+            Alert created{" "}
+            <LocalDateTime
+              value={flag.createdAt}
+              className="text-xs text-slate-500"
+            />
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onOpenTradeQueue(flag)}
+          disabled={!tradeQueueItemId}
+          title={
+            tradeQueueItemId
+              ? "Open this item in the Trade Queue."
+              : "This alert does not include a Trade Queue item ID."
+          }
+          className="shrink-0 rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+        >
+          Open Trade Queue
+        </button>
+      </div>
+
+      <div className="mt-5 grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-emerald-100">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Current Price
+          </p>
+
+          <p className="mt-2 text-lg font-semibold tabular-nums text-slate-950">
+            {formatPtPrice(metadata?.currentPrice)}
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-emerald-100">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Execution Price
+          </p>
+
+          <p className="mt-2 text-lg font-semibold tabular-nums text-slate-950">
+            {formatPtPrice(metadata?.executionPrice)}
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-emerald-100">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Distance
+          </p>
+
+          <p className="mt-2 text-lg font-semibold tabular-nums text-emerald-700">
+            {formatPtDistance(metadata?.distancePercent)}
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-emerald-100">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Shares
+          </p>
+
+          <p className="mt-2 text-lg font-semibold tabular-nums text-slate-950">
+            {formatQueueShares(metadata?.shares)}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-emerald-100">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Trigger Details
+          </p>
+
+          <div className="mt-2 space-y-1 text-slate-700">
+            <p>
+              Action:{" "}
+              <span className="font-semibold text-slate-950">
+                {metadata?.tradeType || "—"}
+              </span>
+            </p>
+
+            <p>
+              Direction:{" "}
+              <span className="font-semibold text-slate-950">
+                {metadata?.triggerDirection || "—"}
+              </span>
+            </p>
+
+            <p>
+              Triggered At:{" "}
+              <span className="font-semibold text-slate-950">
+                {metadata?.triggeredAt
+                  ? formatDateTime(metadata.triggeredAt)
+                  : "—"}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-emerald-100">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Market Data
+          </p>
+
+          <div className="mt-2 space-y-1 text-slate-700">
+            <p>
+              Source:{" "}
+              <span className="font-semibold text-slate-950">
+                {metadata?.marketDataSource || "Unknown"}
+              </span>
+            </p>
+
+            <p>
+              Price As Of:{" "}
+              <span className="font-semibold text-slate-950">
+                {metadata?.marketDataAsOf
+                  ? formatDateTime(metadata.marketDataAsOf)
+                  : "—"}
+              </span>
+            </p>
+
+            <p>
+              Queue Item:{" "}
+              <span
+                title={tradeQueueItemId || ""}
+                className="font-semibold text-slate-950"
+              >
+                {tradeQueueItemId || "—"}
+              </span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-emerald-200 bg-white p-4 text-sm leading-6 text-slate-700">
+        Opening the Trade Queue does not execute the item. Final execution
+        requires confirmation of the actual price and trade timestamp.
+      </div>
+
+      {canResolve ? (
+        <div className="mt-4 flex justify-end">
+          {isResolving ? (
+            <button
+              type="button"
+              disabled
+              className="cursor-not-allowed rounded-2xl bg-slate-400 px-4 py-2 text-sm font-medium text-white"
+            >
+              Resolving...
+            </button>
+          ) : confirmingResolve ? (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleConfirmResolve}
+                className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700"
+              >
+                Confirm Resolve Alert
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setConfirmingResolve(false)}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmingResolve(true)}
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Resolve Alert Only
+            </button>
+          )}
+        </div>
+      ) : null}
+
+      {resolveError ? (
+        <div className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 ring-1 ring-rose-100">
+          {resolveError}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function AlertGroup({
   title,
   description,
@@ -876,9 +1169,7 @@ function CreateFlagModal({
 
     setSecurityId(selectedSecurityId);
 
-    setSecurityQuery(
-      security ? `${security.ticker} — ${security.name}` : "",
-    );
+    setSecurityQuery(security ? `${security.ticker} — ${security.name}` : "");
 
     setIsSecurityDropdownOpen(false);
     setHighlightedSecurityIndex(0);
@@ -893,9 +1184,7 @@ function CreateFlagModal({
     setError("");
   }
 
-  function handleSecurityKeyDown(
-    event: React.KeyboardEvent<HTMLInputElement>,
-  ) {
+  function handleSecurityKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     const optionCount = filteredSecurities.length;
 
     if (event.key === "Escape") {
@@ -935,8 +1224,7 @@ function CreateFlagModal({
     if (event.key === "Enter" && isSecurityDropdownOpen) {
       event.preventDefault();
 
-      const highlightedSecurity =
-        filteredSecurities[highlightedSecurityIndex];
+      const highlightedSecurity = filteredSecurities[highlightedSecurityIndex];
 
       if (highlightedSecurity) {
         handleSecurityChange(highlightedSecurity.id);
@@ -1047,10 +1335,11 @@ function CreateFlagModal({
                   setError("");
                 }}
                 disabled={isSaving}
-                className={`rounded-2xl px-4 py-3 text-sm font-medium transition ${associationType === "GENERAL"
-                  ? "bg-slate-900 text-white"
-                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                  }`}
+                className={`rounded-2xl px-4 py-3 text-sm font-medium transition ${
+                  associationType === "GENERAL"
+                    ? "bg-slate-900 text-white"
+                    : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
               >
                 General
               </button>
@@ -1062,10 +1351,11 @@ function CreateFlagModal({
                   setError("");
                 }}
                 disabled={isSaving}
-                className={`rounded-2xl px-4 py-3 text-sm font-medium transition ${associationType === "SECURITY"
-                  ? "bg-slate-900 text-white"
-                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                  }`}
+                className={`rounded-2xl px-4 py-3 text-sm font-medium transition ${
+                  associationType === "SECURITY"
+                    ? "bg-slate-900 text-white"
+                    : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
               >
                 Security
               </button>
@@ -1154,8 +1444,7 @@ function CreateFlagModal({
                 >
                   {filteredSecurities.length ? (
                     filteredSecurities.map((security, index) => {
-                      const isHighlighted =
-                        highlightedSecurityIndex === index;
+                      const isHighlighted = highlightedSecurityIndex === index;
 
                       const isSelected = securityId === security.id;
 
@@ -1172,10 +1461,11 @@ function CreateFlagModal({
                             event.preventDefault();
                             handleSecurityChange(security.id);
                           }}
-                          className={`flex w-full items-start justify-between gap-4 rounded-xl px-3 py-2.5 text-left ${isHighlighted || isSelected
-                            ? "bg-slate-100"
-                            : "hover:bg-slate-50"
-                            }`}
+                          className={`flex w-full items-start justify-between gap-4 rounded-xl px-3 py-2.5 text-left ${
+                            isHighlighted || isSelected
+                              ? "bg-slate-100"
+                              : "hover:bg-slate-50"
+                          }`}
                         >
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
@@ -1348,6 +1638,8 @@ export default function AlertsClient({
   initialFlags,
   securities,
 }: AlertsClientProps) {
+  const router = useRouter();
+
   const [query, setQuery] = useState("");
   const [flags, setFlags] = useState<any[]>(initialFlags);
   const [currentUser, setCurrentUser] = useState<any | null>(null);
@@ -1416,6 +1708,9 @@ export default function AlertsClient({
         flag.security ? null : "General",
         flag.metadataJson,
         isPtProximityAlert(flag) ? "PT Alert Price Target Proximity" : null,
+        isTradeQueueExecutionAlert(flag)
+          ? "Trade Queue Alert Execution Threshold"
+          : null,
         flag.flagType,
         flag.description,
         flag.priority,
@@ -1493,6 +1788,10 @@ export default function AlertsClient({
     return reminderDate >= endOfUpcomingWindow;
   });
 
+  const tradeQueueAlertFlags = filteredFlags.filter(
+    (flag) => flag.status === "OPEN" && isTradeQueueExecutionAlert(flag),
+  );
+
   const ptAlertFlags = filteredFlags.filter(
     (flag) => flag.status === "OPEN" && isPtProximityAlert(flag),
   );
@@ -1505,7 +1804,8 @@ export default function AlertsClient({
     (flag) =>
       !flag.reminderAt &&
       flag.flagType !== "Agenda" &&
-      !isPtProximityAlert(flag),
+      !isPtProximityAlert(flag) &&
+      !isTradeQueueExecutionAlert(flag),
   );
 
   const datedFlagCount =
@@ -1582,7 +1882,33 @@ export default function AlertsClient({
     );
   }
 
+  function handleOpenTradeQueue(flag: any) {
+    const metadata = parseFlagMetadata(flag);
+
+    const tradeQueueItemId =
+      flag.tradeQueueItemId || metadata?.tradeQueueItemId || null;
+
+    if (!tradeQueueItemId) {
+      window.alert("This alert does not include a Trade Queue item ID.");
+      return;
+    }
+
+    router.push(`/trades?queueItem=${encodeURIComponent(tradeQueueItemId)}`);
+  }
+
   function renderFlag(flag: any) {
+    if (isTradeQueueExecutionAlert(flag)) {
+      return (
+        <TradeQueueExecutionAlertCard
+          key={flag.id}
+          flag={flag}
+          onResolve={handleResolveFlag}
+          onOpenTradeQueue={handleOpenTradeQueue}
+          canResolve={userCanResolveFlags}
+        />
+      );
+    }
+
     if (isPtProximityAlert(flag)) {
       return (
         <PtProximityAlertCard
@@ -1769,6 +2095,16 @@ export default function AlertsClient({
                         tone="slate"
                       >
                         {laterFlags.map(renderFlag)}
+                      </AlertGroup>
+                    ) : null}
+                    {tradeQueueAlertFlags.length ? (
+                      <AlertGroup
+                        title="Trade Queue Alerts"
+                        description="Queued trades whose action-aware execution thresholds have been reached"
+                        count={tradeQueueAlertFlags.length}
+                        tone="green"
+                      >
+                        {tradeQueueAlertFlags.map(renderFlag)}
                       </AlertGroup>
                     ) : null}
                     {ptAlertFlags.length ? (
