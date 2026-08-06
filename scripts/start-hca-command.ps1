@@ -55,7 +55,8 @@ function Test-HcaHealth {
         }
 
         return $false
-    } catch {
+    }
+    catch {
         return $false
     }
 }
@@ -69,7 +70,8 @@ function Get-GitCommit {
         }
 
         return "unknown"
-    } catch {
+    }
+    catch {
         return "unknown"
     }
 }
@@ -77,6 +79,11 @@ function Get-GitCommit {
 function Get-LocalUrl {
     $hostName = $env:COMPUTERNAME
     return "http://$hostName`:$Port"
+}
+
+function Get-LoginUrl {
+    param( [string]$BaseUrl )
+    return "$($BaseUrl.TrimEnd('/'))/login"
 }
 
 Write-HostEvent "START requested."
@@ -106,7 +113,8 @@ $activeHostState = $null
 if (Test-Path $ActiveHostPath) {
     try {
         $activeHostState = Get-Content -Path $ActiveHostPath -Raw | ConvertFrom-Json
-    } catch {
+    }
+    catch {
         Write-HostEvent "START warning. Could not parse active-host.json. Error=$($_.Exception.Message)"
         Write-Host "Could not parse active-host.json." -ForegroundColor Red
         Write-Host "Refusing to start to avoid active-host confusion." -ForegroundColor Yellow
@@ -128,7 +136,7 @@ if ($activeHostState -and $activeHostState.status -eq "RUNNING" -and $activeHost
 
         Write-HostEvent "START opened existing active host. Host=$activeHost Url=$activeUrl"
 
-        Start-Process $activeUrl
+        Start-Process (Get-LoginUrl -BaseUrl $activeUrl)
         exit 0
     }
 
@@ -161,7 +169,8 @@ if (Test-Path $SharedLatestDatabasePath) {
 
     Write-HostEvent "START copied latest shared DB to local DB. Source=$SharedLatestDatabasePath Destination=$LocalDatabasePath"
     Write-Host "Copied latest shared database backup into local data directory." -ForegroundColor Green
-} else {
+}
+else {
     Write-HostEvent "START no latest shared DB found. Local DB will be created/synced if needed."
     Write-Host "No latest shared database backup found. Continuing with local database setup." -ForegroundColor Yellow
 }
@@ -191,8 +200,9 @@ $existingConnection = Get-NetTCPConnection -LocalPort $Port -State Listen -Error
 if ($existingConnection) {
     Write-HostEvent "START found local port already listening. Port=$Port"
     Write-Host "Something is already listening on port $Port." -ForegroundColor Yellow
-    Write-Host "Opening local URL: $localUrl" -ForegroundColor Yellow
-    Start-Process $localUrl
+    $localLoginUrl = Get-LoginUrl -BaseUrl $localUrl 
+    Write-Host "Opening login URL: $localLoginUrl" -ForegroundColor Yellow 
+    Start-Process $localLoginUrl exit 0
     exit 0
 }
 
@@ -225,12 +235,12 @@ $gitCommit = Get-GitCommit
 $now = (Get-Date).ToUniversalTime().ToString("o")
 
 $activeHostJson = [ordered]@{
-    status = "RUNNING"
-    activeHost = $env:COMPUTERNAME
-    url = $localUrl
-    startedAt = $now
-    databaseMode = "LOCAL_ACTIVE_HOST"
-    gitCommit = $gitCommit
+    status         = "RUNNING"
+    activeHost     = $env:COMPUTERNAME
+    url            = $localUrl
+    startedAt      = $now
+    databaseMode   = "LOCAL_ACTIVE_HOST"
+    gitCommit      = $gitCommit
     lastBackupPath = $SharedLatestDatabasePath
 } | ConvertTo-Json -Depth 5
 
@@ -242,12 +252,14 @@ if (Test-Path $PeriodicBackupScriptPath) {
     Write-HostEvent "START launching periodic backup safety net."
 
     Start-Process powershell.exe -WindowStyle Hidden -ArgumentList "-ExecutionPolicy", "Bypass", "-File", "`"$PeriodicBackupScriptPath`""
-} else {
+}
+else {
     Write-HostEvent "START warning. Periodic backup script not found at $PeriodicBackupScriptPath"
 }
 
 Write-Host ""
 Write-Host "HCA Central Command is running on this machine." -ForegroundColor Green
-Write-Host "Opening: $localUrl" -ForegroundColor Yellow
+$localLoginUrl = Get-LoginUrl -BaseUrl $localUrl
+Write-Host "Opening: $localLoginUrl" -ForegroundColor Yellow
+Start-Process $localLoginUrl
 
-Start-Process $localUrl
