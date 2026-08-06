@@ -442,8 +442,19 @@ export default function MeetingsClient({
   }, [securitySearchQuery]);
 
   useEffect(() => {
+    const positionSide = selectedNoteSecurity?.positions?.[0]?.side;
+
+    const initialSide =
+      selectedWatchlistEntry?.side === "LONG" ||
+        selectedWatchlistEntry?.side === "SHORT"
+        ? selectedWatchlistEntry.side
+        : positionSide === "LONG" || positionSide === "SHORT"
+          ? positionSide
+          : "LONG";
+
+    setPtSide(initialSide);
+
     if (!selectedWatchlistEntry) {
-      setPtSide("LONG");
       setPtEntryTargetPrice("");
       setPtExitTargetPrice("");
       setPtDiscussionTargetPrice("");
@@ -451,8 +462,6 @@ export default function MeetingsClient({
       setPtChangeError("");
       return;
     }
-
-    setPtSide(selectedWatchlistEntry.side || "LONG");
 
     setPtEntryTargetPrice(
       selectedWatchlistEntry.entryTargetPrice != null
@@ -476,7 +485,7 @@ export default function MeetingsClient({
 
     setPtChangeReason("");
     setPtChangeError("");
-  }, [selectedWatchlistEntry]);
+  }, [selectedWatchlistEntry, selectedNoteSecurity]);
 
   const totalNotes = meetings.reduce(
     (count: number, meeting: any) => count + (meeting.comments?.length || 0),
