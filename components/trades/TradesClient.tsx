@@ -7,6 +7,7 @@ import Badge from "@/components/common/Badge";
 import CurrentUserPill from "@/components/auth/CurrentUserPill";
 import LocalDateTime from "@/components/common/LocalDateTime";
 import TradeQueueSection from "@/components/trades/TradeQueueSection";
+import ManualTradeEditModal from "@/components/trades/ManualTradeEditModal";
 
 type FundEquitySnapshot = {
   id: string;
@@ -219,12 +220,6 @@ export default function TradesClient({
   const [tradeFilter, setTradeFilter] = useState("ALL");
 
   const [editingTrade, setEditingTrade] = useState<any | null>(null);
-
-  const [tradeNote, setTradeNote] = useState("");
-
-  const [isSavingNote, setIsSavingNote] = useState(false);
-
-  const [noteError, setNoteError] = useState("");
 
   const [confirmDeleteTradeId, setConfirmDeleteTradeId] = useState<
     string | null
@@ -485,58 +480,13 @@ export default function TradesClient({
     }
   }
 
-  function handleOpenTradeNote(trade: any) {
+  function handleOpenTradeEditor(trade: any) {
     setEditingTrade(trade);
-
-    setTradeNote(trade.comment || "");
-
-    setNoteError("");
   }
 
-  async function handleSaveTradeNote() {
-    if (!editingTrade) {
-      return;
-    }
-
-    try {
-      setIsSavingNote(true);
-      setNoteError("");
-
-      const response = await fetch(
-        `/api/trades/manual/${editingTrade.id}/note`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            comment: tradeNote,
-          }),
-        },
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to save trade note.");
-      }
-
-      const updatedComment = tradeNote.trim() || null;
-
-      updateLocalTrade(editingTrade.id, {
-        comment: updatedComment,
-      });
-
-      setEditingTrade(null);
-      setTradeNote("");
-    } catch (error) {
-      setNoteError(
-        error instanceof Error ? error.message : "Failed to save trade note.",
-      );
-    } finally {
-      setIsSavingNote(false);
-    }
+  function handleManualTradeSaved(updatedTrade: any) {
+    updateLocalTrade(updatedTrade.id, updatedTrade);
+    setEditingTrade(null);
   }
 
   return (
@@ -894,10 +844,10 @@ export default function TradesClient({
                               <>
                                 <button
                                   type="button"
-                                  onClick={() => handleOpenTradeNote(trade)}
+                                  onClick={() => handleOpenTradeEditor(trade)}
                                   className="rounded-xl bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700 hover:bg-blue-100"
                                 >
-                                  {trade.comment ? "Edit Note" : "Add Note"}
+                                  Edit
                                 </button>
 
                                 {deletingTradeId === trade.id ? (
@@ -944,80 +894,11 @@ export default function TradesClient({
       </div>
 
       {editingTrade ? (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/30 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-950">
-                  {editingTrade.comment ? "Edit Trade Note" : "Add Trade Note"}
-                </h3>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  {editingTrade.ticker} • {editingTrade.tradeType} •{" "}
-                  {Math.abs(Number(editingTrade.shares) || 0).toLocaleString(
-                    "en-US",
-                  )}{" "}
-                  shares
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (isSavingNote) {
-                    return;
-                  }
-
-                  setEditingTrade(null);
-
-                  setNoteError("");
-                }}
-                disabled={isSavingNote}
-                className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                ✕
-              </button>
-            </div>
-
-            <textarea
-              value={tradeNote}
-              onChange={(event) => setTradeNote(event.target.value)}
-              disabled={isSavingNote}
-              className="mt-4 h-32 w-full resize-none rounded-2xl border border-slate-200 p-4 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
-              placeholder="Enter trade note..."
-            />
-
-            {noteError ? (
-              <div className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
-                {noteError}
-              </div>
-            ) : null}
-
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingTrade(null);
-
-                  setNoteError("");
-                }}
-                disabled={isSavingNote}
-                className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSaveTradeNote}
-                disabled={isSavingNote}
-                className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isSavingNote ? "Saving..." : "Save Note"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ManualTradeEditModal
+          trade={editingTrade}
+          onClose={() => setEditingTrade(null)}
+          onSaved={handleManualTradeSaved}
+        />
       ) : null}
     </main>
   );
