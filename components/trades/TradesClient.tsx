@@ -6,6 +6,7 @@ import AppSidebar from "@/components/common/AppSidebar";
 import Badge from "@/components/common/Badge";
 import CurrentUserPill from "@/components/auth/CurrentUserPill";
 import LocalDateTime from "@/components/common/LocalDateTime";
+import TradeQueueSection from "@/components/trades/TradeQueueSection";
 
 type FundEquitySnapshot = {
   id: string;
@@ -17,8 +18,8 @@ type FundEquitySnapshot = {
 type TradesClientProps = {
   positions: any[];
   fundEquitySnapshots: FundEquitySnapshot[];
+  initialQueuedTrades: any[];
 };
-
 function formatMoney(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) {
     return "—";
@@ -202,6 +203,7 @@ function SummaryCard({
 export default function TradesClient({
   positions,
   fundEquitySnapshots,
+  initialQueuedTrades,
 }: TradesClientProps) {
   const [localPositions, setLocalPositions] = useState<any[]>(positions);
 
@@ -258,9 +260,9 @@ export default function TradesClient({
         trade.source === "WELLS_FARGO"
           ? null
           : formatReconciliationStatus(
-            trade.reconciliationStatus,
-            trade.source,
-          ),
+              trade.reconciliationStatus,
+              trade.source,
+            ),
       ]
         .filter(Boolean)
         .join(" ")
@@ -333,18 +335,18 @@ export default function TradesClient({
   }, [localPositions]);
 
   const grossInvestments =
-    investmentSummary.longInvestments +
-    investmentSummary.shortInvestments;
+    investmentSummary.longInvestments + investmentSummary.shortInvestments;
 
   const netInvestments =
-    investmentSummary.longInvestments -
-    investmentSummary.shortInvestments;
+    investmentSummary.longInvestments - investmentSummary.shortInvestments;
 
   const latestFundEquitySnapshot = useMemo(() => {
-    return [...fundEquitySnapshots].sort(
-      (a, b) =>
-        new Date(b.asOfDate).getTime() - new Date(a.asOfDate).getTime(),
-    )[0] ?? null;
+    return (
+      [...fundEquitySnapshots].sort(
+        (a, b) =>
+          new Date(b.asOfDate).getTime() - new Date(a.asOfDate).getTime(),
+      )[0] ?? null
+    );
   }, [fundEquitySnapshots]);
 
   const latestNetEquity = Number(latestFundEquitySnapshot?.netEquity);
@@ -367,9 +369,9 @@ export default function TradesClient({
         trades: (position.trades || []).map((trade: any) =>
           trade.id === tradeId
             ? {
-              ...trade,
-              ...updates,
-            }
+                ...trade,
+                ...updates,
+              }
             : trade,
         ),
       })),
@@ -500,11 +502,15 @@ export default function TradesClient({
                 detail={
                   <>
                     <Badge tone="green">
-                      Long {formatAccountingMoney(investmentSummary.longInvestments)}
+                      Long{" "}
+                      {formatAccountingMoney(investmentSummary.longInvestments)}
                     </Badge>
 
                     <Badge tone="red">
-                      Short {formatAccountingMoney(investmentSummary.shortInvestments)}
+                      Short{" "}
+                      {formatAccountingMoney(
+                        investmentSummary.shortInvestments,
+                      )}
                     </Badge>
                   </>
                 }
@@ -559,6 +565,8 @@ export default function TradesClient({
               />
             </div>
 
+            <TradeQueueSection queueItems={initialQueuedTrades} />
+
             <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-3">
               <input
                 value={query}
@@ -582,10 +590,11 @@ export default function TradesClient({
                 <button
                   key={filter}
                   onClick={() => setTradeFilter(filter)}
-                  className={`rounded-xl px-3 py-2 text-sm ${tradeFilter === filter
-                    ? "bg-slate-900 text-white"
-                    : "border border-slate-200 bg-white"
-                    }`}
+                  className={`rounded-xl px-3 py-2 text-sm ${
+                    tradeFilter === filter
+                      ? "bg-slate-900 text-white"
+                      : "border border-slate-200 bg-white"
+                  }`}
                 >
                   {filter}
                 </button>
@@ -671,12 +680,12 @@ export default function TradesClient({
                               title={
                                 applicableFundEquity
                                   ? `Calculated using Net Equity of ${formatMoney(
-                                    dayNetEquity,
-                                  )} as of ${formatDay(
-                                    getSnapshotDateKey(
-                                      applicableFundEquity.asOfDate,
-                                    ),
-                                  )}`
+                                      dayNetEquity,
+                                    )} as of ${formatDay(
+                                      getSnapshotDateKey(
+                                        applicableFundEquity.asOfDate,
+                                      ),
+                                    )}`
                                   : "No Net Equity snapshot was available on or before this trade date."
                               }
                               className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 tabular-nums"
@@ -688,12 +697,12 @@ export default function TradesClient({
                               title={
                                 applicableFundEquity
                                   ? `Calculated using Net Equity of ${formatMoney(
-                                    dayNetEquity,
-                                  )} as of ${formatDay(
-                                    getSnapshotDateKey(
-                                      applicableFundEquity.asOfDate,
-                                    ),
-                                  )}`
+                                      dayNetEquity,
+                                    )} as of ${formatDay(
+                                      getSnapshotDateKey(
+                                        applicableFundEquity.asOfDate,
+                                      ),
+                                    )}`
                                   : "No Net Equity snapshot was available on or before this trade date."
                               }
                               className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 tabular-nums"
@@ -751,7 +760,7 @@ export default function TradesClient({
                             <Badge
                               tone={
                                 trade.tradeType === "BUY" ||
-                                  trade.tradeType === "SHORT"
+                                trade.tradeType === "SHORT"
                                   ? "green"
                                   : "red"
                               }
@@ -769,7 +778,7 @@ export default function TradesClient({
                           <div>
                             {formatMoney(
                               Number(trade.shares || 0) *
-                              Number(trade.avgPrice || 0),
+                                Number(trade.avgPrice || 0),
                             )}
                           </div>
 
@@ -806,7 +815,7 @@ export default function TradesClient({
 
                           <div className="flex items-center gap-1">
                             {trade.source === "MANUAL" &&
-                              trade.reconciliationStatus === "MANUAL_PENDING" ? (
+                            trade.reconciliationStatus === "MANUAL_PENDING" ? (
                               <>
                                 <button
                                   type="button"
@@ -832,10 +841,11 @@ export default function TradesClient({
 
                                       setConfirmDeleteTradeId(trade.id);
                                     }}
-                                    className={`inline-flex min-h-7 items-center justify-center rounded-xl px-2 py-1 text-[11px] font-medium ${confirmDeleteTradeId === trade.id
-                                      ? "bg-rose-600 text-white hover:bg-rose-700"
-                                      : "text-rose-600 hover:bg-rose-50"
-                                      }`}
+                                    className={`inline-flex min-h-7 items-center justify-center rounded-xl px-2 py-1 text-[11px] font-medium ${
+                                      confirmDeleteTradeId === trade.id
+                                        ? "bg-rose-600 text-white hover:bg-rose-700"
+                                        : "text-rose-600 hover:bg-rose-50"
+                                    }`}
                                   >
                                     {confirmDeleteTradeId === trade.id
                                       ? "Confirm"

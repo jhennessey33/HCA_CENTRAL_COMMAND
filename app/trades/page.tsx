@@ -4,26 +4,73 @@ import TradesClient from "@/components/trades/TradesClient";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [wellsActivePositionCount, fundEquitySnapshots] = await Promise.all([
-    prisma.position.count({
-      where: {
-        status: "ACTIVE",
-        source: "WELLS_FARGO",
-      },
-    }),
-
-    prisma.fundEquitySnapshot.findMany({
-      orderBy: {
-        asOfDate: "desc",
-      },
-      select: {
-        id: true,
-        asOfDate: true,
-        netEquity: true,
-        source: true,
-      },
-    }),
-  ]);
+  const [wellsActivePositionCount, fundEquitySnapshots, activeTradeQueueItems] =
+    await Promise.all([
+      prisma.position.count({
+        where: {
+          status: "ACTIVE",
+          source: "WELLS_FARGO",
+        },
+      }),
+      prisma.fundEquitySnapshot.findMany({
+        orderBy: {
+          asOfDate: "desc",
+        },
+        select: {
+          id: true,
+          asOfDate: true,
+          netEquity: true,
+          source: true,
+        },
+      }),
+      prisma.tradeQueueItem.findMany({
+        where: {
+          status: {
+            in: ["QUEUED", "TRIGGERED"],
+          },
+        },
+        include: {
+          security: {
+            include: {
+              marketData: {
+                take: 1,
+                orderBy: {
+                  updatedAt: "desc",
+                },
+              },
+            },
+          },
+          position: {
+            select: {
+              id: true,
+              securityId: true,
+              side: true,
+              status: true,
+              shares: true,
+              marketValue: true,
+              source: true,
+              accountNumber: true,
+            },
+          },
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+        },
+        orderBy: [
+          {
+            status: "desc",
+          },
+          {
+            createdAt: "asc",
+          },
+        ],
+      }),
+    ]);
 
   const positions = await prisma.position.findMany({
     where: {
@@ -142,10 +189,15 @@ export default async function HomePage() {
     JSON.stringify(fundEquitySnapshots),
   );
 
+  const serializedTradeQueueItems = JSON.parse(
+    JSON.stringify(activeTradeQueueItems),
+  );
+
   return (
     <TradesClient
       positions={serializedPositions}
       fundEquitySnapshots={serializedFundEquitySnapshots}
+      initialQueuedTrades={serializedTradeQueueItems}
     />
   );
 }
