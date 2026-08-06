@@ -160,7 +160,7 @@ function Open-Url {
         return
     }
 
-    Start-Process $Url
+    Start-Process "$($Url.TrimEnd('/'))/login"
 }
 
 $form = New-Object System.Windows.Forms.Form
