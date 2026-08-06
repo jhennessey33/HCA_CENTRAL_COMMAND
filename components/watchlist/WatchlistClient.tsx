@@ -1,7 +1,7 @@
 "use client";
 
 import AppSidebar from "@/components/common/AppSidebar";
-
+import SecuritySummaryCard from "@/components/common/SecuritySummaryCard";
 import LocalDateTime from "@/components/common/LocalDateTime";
 import Badge from "@/components/common/Badge";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -136,6 +136,23 @@ function getSecurityMarketValue(security: any) {
     0,
   );
 }
+
+function getSecurityShares(security: any): number | null {
+  const positions = Array.isArray(security?.positions)
+    ? security.positions
+    : [];
+
+  if (!positions.length) {
+    return null;
+  }
+
+  return positions.reduce(
+    (total: number, position: any) =>
+      total + Math.abs(toFiniteNumber(position.shares) ?? 0),
+    0,
+  );
+}
+
 function formatPositionPercent(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) {
     return "—";
@@ -1012,7 +1029,11 @@ function AddStockModal({
     ? getSecurityCurrentPrice(selectedSecurity)
     : null;
 
-  
+  const selectedSecurityShares = selectedSecurity
+    ? getSecurityShares(selectedSecurity)
+    : null;
+
+
 
   const latestNetEquity = toFiniteNumber(
     fundEquitySnapshot?.netEquity,
@@ -1398,83 +1419,19 @@ function AddStockModal({
           ) : null}
 
           {selectedSecurity ? (
-                          <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="font-semibold text-slate-900">
-                                  {selectedSecurity.ticker}
-                                </p>
-          
-                                <p className="mt-0.5 truncate text-xs text-slate-500">
-                                  {selectedSecurity.name}
-                                </p>
-                              </div>
-          
-                              {selectedSecurity.positions?.length ? (
-                                <Badge
-                                  tone={
-                                    selectedSecurity.positions[0]?.side === "SHORT"
-                                      ? "red"
-                                      : "green"
-                                  }
-                                >
-                                  {selectedSecurity.positions[0]?.side || "ACTIVE"}
-                                </Badge>
-                              ) : (
-                                <Badge tone="slate">No Active Position</Badge>
-                              )}
-                            </div>
-          
-                            <div className="mt-3 grid grid-cols-3 gap-3">
-                              <div className="rounded-2xl bg-slate-50 p-3">
-                                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                                  Current Price
-                                </p>
-          
-                                <p className="mt-1 font-semibold tabular-nums text-slate-950">
-                                  {formatPrice(selectedSecurityCurrentPrice)}
-                                </p>
-                              </div>
-          
-                              <div className="rounded-2xl bg-slate-50 p-3">
-                                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                                  % of Net Equity
-                                </p>
-          
-                                <p className="mt-1 font-semibold tabular-nums text-slate-950">
-                                  {formatPositionPercent(selectedSecurityPortfolioPct)}
-                                </p>
-                              </div>
-          
-                              <div className="rounded-2xl bg-slate-50 p-3">
-                                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                                  Market Value
-                                </p>
-          
-                                <p className="mt-1 font-semibold tabular-nums text-slate-950">
-                                  {formatMoney(selectedSecurityMarketValue)}
-                                </p>
-                              </div>
-                            </div>
-          
-                            {fundEquitySnapshot &&
-                              selectedSecurityPortfolioPct != null ? (
-                              <p className="mt-2 text-[11px] text-slate-400">
-                                Position percentage uses Net Equity as of{" "}
-                                {new Date(fundEquitySnapshot.asOfDate).toLocaleDateString(
-                                  "en-US",
-                                  {
-                                    month: "short",
-                                    day: "numeric",
-                                    year: "numeric",
-                                    timeZone: "UTC",
-                                  },
-                                )}
-                                .
-                              </p>
-                            ) : null}
-                          </div>
-                        ) : null}
+            <div className="mt-4">
+              <SecuritySummaryCard
+                ticker={selectedSecurity.ticker}
+                name={selectedSecurity.name}
+                side={selectedSecurity.positions?.[0]?.side}
+                currentPrice={selectedSecurityCurrentPrice}
+                portfolioPct={selectedSecurityPortfolioPct}
+                marketValue={selectedSecurityMarketValue}
+                shares={selectedSecurityShares}
+                asOfDate={fundEquitySnapshot?.asOfDate}
+              />
+            </div>
+          ) : null}
 
 
 
@@ -2409,7 +2366,7 @@ export default function WatchlistClient({
                     </p>
                   </div>
 
-                  
+
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-3">
@@ -2473,7 +2430,7 @@ export default function WatchlistClient({
         securities={securities}
         fundEquitySnapshot={fundEquitySnapshot}
         mode={mode}
-        
+
       />
 
       <EditWatchlistModal

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-
+import SecuritySummaryCard from "@/components/common/SecuritySummaryCard";
 import AppSidebar from "@/components/common/AppSidebar";
 import Badge from "@/components/common/Badge";
 import CurrentUserPill from "@/components/auth/CurrentUserPill";
@@ -36,6 +36,23 @@ function formatMeetingDate(value: string) {
     timeZone: "UTC",
   }).format(new Date(value));
 }
+
+function getSecurityShares(security: any) {
+  const positions = Array.isArray(security?.positions)
+    ? security.positions
+    : [];
+
+  if (!positions.length) {
+    return null;
+  }
+
+  return positions.reduce(
+    (total: number, position: any) =>
+      total + Math.abs(toFiniteNumber(position.shares) ?? 0),
+    0,
+  );
+}
+
 
 function toFiniteNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === "") {
@@ -303,6 +320,10 @@ export default function MeetingsClient({
 
   const selectedSecurityCurrentPrice = selectedNoteSecurity
     ? getSecurityCurrentPrice(selectedNoteSecurity)
+    : null;
+
+  const selectedSecurityShares = selectedNoteSecurity
+    ? getSecurityShares(selectedNoteSecurity)
     : null;
 
   const latestNetEquity = toFiniteNumber(fundEquitySnapshot?.netEquity);
@@ -1289,81 +1310,17 @@ export default function MeetingsClient({
                 ) : null}
               </div>
               {selectedNoteSecurity ? (
-                <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-slate-900">
-                        {selectedNoteSecurity.ticker}
-                      </p>
-
-                      <p className="mt-0.5 truncate text-xs text-slate-500">
-                        {selectedNoteSecurity.name}
-                      </p>
-                    </div>
-
-                    {selectedNoteSecurity.positions?.length ? (
-                      <Badge
-                        tone={
-                          selectedNoteSecurity.positions[0]?.side === "SHORT"
-                            ? "red"
-                            : "green"
-                        }
-                      >
-                        {selectedNoteSecurity.positions[0]?.side || "ACTIVE"}
-                      </Badge>
-                    ) : (
-                      <Badge tone="slate">No Active Position</Badge>
-                    )}
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-3 gap-3">
-                    <div className="rounded-2xl bg-slate-50 p-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                        Current Price
-                      </p>
-
-                      <p className="mt-1 font-semibold tabular-nums text-slate-950">
-                        {formatPrice(selectedSecurityCurrentPrice)}
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl bg-slate-50 p-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                        % of Net Equity
-                      </p>
-
-                      <p className="mt-1 font-semibold tabular-nums text-slate-950">
-                        {formatPositionPercent(selectedSecurityPortfolioPct)}
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl bg-slate-50 p-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                        Market Value
-                      </p>
-
-                      <p className="mt-1 font-semibold tabular-nums text-slate-950">
-                        {formatMoney(selectedSecurityMarketValue)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {fundEquitySnapshot &&
-                    selectedSecurityPortfolioPct != null ? (
-                    <p className="mt-2 text-[11px] text-slate-400">
-                      Position percentage uses Net Equity as of{" "}
-                      {new Date(fundEquitySnapshot.asOfDate).toLocaleDateString(
-                        "en-US",
-                        {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                          timeZone: "UTC",
-                        },
-                      )}
-                      .
-                    </p>
-                  ) : null}
+                <div className="mt-4">
+                  <SecuritySummaryCard
+                    ticker={selectedNoteSecurity.ticker}
+                    name={selectedNoteSecurity.name}
+                    side={selectedNoteSecurity.positions?.[0]?.side}
+                    currentPrice={selectedSecurityCurrentPrice}
+                    portfolioPct={selectedSecurityPortfolioPct}
+                    marketValue={selectedSecurityMarketValue}
+                    shares={selectedSecurityShares}
+                    asOfDate={fundEquitySnapshot?.asOfDate}
+                  />
                 </div>
               ) : null}
               <div className="mt-4">

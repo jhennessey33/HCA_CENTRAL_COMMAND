@@ -1,7 +1,7 @@
 "use client";
 import LocalDateTime from "@/components/common/LocalDateTime";
 import Badge from "@/components/common/Badge";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { canCreateFlags } from "@/lib/client-permissions";
 import CurrentUserPill from "@/components/auth/CurrentUserPill";
 import AppSidebar from "@/components/common/AppSidebar";
@@ -162,8 +162,7 @@ function AlertCard({
 
           <p className="mt-1 text-sm text-slate-600">
             {flag.description ||
-              `${flag.flagType} alert for ${
-                flag.security?.ticker || "General"
+              `${flag.flagType} alert for ${flag.security?.ticker || "General"
               }.`}
           </p>
           {flag.reminderAt ? (
@@ -760,11 +759,16 @@ function CreateFlagModal({
   >("GENERAL");
 
   const [securityId, setSecurityId] = useState("");
+  const [securityQuery, setSecurityQuery] = useState("");
+  const [isSecurityDropdownOpen, setIsSecurityDropdownOpen] = useState(false);
+  const [highlightedSecurityIndex, setHighlightedSecurityIndex] = useState(0);
+
+  const securityComboboxRef = useRef<HTMLDivElement | null>(null);
+
   const [flagType, setFlagType] = useState("REMINDER");
   const [priority, setPriority] = useState("MEDIUM");
   const [description, setDescription] = useState("");
   const [reminderAt, setReminderAt] = useState("");
-  const [securityQuery, setSecurityQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -784,22 +788,68 @@ function CreateFlagModal({
     "Custom",
   ];
 
-  const normalizedSecurityQuery = securityQuery.trim().toLowerCase();
+  const selectedSecurity =
+    securities.find((security) => security.id === securityId) ?? null;
 
-  const filteredSecurities = securities.filter((security) => {
-    if (!normalizedSecurityQuery) {
-      return true;
-    }
+  const filteredSecurities = useMemo(() => {
+    const normalizedQuery = securityQuery.trim().toLowerCase();
 
-    const searchable = [security.ticker, security.name, security.sector]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
+    return securities
+      .filter((security) => {
+        if (!normalizedQuery) {
+          return true;
+        }
 
-    return searchable.includes(normalizedSecurityQuery);
-  });
+        const searchable = [
+          security.ticker,
+          security.name,
+          security.sector,
+          security.industry,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return searchable.includes(normalizedQuery);
+      })
+      .slice(0, 50);
+  }, [securities, securityQuery]);
 
   const isReminder = flagType.trim().toUpperCase() === "REMINDER";
+
+  useEffect(() => {
+    setHighlightedSecurityIndex(0);
+  }, [securityQuery]);
+
+  useEffect(() => {
+    if (!open) {
+      setIsSecurityDropdownOpen(false);
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target as Node;
+
+      if (
+        securityComboboxRef.current &&
+        !securityComboboxRef.current.contains(target)
+      ) {
+        setIsSecurityDropdownOpen(false);
+
+        setSecurityQuery(
+          selectedSecurity
+            ? `${selectedSecurity.ticker} — ${selectedSecurity.name}`
+            : "",
+        );
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+    };
+  }, [open, selectedSecurity]);
 
   function resetForm() {
     setAssociationType("GENERAL");
@@ -820,7 +870,79 @@ function CreateFlagModal({
     resetForm();
     onClose();
   }
+  function handleSecurityChange(selectedSecurityId: string) {
+    const security =
+      securities.find((option) => option.id === selectedSecurityId) ?? null;
 
+    setSecurityId(selectedSecurityId);
+
+    setSecurityQuery(
+      security ? `${security.ticker} — ${security.name}` : "",
+    );
+
+    setIsSecurityDropdownOpen(false);
+    setHighlightedSecurityIndex(0);
+    setError("");
+  }
+
+  function handleClearSecurity() {
+    setSecurityId("");
+    setSecurityQuery("");
+    setIsSecurityDropdownOpen(true);
+    setHighlightedSecurityIndex(0);
+    setError("");
+  }
+
+  function handleSecurityKeyDown(
+    event: React.KeyboardEvent<HTMLInputElement>,
+  ) {
+    const optionCount = filteredSecurities.length;
+
+    if (event.key === "Escape") {
+      setIsSecurityDropdownOpen(false);
+
+      setSecurityQuery(
+        selectedSecurity
+          ? `${selectedSecurity.ticker} — ${selectedSecurity.name}`
+          : "",
+      );
+
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setIsSecurityDropdownOpen(true);
+
+      setHighlightedSecurityIndex((currentIndex) =>
+        Math.min(currentIndex + 1, Math.max(optionCount - 1, 0)),
+      );
+
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setIsSecurityDropdownOpen(true);
+
+      setHighlightedSecurityIndex((currentIndex) =>
+        Math.max(currentIndex - 1, 0),
+      );
+
+      return;
+    }
+
+    if (event.key === "Enter" && isSecurityDropdownOpen) {
+      event.preventDefault();
+
+      const highlightedSecurity =
+        filteredSecurities[highlightedSecurityIndex];
+
+      if (highlightedSecurity) {
+        handleSecurityChange(highlightedSecurity.id);
+      }
+    }
+  }
   async function handleSave() {
     setError("");
 
@@ -920,14 +1042,15 @@ function CreateFlagModal({
                   setAssociationType("GENERAL");
                   setSecurityId("");
                   setSecurityQuery("");
+                  setIsSecurityDropdownOpen(false);
+                  setHighlightedSecurityIndex(0);
                   setError("");
                 }}
                 disabled={isSaving}
-                className={`rounded-2xl px-4 py-3 text-sm font-medium transition ${
-                  associationType === "GENERAL"
-                    ? "bg-slate-900 text-white"
-                    : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                }`}
+                className={`rounded-2xl px-4 py-3 text-sm font-medium transition ${associationType === "GENERAL"
+                  ? "bg-slate-900 text-white"
+                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  }`}
               >
                 General
               </button>
@@ -939,11 +1062,10 @@ function CreateFlagModal({
                   setError("");
                 }}
                 disabled={isSaving}
-                className={`rounded-2xl px-4 py-3 text-sm font-medium transition ${
-                  associationType === "SECURITY"
-                    ? "bg-slate-900 text-white"
-                    : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                }`}
+                className={`rounded-2xl px-4 py-3 text-sm font-medium transition ${associationType === "SECURITY"
+                  ? "bg-slate-900 text-white"
+                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  }`}
               >
                 Security
               </button>
@@ -957,38 +1079,148 @@ function CreateFlagModal({
           </div>
 
           {associationType === "SECURITY" ? (
-            <div>
+            <div ref={securityComboboxRef} className="relative">
               <label className="text-sm font-medium text-slate-700">
                 Security
               </label>
 
-              <input
-                value={securityQuery}
-                onChange={(event) => setSecurityQuery(event.target.value)}
-                disabled={isSaving}
-                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
-                placeholder="Search ticker, company, or sector..."
-              />
+              <p className="mt-1 text-xs text-slate-500">
+                Search by ticker, company, sector, or industry.
+              </p>
 
-              <select
-                value={securityId}
-                onChange={(event) => setSecurityId(event.target.value)}
-                disabled={isSaving}
-                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
-              >
-                <option value="">Select a Security</option>
+              <div className="relative mt-2">
+                <input
+                  value={securityQuery}
+                  onFocus={() => {
+                    if (securityId) {
+                      setSecurityQuery("");
+                    }
 
-                {filteredSecurities.map((security) => (
-                  <option key={security.id} value={security.id}>
-                    {security.ticker} — {security.name}
-                  </option>
-                ))}
-              </select>
+                    setIsSecurityDropdownOpen(true);
+                  }}
+                  onChange={(event) => {
+                    setSecurityQuery(event.target.value);
 
-              {normalizedSecurityQuery && !filteredSecurities.length ? (
-                <p className="mt-2 text-xs font-medium text-amber-700">
-                  No Securities matched the search.
-                </p>
+                    if (securityId) {
+                      setSecurityId("");
+                    }
+
+                    setIsSecurityDropdownOpen(true);
+                    setError("");
+                  }}
+                  onKeyDown={handleSecurityKeyDown}
+                  placeholder="Search ticker, company, sector, or industry..."
+                  autoComplete="off"
+                  role="combobox"
+                  aria-expanded={isSecurityDropdownOpen}
+                  aria-controls="alert-security-options"
+                  aria-autocomplete="list"
+                  disabled={isSaving}
+                  className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-4 pr-20 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-50"
+                />
+
+                <div className="absolute inset-y-0 right-3 flex items-center gap-1">
+                  {securityId || securityQuery ? (
+                    <button
+                      type="button"
+                      onClick={handleClearSecurity}
+                      disabled={isSaving}
+                      aria-label="Clear selected security"
+                      className="rounded-lg px-2 py-1 text-sm text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      ✕
+                    </button>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setIsSecurityDropdownOpen((current) => !current)
+                    }
+                    disabled={isSaving}
+                    aria-label="Toggle security options"
+                    className="rounded-lg px-2 py-1 text-xs text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    ▼
+                  </button>
+                </div>
+              </div>
+
+              {isSecurityDropdownOpen ? (
+                <div
+                  id="alert-security-options"
+                  role="listbox"
+                  className="absolute z-40 mt-2 max-h-80 w-full overflow-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl"
+                >
+                  {filteredSecurities.length ? (
+                    filteredSecurities.map((security, index) => {
+                      const isHighlighted =
+                        highlightedSecurityIndex === index;
+
+                      const isSelected = securityId === security.id;
+
+                      return (
+                        <button
+                          key={security.id}
+                          type="button"
+                          role="option"
+                          aria-selected={isSelected}
+                          onMouseEnter={() =>
+                            setHighlightedSecurityIndex(index)
+                          }
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            handleSecurityChange(security.id);
+                          }}
+                          className={`flex w-full items-start justify-between gap-4 rounded-xl px-3 py-2.5 text-left ${isHighlighted || isSelected
+                            ? "bg-slate-100"
+                            : "hover:bg-slate-50"
+                            }`}
+                        >
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-semibold text-slate-950">
+                                {security.ticker}
+                              </span>
+
+                              {security.sector ? (
+                                <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                                  {security.sector}
+                                </span>
+                              ) : null}
+                            </div>
+
+                            <p className="mt-0.5 truncate text-xs text-slate-600">
+                              {security.name}
+                            </p>
+
+                            {security.industry ? (
+                              <p className="mt-0.5 truncate text-[11px] text-slate-400">
+                                {security.industry}
+                              </p>
+                            ) : null}
+                          </div>
+
+                          {isSelected ? (
+                            <span className="shrink-0 text-sm font-semibold text-emerald-600">
+                              ✓
+                            </span>
+                          ) : null}
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="px-4 py-6 text-center">
+                      <p className="text-sm font-medium text-slate-700">
+                        No securities matched
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        Try another ticker, company, sector, or industry.
+                      </p>
+                    </div>
+                  )}
+                </div>
               ) : null}
             </div>
           ) : null}
