@@ -243,9 +243,9 @@ export default function TradeScenarioPanel({
 
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [isQueueSubmitting, setIsQueueSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState("");
-
+  const [queueSubmissionError, setQueueSubmissionError] = useState("");
   const [submissionMessage, setSubmissionMessage] = useState("");
   useEffect(() => {
     setTradeAction(getDefaultAction(position?.side));
@@ -267,7 +267,9 @@ export default function TradeScenarioPanel({
     setShortLocateNumber("");
     setIsReviewOpen(false);
     setIsSubmitting(false);
+    setIsQueueSubmitting(false);
     setSubmissionError("");
+    setQueueSubmissionError("");
     setSubmissionMessage("");
   }, [position?.id, currentPrice]);
 
@@ -432,6 +434,7 @@ export default function TradeScenarioPanel({
     setIsReviewOpen(false);
     setShortLocateNumber("");
     setSubmissionError("");
+    setQueueSubmissionError("");
     setSubmissionMessage("");
   }
 
@@ -449,6 +452,7 @@ export default function TradeScenarioPanel({
     }
 
     setSubmissionError("");
+    setQueueSubmissionError("");
     setSubmissionMessage("");
     setIsSubmitting(true);
 
@@ -516,7 +520,86 @@ export default function TradeScenarioPanel({
       setIsSubmitting(false);
     }
   }
+  async function handleSubmitQueue() {
+    const draft = result.draft;
 
+    if (!draft) {
+      setQueueSubmissionError(
+        "The trade scenario is not ready to be added to the queue.",
+      );
+      return;
+    }
+
+    if (!canSubmitManualTrade) {
+      setQueueSubmissionError(
+        "You do not have permission to add trades to the queue.",
+      );
+      return;
+    }
+
+    setSubmissionError("");
+    setQueueSubmissionError("");
+    setSubmissionMessage("");
+    setIsQueueSubmitting(true);
+
+    try {
+      const response = await fetch("/api/trade-queue", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          securityId: draft.securityId,
+          positionId: draft.positionId,
+          tradeType: draft.tradeType,
+          shares: draft.shares,
+          executionPrice: draft.avgPrice,
+          proposedTradeAt: draft.dateTraded,
+          comment: draft.comment,
+          shortLocateNumber: draft.shortLocateNumber,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to add the trade to the queue.");
+      }
+
+      setIsReviewOpen(false);
+      setSubmissionError("");
+      setQueueSubmissionError("");
+      setSizingMode("TARGET_WEIGHT");
+      setSharesInput("");
+      setNotionalInput("");
+      setBasisPointsInput("");
+      setTargetWeightPctInput("");
+      setEstimatedPriceInput(
+        currentPrice != null ? currentPrice.toFixed(2) : "",
+      );
+      setStopPriceInput("");
+      setTargetPriceInput("");
+      setDateTraded(getLocalDateTimeInputValue());
+      setComment("");
+      setShortLocateNumber("");
+      setSubmissionMessage(
+        `${draft.tradeType} ${draft.shares.toLocaleString(
+          "en-US",
+        )} shares of ${draft.ticker} was added to the Trade Queue at ${formatPrice(
+          draft.avgPrice,
+        )}.`,
+      );
+    } catch (error) {
+      setQueueSubmissionError(
+        error instanceof Error
+          ? error.message
+          : "Failed to add the trade to the queue.",
+      );
+    } finally {
+      setIsQueueSubmitting(false);
+    }
+  }
   const sizingInputIsStarted =
     sizingMode === "SHARES"
       ? Boolean(sharesInput.trim())
@@ -1102,6 +1185,7 @@ export default function TradeScenarioPanel({
             type="button"
             onClick={() => {
               setSubmissionError("");
+              setQueueSubmissionError("");
               setSubmissionMessage("");
               setIsReviewOpen(true);
             }}
@@ -1124,16 +1208,20 @@ export default function TradeScenarioPanel({
         }
         canSubmit={canSubmitManualTrade}
         isSubmitting={isSubmitting}
+        isQueueSubmitting={isQueueSubmitting}
         submissionError={submissionError}
+        queueSubmissionError={queueSubmissionError}
         onClose={() => {
-          if (isSubmitting) {
+          if (isSubmitting || isQueueSubmitting) {
             return;
           }
 
           setSubmissionError("");
+          setQueueSubmissionError("");
           setIsReviewOpen(false);
         }}
         onSubmit={handleSubmitTrade}
+        onQueueSubmit={handleSubmitQueue}
       />
     </div>
   );

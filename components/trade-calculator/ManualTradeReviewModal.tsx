@@ -14,9 +14,12 @@ type ManualTradeReviewModalProps = {
   baselineLabel: string;
   canSubmit: boolean;
   isSubmitting: boolean;
+  isQueueSubmitting: boolean;
   submissionError: string;
+  queueSubmissionError: string;
   onClose: () => void;
   onSubmit: () => Promise<void>;
+  onQueueSubmit: () => Promise<void>;
 };
 function formatMoney(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) {
@@ -117,13 +120,18 @@ export default function ManualTradeReviewModal({
   baselineLabel,
   canSubmit,
   isSubmitting,
+  isQueueSubmitting,
   submissionError,
+  queueSubmissionError,
   onClose,
   onSubmit,
+  onQueueSubmit,
 }: ManualTradeReviewModalProps) {
   if (!open || !draft) {
     return null;
   }
+
+  const isBusy = isSubmitting || isQueueSubmitting;
 
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
@@ -156,7 +164,7 @@ export default function ManualTradeReviewModal({
           <button
             type="button"
             onClick={onClose}
-            disabled={isSubmitting}
+            disabled={isBusy}
             className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
             ✕
@@ -393,6 +401,13 @@ export default function ManualTradeReviewModal({
                 {submissionError}
               </section>
             ) : null}
+
+            {queueSubmissionError ? (
+              <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700">
+                {queueSubmissionError}
+              </section>
+            ) : null}
+
             <p className="mt-2">
               Stop and target prices are scenario assumptions only and will not
               be saved with the trade.
@@ -403,15 +418,15 @@ export default function ManualTradeReviewModal({
         <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">
             {canSubmit
-              ? "Submission creates a Manual Pending trade for Wells reconciliation."
+              ? "Create a Manual Pending trade now, or preserve this reviewed draft in the Trade Queue."
               : "Your current role has calculation-only access."}
           </p>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              disabled={isSubmitting}
+              disabled={isBusy}
               className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Back to Calculator
@@ -419,8 +434,21 @@ export default function ManualTradeReviewModal({
 
             <button
               type="button"
+              onClick={onQueueSubmit}
+              disabled={!canSubmit || isBusy}
+              className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-medium text-violet-700 hover:bg-violet-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+            >
+              {isQueueSubmitting
+                ? "Adding to Queue..."
+                : canSubmit
+                  ? "Add Trade to Queue"
+                  : "Calculation Only"}
+            </button>
+
+            <button
+              type="button"
               onClick={onSubmit}
-              disabled={!canSubmit || isSubmitting}
+              disabled={!canSubmit || isBusy}
               className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
             >
               {isSubmitting
