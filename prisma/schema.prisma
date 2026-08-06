@@ -147,7 +147,6 @@ model Position {
 
   openedAt DateTime?
   closedAt DateTime?
-  executedFromQueue TradeQueueItem?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -155,6 +154,7 @@ model Position {
   trades   Trade[]
   comments Comment[]
   flags    Flag[]
+  tradeQueueItems TradeQueueItem[]
 }
 
 model TaxLot {
@@ -233,6 +233,7 @@ model Trade {
   reconciliationNotes   String?
   manualEnteredById     String?
   isHidden              Boolean   @default(false)
+  executedFromQueue TradeQueueItem?
 
   createdAt DateTime @default(now())
 }
@@ -318,8 +319,7 @@ model Comment {
   watchlistEntryId String?
   watchlistEntry   WatchlistEntry? @relation(fields: [watchlistEntryId], references: [id])
 
-  tradeQueueItemId String?
-  tradeQueueItem   TradeQueueItem? @relation(fields: [tradeQueueItemId], references: [id])
+ 
 
   authorId String
   author   User   @relation(fields: [authorId], references: [id])
@@ -339,6 +339,9 @@ model Comment {
 
 model Flag {
   id String @id @default(cuid())
+
+  tradeQueueItemId String?
+  tradeQueueItem   TradeQueueItem? @relation(fields: [tradeQueueItemId], references: [id])
 
   securityId String?
   security   Security? @relation(fields: [securityId], references: [id])
