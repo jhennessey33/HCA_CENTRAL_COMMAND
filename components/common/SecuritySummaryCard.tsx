@@ -49,7 +49,9 @@ function formatShares(value: number | null | undefined) {
     return "—";
   }
 
-  return value.toLocaleString("en-US");
+  return Math.round(value).toLocaleString("en-US", {
+    maximumFractionDigits: 0,
+  });
 }
 
 export default function SecuritySummaryCard({
@@ -66,31 +68,25 @@ export default function SecuritySummaryCard({
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-semibold text-slate-900">
-            {ticker}
-          </p>
+          <p className="font-semibold text-slate-900">{ticker}</p>
 
-          <p className="mt-0.5 truncate text-xs text-slate-500">
-            {name}
-          </p>
+          <p className="mt-0.5 truncate text-xs text-slate-500">{name}</p>
         </div>
 
-        <Badge
-          tone={side === "SHORT" ? "red" : "green"}
-        >
+        <Badge tone={side === "SHORT" ? "red" : "green"}>
           {side || "ACTIVE"}
         </Badge>
       </div>
 
-      <div className="mt-3 grid grid-cols-4 gap-3">
-        <div className="rounded-2xl bg-slate-50 p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Current Price
-          </p>
+        <div className="mt-3 grid [grid-template-columns:repeat(auto-fit,minmax(115px,1fr))] gap-3">
+            <div className="rounded-2xl bg-slate-50 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Current Price
+            </p>
 
-          <p className="mt-1 font-semibold tabular-nums text-slate-950">
-            {formatPrice(currentPrice)}
-          </p>
+            <p className="mt-1 font-semibold tabular-nums text-slate-950">
+                {formatPrice(currentPrice)}
+            </p>
         </div>
 
         <div className="rounded-2xl bg-slate-50 p-3">
@@ -103,13 +99,13 @@ export default function SecuritySummaryCard({
           </p>
         </div>
         <div className="rounded-2xl bg-slate-50 p-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                Shares
-            </p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Shares
+          </p>
 
-            <p className="mt-1 font-semibold tabular-nums text-slate-950">
-                {formatShares(shares)}
-            </p>
+          <p className="mt-1 font-semibold tabular-nums text-slate-950">
+            {formatShares(shares)}
+          </p>
         </div>
         <div className="rounded-2xl bg-slate-50 p-3">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
@@ -120,8 +116,6 @@ export default function SecuritySummaryCard({
             {formatMoney(marketValue)}
           </p>
         </div>
-
-        
       </div>
 
       {asOfDate ? (

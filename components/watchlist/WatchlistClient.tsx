@@ -1243,7 +1243,7 @@ function AddStockModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 p-4 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-xl font-semibold text-slate-950">
@@ -1693,7 +1693,7 @@ function EditWatchlistModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
+      <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl">
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-xl font-semibold text-slate-950">

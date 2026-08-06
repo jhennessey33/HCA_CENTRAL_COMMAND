@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Badge from "@/components/common/Badge";
+import SecuritySummaryCard from "@/components/common/SecuritySummaryCard";
 import TradeScenarioPanel from "@/components/trade-calculator/TradeScenarioPanel";
 import { canLogManualTrade } from "@/lib/client-permissions";
 import { buildTradeHistoryAnalytics } from "@/lib/dashboard/trade-history-analytics";
@@ -40,19 +40,6 @@ function formatMoney(value: number | null | undefined) {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 0,
-  });
-}
-
-function formatPrice(value: number | null | undefined) {
-  if (value == null || !Number.isFinite(value)) {
-    return "—";
-  }
-
-  return value.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
   });
 }
 
@@ -139,35 +126,6 @@ function getWellsPortfolioWeight(position: any, netEquity: number | null) {
   }
 
   return (Math.abs(marketValue) / netEquity) * 100;
-}
-
-function BaselineCard({
-  label,
-  value,
-  detail,
-  tone = "default",
-}: {
-  label: string;
-  value: React.ReactNode;
-  detail: string;
-  tone?: "default" | "violet";
-}) {
-  const toneClass =
-    tone === "violet"
-      ? "border-violet-200 bg-violet-50"
-      : "border-slate-200 bg-white";
-
-  return (
-    <div className={`rounded-2xl border p-4 shadow-sm ${toneClass}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {label}
-      </p>
-
-      <div className="mt-2 text-xl font-semibold text-slate-950">{value}</div>
-
-      <p className="mt-1 text-xs leading-5 text-slate-500">{detail}</p>
-    </div>
-  );
 }
 
 export default function TradeCalculatorWorkspace({
@@ -349,6 +307,15 @@ export default function TradeCalculatorWorkspace({
   const wellsPortfolioWeight = selectedPosition
     ? getWellsPortfolioWeight(selectedPosition, latestNetEquity)
     : null;
+
+  const selectedPositionShares = selectedPosition
+    ? toFiniteNumber(selectedPosition.shares)
+    : null;
+
+  const selectedPositionMarketValue = selectedPosition
+    ? toFiniteNumber(selectedPosition.marketValue)
+    : null;
+
   function handleTradeCreated(trade: any) {
     setLocalSecurities((currentSecurities) =>
       currentSecurities.map((security) => {
@@ -589,70 +556,22 @@ export default function TradeCalculatorWorkspace({
           ) : null}
         </div>
 
-        {selectedSecurity ? (
-          <div className="mt-4 rounded-2xl bg-slate-50 p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold text-slate-950">
-                {selectedSecurity.ticker}
-              </span>
-
-              {selectedSecurity.sector ? (
-                <Badge tone="slate">{selectedSecurity.sector}</Badge>
-              ) : null}
-            </div>
-
-            <p className="mt-1 text-sm text-slate-600">
-              {selectedSecurity.name}
-            </p>
-
-            <div className="mt-3 grid grid-cols-3 gap-3">
-              <div className="rounded-xl border border-slate-200 bg-white p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Current Price
-                </p>
-
-                <p className="mt-1 font-semibold tabular-nums text-slate-950">
-                  {formatPrice(currentPrice)}
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-white p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  WAP
-                </p>
-
-                <p className="mt-1 font-semibold tabular-nums text-slate-950">
-                  {formatPrice(wellsWap)}
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-white p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Current Position
-                </p>
-
-                <p className="mt-1 font-semibold tabular-nums text-slate-950">
-                  {selectedPosition ? (
-                    <>
-                      {formatNumber(
-                        Math.abs(Number(selectedPosition.shares) || 0),
-                      )}{" "}
-                      <span
-                        className={
-                          selectedPosition.side === "SHORT"
-                            ? "text-rose-600"
-                            : "text-emerald-600"
-                        }
-                      >
-                        {selectedPosition.side === "SHORT" ? "Short" : "Long"}
-                      </span>
-                    </>
-                  ) : (
-                    "—"
-                  )}
-                </p>
-              </div>
-            </div>
+        {selectedSecurity && selectedPosition ? (
+          <div className="mt-4">
+            <SecuritySummaryCard
+              ticker={selectedSecurity.ticker}
+              name={selectedSecurity.name}
+              side={selectedPosition.side}
+              currentPrice={currentPrice}
+              portfolioPct={wellsPortfolioWeight}
+              marketValue={selectedPositionMarketValue}
+              shares={
+                selectedPositionShares != null
+                  ? Math.abs(selectedPositionShares)
+                  : null
+              }
+              asOfDate={latestFundEquitySnapshot?.asOfDate ?? null}
+            />
           </div>
         ) : null}
 
@@ -762,10 +681,6 @@ export default function TradeCalculatorWorkspace({
           </div>
         ) : (
           <div className="space-y-5">
-            
-
-
-
             {analytics && !analytics.pendingProjectionIsValid ? (
               <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-6 text-rose-800">
                 The pending manual trades do not produce a valid operational
