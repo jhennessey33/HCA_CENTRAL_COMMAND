@@ -10,6 +10,8 @@ const SESSION_STORAGE_KEY = "hca-reminder-summary-shown";
 
 const PT_ALERTS_PRESENTED_KEY = "hca-pt-alerts-presented";
 
+const TRADE_QUEUE_ALERTS_PRESENTED_KEY = "hca-trade-queue-alerts-presented";
+
 const SUMMARY_POLL_INTERVAL_MS = 60 * 1000;
 
 type Reminder = {
@@ -24,6 +26,7 @@ type Reminder = {
   securityId: string | null;
   positionId: string | null;
   watchlistEntryId: string | null;
+  tradeQueueItemId: string | null;
   security: {
     id: string;
     ticker: string;
@@ -45,6 +48,10 @@ function priorityTone(priority: string) {
 
 function isPtProximityAlert(reminder: Reminder) {
   return reminder.flagType === "PT Proximity Alert";
+}
+
+function isTradeQueueExecutionAlert(reminder: Reminder) {
+  return reminder.flagType === "Trade Queue Execution Alert";
 }
 
 function parseReminderMetadata(reminder: Reminder) {
@@ -117,6 +124,36 @@ function getPresentedPtAlertIds() {
 function storePresentedPtAlertIds(alertIds: Set<string>) {
   window.sessionStorage.setItem(
     PT_ALERTS_PRESENTED_KEY,
+    JSON.stringify(Array.from(alertIds)),
+  );
+}
+function getPresentedTradeQueueAlertIds() {
+  const storedValue = window.sessionStorage.getItem(
+    TRADE_QUEUE_ALERTS_PRESENTED_KEY,
+  );
+
+  if (!storedValue) {
+    return new Set<string>();
+  }
+
+  try {
+    const parsedValue = JSON.parse(storedValue);
+
+    if (!Array.isArray(parsedValue)) {
+      return new Set<string>();
+    }
+
+    return new Set(
+      parsedValue.filter((value): value is string => typeof value === "string"),
+    );
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function storePresentedTradeQueueAlertIds(alertIds: Set<string>) {
+  window.sessionStorage.setItem(
+    TRADE_QUEUE_ALERTS_PRESENTED_KEY,
     JSON.stringify(Array.from(alertIds)),
   );
 }
@@ -401,6 +438,176 @@ function PtAlertList({
     </section>
   );
 }
+
+function TradeQueueAlertList({
+  alerts,
+  onOpenTradeQueue,
+}: {
+  alerts: Reminder[];
+  onOpenTradeQueue: (alert: Reminder) => void;
+}) {
+  if (!alerts.length) {
+    return null;
+  }
+
+  return (
+    <section>
+      <div className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-700">
+        <div>
+          <h3 className="text-sm font-semibold">Trade Queue Alerts</h3>
+
+          <p className="mt-0.5 text-xs opacity-80">
+            Queued trades whose action-aware execution thresholds have been
+            reached
+          </p>
+        </div>
+
+        <span className="flex h-8 min-w-8 items-center justify-center rounded-full bg-white px-2 text-sm font-bold shadow-sm">
+          {alerts.length}
+        </span>
+      </div>
+
+      <div className="mt-2 space-y-2">
+        {alerts.map((alert) => {
+          const metadata = parseReminderMetadata(alert);
+
+          const ticker =
+            alert.security?.ticker || metadata?.ticker || "Unknown";
+
+          const tradeQueueItemId =
+            alert.tradeQueueItemId || metadata?.tradeQueueItemId || null;
+
+          return (
+            <div
+              key={alert.id}
+              className="rounded-2xl border border-emerald-200 bg-white p-4"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-slate-950">
+                      {ticker}
+                    </span>
+
+                    <Badge tone="green">Trade Queue Alert</Badge>
+
+                    {metadata?.tradeType ? (
+                      <Badge
+                        tone={
+                          metadata.tradeType === "SELL" ||
+                          metadata.tradeType === "SHORT"
+                            ? "red"
+                            : "green"
+                        }
+                      >
+                        {metadata.tradeType}
+                      </Badge>
+                    ) : null}
+
+                    <Badge
+                      tone={
+                        priorityTone(alert.priority) as
+                          "red" | "amber" | "slate"
+                      }
+                    >
+                      {alert.priority}
+                    </Badge>
+                  </div>
+
+                  <p className="mt-2 text-sm leading-6 text-slate-700">
+                    {alert.description ||
+                      `${ticker} reached a Trade Queue execution threshold.`}
+                  </p>
+
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                    <div className="rounded-xl bg-emerald-50 p-3">
+                      <p className="font-medium uppercase tracking-wide text-slate-500">
+                        Current
+                      </p>
+
+                      <p className="mt-1 font-semibold tabular-nums text-slate-950">
+                        {formatPtPrice(metadata?.currentPrice)}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl bg-emerald-50 p-3">
+                      <p className="font-medium uppercase tracking-wide text-slate-500">
+                        Execution
+                      </p>
+
+                      <p className="mt-1 font-semibold tabular-nums text-slate-950">
+                        {formatPtPrice(metadata?.executionPrice)}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl bg-emerald-50 p-3">
+                      <p className="font-medium uppercase tracking-wide text-slate-500">
+                        Distance
+                      </p>
+
+                      <p className="mt-1 font-semibold tabular-nums text-emerald-700">
+                        {formatPtDistance(metadata?.distancePercent)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                    <span>
+                      Shares:{" "}
+                      <span className="font-semibold text-slate-700">
+                        {Number.isFinite(Number(metadata?.shares))
+                          ? Number(metadata.shares).toLocaleString("en-US", {
+                              maximumFractionDigits: 4,
+                            })
+                          : "—"}
+                      </span>
+                    </span>
+
+                    <span>
+                      Direction:{" "}
+                      <span className="font-semibold text-slate-700">
+                        {metadata?.triggerDirection || "Unknown"}
+                      </span>
+                    </span>
+                  </div>
+
+                  <p className="mt-3 text-xs text-slate-500">
+                    Price as of{" "}
+                    {metadata?.marketDataAsOf ? (
+                      <LocalDateTime
+                        value={metadata.marketDataAsOf}
+                        className="text-xs text-slate-500"
+                      />
+                    ) : (
+                      "—"
+                    )}
+                    {" • "}
+                    {metadata?.marketDataSource || "Unknown source"}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => onOpenTradeQueue(alert)}
+                  disabled={!tradeQueueItemId}
+                  title={
+                    tradeQueueItemId
+                      ? "Open this item in the Trade Queue."
+                      : "This alert does not include a Trade Queue item ID."
+                  }
+                  className="shrink-0 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+                >
+                  Open Trade Queue
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export default function ReminderStartupPopup() {
   const router = useRouter();
 
@@ -508,6 +715,26 @@ export default function ReminderStartupPopup() {
           setIsOpen(true);
         }
 
+        const loadedTradeQueueAlerts = loadedReminders.filter(
+          isTradeQueueExecutionAlert,
+        );
+
+        const presentedTradeQueueAlertIds = getPresentedTradeQueueAlertIds();
+
+        const unseenTradeQueueAlerts = loadedTradeQueueAlerts.filter(
+          (alert) => !presentedTradeQueueAlertIds.has(alert.id),
+        );
+
+        if (unseenTradeQueueAlerts.length > 0) {
+          for (const alert of unseenTradeQueueAlerts) {
+            presentedTradeQueueAlertIds.add(alert.id);
+          }
+
+          storePresentedTradeQueueAlertIds(presentedTradeQueueAlertIds);
+
+          setIsOpen(true);
+        }
+
         if (isInitialLoad) {
           const hasShownStartupSummary =
             window.sessionStorage.getItem(SESSION_STORAGE_KEY);
@@ -567,10 +794,14 @@ export default function ReminderStartupPopup() {
       now.getDate() + 8,
     );
     const ptAlerts = reminders.filter(isPtProximityAlert);
+
+    const tradeQueueAlerts = reminders.filter(isTradeQueueExecutionAlert);
+
     const overdue = reminders.filter((reminder) => {
       if (
         reminder.flagType === "Agenda" ||
         isPtProximityAlert(reminder) ||
+        isTradeQueueExecutionAlert(reminder) ||
         !reminder.reminderAt
       ) {
         return false;
@@ -585,6 +816,7 @@ export default function ReminderStartupPopup() {
       if (
         reminder.flagType === "Agenda" ||
         isPtProximityAlert(reminder) ||
+        isTradeQueueExecutionAlert(reminder) ||
         !reminder.reminderAt
       ) {
         return false;
@@ -599,6 +831,7 @@ export default function ReminderStartupPopup() {
       if (
         reminder.flagType === "Agenda" ||
         isPtProximityAlert(reminder) ||
+        isTradeQueueExecutionAlert(reminder) ||
         !reminder.reminderAt
       ) {
         return false;
@@ -617,6 +850,7 @@ export default function ReminderStartupPopup() {
 
     return {
       ptAlerts,
+      tradeQueueAlerts,
       overdue,
       today,
       upcoming,
@@ -625,8 +859,12 @@ export default function ReminderStartupPopup() {
   }, [reminders]);
 
   const userCanResolve = canCreateFlags(currentUser?.role);
-
   async function handleResolve(reminder: Reminder) {
+    if (isTradeQueueExecutionAlert(reminder)) {
+      handleOpenTradeQueue(reminder);
+      return;
+    }
+
     if (reminder.id === "UPLOAD_WELLS_FILES") {
       setIsOpen(false);
 
@@ -694,6 +932,23 @@ export default function ReminderStartupPopup() {
     router.push("/alerts");
   }
 
+  function handleOpenTradeQueue(alert: Reminder) {
+    const metadata = parseReminderMetadata(alert);
+
+    const tradeQueueItemId =
+      alert.tradeQueueItemId || metadata?.tradeQueueItemId || null;
+
+    if (!tradeQueueItemId) {
+      setError("This alert does not include a Trade Queue item ID.");
+      return;
+    }
+
+    setError("");
+    setIsOpen(false);
+
+    router.push(`/trades?queueItem=${encodeURIComponent(tradeQueueItemId)}`);
+  }
+
   if (!isOpen) {
     return null;
   }
@@ -704,12 +959,12 @@ export default function ReminderStartupPopup() {
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-6">
           <div>
             <h2 className="text-xl font-semibold text-slate-950">
-              Reminder & PT Alert Summary
+              Reminder &amp; Alert Summary
             </h2>
 
             <p className="mt-1 text-sm leading-6 text-slate-500">
-              Open PT alerts, reminders, and agenda items that require
-              attention.
+              Open Trade Queue alerts, PT alerts, reminders, and agenda items
+              that require attention.
             </p>
           </div>
 
@@ -723,6 +978,11 @@ export default function ReminderStartupPopup() {
         </div>
 
         <div className="flex-1 space-y-5 overflow-auto p-6">
+          <TradeQueueAlertList
+            alerts={groupedReminders.tradeQueueAlerts}
+            onOpenTradeQueue={handleOpenTradeQueue}
+          />
+
           <PtAlertList
             alerts={groupedReminders.ptAlerts}
             canResolve={userCanResolve}
@@ -732,6 +992,7 @@ export default function ReminderStartupPopup() {
             onCancelResolve={() => setConfirmingPtResolveId(null)}
             onConfirmResolve={handleResolve}
           />
+
           <ReminderList
             title="Overdue"
             description="Scheduled before today"
