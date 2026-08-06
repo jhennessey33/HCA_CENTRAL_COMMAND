@@ -210,6 +210,17 @@ export default function MeetingsClient({
 
   const [deleteCommentError, setDeleteCommentError] = useState("");
 
+
+  const [editingMeetingNote, setEditingMeetingNote] = useState<{
+    meetingId: string;
+    comment: any;
+  } | null>(null);
+
+  const [editNoteContent, setEditNoteContent] = useState("");
+  const [editNoteTag, setEditNoteTag] = useState("NOTE");
+  const [editNoteSecurityId, setEditNoteSecurityId] = useState("");
+  const [isSavingEditedNote, setIsSavingEditedNote] = useState(false);
+  const [editNoteError, setEditNoteError] = useState("");
   const [expandedMeetingNotes, setExpandedMeetingNotes] = useState<
     Record<string, boolean>
   >({});
@@ -701,6 +712,111 @@ export default function MeetingsClient({
     }
   }
 
+
+  function handleOpenEditNote(meetingId: string, comment: any) {
+    setEditingMeetingNote({
+      meetingId,
+      comment,
+    });
+
+    setEditNoteContent(comment.content || "");
+    setEditNoteTag(comment.tag || "NOTE");
+    setEditNoteSecurityId(comment.security?.id || comment.securityId || "");
+    setEditNoteError("");
+  }
+
+  function handleCloseEditNote() {
+    if (isSavingEditedNote) {
+      return;
+    }
+
+    setEditingMeetingNote(null);
+    setEditNoteContent("");
+    setEditNoteTag("NOTE");
+    setEditNoteSecurityId("");
+    setEditNoteError("");
+  }
+
+  async function handleSaveEditedNote() {
+    if (!editingMeetingNote) {
+      return;
+    }
+
+    const normalizedContent = editNoteContent.trim();
+
+    if (!normalizedContent) {
+      setEditNoteError("Comment content is required.");
+      return;
+    }
+
+    const originalComment = editingMeetingNote.comment;
+    const originalSecurityId =
+      originalComment.security?.id || originalComment.securityId || "";
+
+    const hasChanges =
+      normalizedContent !== originalComment.content ||
+      editNoteTag !== (originalComment.tag || "NOTE") ||
+      editNoteSecurityId !== originalSecurityId;
+
+    if (!hasChanges) {
+      setEditNoteError("No changes were made to the note.");
+      return;
+    }
+
+    setIsSavingEditedNote(true);
+    setEditNoteError("");
+
+    try {
+      const response = await fetch(
+        `/api/comments/${editingMeetingNote.comment.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            content: normalizedContent,
+            tag: editNoteTag,
+            securityId: editNoteSecurityId || null,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update note.");
+      }
+
+      setMeetings((current) =>
+        current.map((meeting: any) =>
+          meeting.id === editingMeetingNote.meetingId
+            ? {
+              ...meeting,
+              comments: (meeting.comments || []).map((comment: any) =>
+                comment.id === data.comment.id ? data.comment : comment,
+              ),
+            }
+            : meeting,
+        ),
+      );
+
+      setEditingMeetingNote(null);
+      setEditNoteContent("");
+      setEditNoteTag("NOTE");
+      setEditNoteSecurityId("");
+      setEditNoteError("");
+    } catch (error) {
+      setEditNoteError(
+        error instanceof Error ? error.message : "Failed to update note.",
+      );
+    } finally {
+      setIsSavingEditedNote(false);
+    }
+  }
+
+
   async function handleDeleteComment(
     meetingId: string,
     commentId: string,
@@ -983,7 +1099,17 @@ export default function MeetingsClient({
                                   value={comment.createdAt}
                                   className="text-xs text-slate-400"
                                 />
-
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditNote(meeting.id, comment)}
+                                  disabled={
+                                    deletingCommentId === comment.id ||
+                                    isSavingEditedNote
+                                  }
+                                  className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  Edit
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1580,6 +1706,138 @@ export default function MeetingsClient({
             </div>
           </div>
         ) : null}
+        {editingMeetingNote ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 p-4">
+            <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-xl font-semibold text-slate-950">
+                    Edit Note
+                  </h3>
+
+                  <p className="mt-1 text-sm text-slate-500">
+                    Update the note, tag, or related security.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCloseEditNote}
+                  disabled={isSavingEditedNote}
+                  aria-label="Close edit note"
+                  className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="mt-5">
+                <label className="text-sm font-medium text-slate-700">
+                  Related Security
+                </label>
+
+                <p className="mt-1 text-xs text-slate-500">
+                  Optional. Select No Security for a general meeting note.
+                </p>
+
+                <select
+                  value={editNoteSecurityId}
+                  onChange={(event) => {
+                    setEditNoteSecurityId(event.target.value);
+                    setEditNoteError("");
+                  }}
+                  disabled={isSavingEditedNote}
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-50"
+                >
+                  <option value="">No Security</option>
+
+                  {securities.map((security: any) => (
+                    <option key={security.id} value={security.id}>
+                      {security.ticker} — {security.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mt-4">
+                <label className="text-sm font-medium text-slate-700">
+                  Comment Tag
+                </label>
+
+                <div className="mt-2 grid grid-cols-4 gap-2">
+                  {noteTagOptions.map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => {
+                        setEditNoteTag(value);
+                        setEditNoteError("");
+                      }}
+                      disabled={isSavingEditedNote}
+                      className={`rounded-xl px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60 ${editNoteTag === value
+                          ? value === "PT"
+                            ? "bg-amber-600 text-white"
+                            : "bg-slate-900 text-white"
+                          : value === "PT"
+                            ? "border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                            : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                        }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="text-sm font-medium text-slate-700">
+                  Note
+                </label>
+
+                <textarea
+                  value={editNoteContent}
+                  onChange={(event) => {
+                    setEditNoteContent(event.target.value);
+                    setEditNoteError("");
+                  }}
+                  disabled={isSavingEditedNote}
+                  placeholder="Write meeting note..."
+                  className="mt-2 min-h-40 w-full resize-y rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-50"
+                />
+              </div>
+
+              {editNoteError ? (
+                <div className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                  {editNoteError}
+                </div>
+              ) : null}
+
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={handleCloseEditNote}
+                  disabled={isSavingEditedNote}
+                  className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => void handleSaveEditedNote()}
+                  disabled={
+                    isSavingEditedNote ||
+                    !editNoteContent.trim()
+                  }
+                  className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSavingEditedNote ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
       </div>
     </main>
   );
