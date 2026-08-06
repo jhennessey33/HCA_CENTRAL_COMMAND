@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  createManualPendingTrade,
+  MANUAL_TRADE_ORIGINS,
+  ManualTradeCreationError,
+  type ManualTradeOrigin,
+} from "@/lib/trades/manual-trade-service";
 import { prisma } from "@/lib/prisma";
 
 const VALID_TRADE_TYPES = ["BUY", "SELL", "SHORT", "COVER"] as const;
 
-const VALID_ORIGINS = ["DASHBOARD", "TRADE_CALCULATOR"] as const;
+type ValidTradeType = (typeof VALID_TRADE_TYPES)[number];
 
 class RequestValidationError extends Error {}
 
@@ -22,36 +28,34 @@ function parsePositiveNumber(value: unknown, fieldName: string) {
   return parsed;
 }
 
-function parseTradeType(value: unknown) {
+function parseTradeType(value: unknown): ValidTradeType {
   const tradeType = String(value || "")
     .trim()
     .toUpperCase();
 
-  if (
-    !VALID_TRADE_TYPES.includes(tradeType as (typeof VALID_TRADE_TYPES)[number])
-  ) {
+  if (!VALID_TRADE_TYPES.includes(tradeType as ValidTradeType)) {
     throw new RequestValidationError(
       "Trade type must be BUY, SELL, SHORT, or COVER.",
     );
   }
 
-  return tradeType as (typeof VALID_TRADE_TYPES)[number];
+  return tradeType as ValidTradeType;
 }
 
-function parseOrigin(value: unknown) {
+function parseOrigin(value: unknown): ManualTradeOrigin {
   if (value === null || value === undefined || value === "") {
     return "DASHBOARD";
   }
 
   const origin = String(value).trim().toUpperCase();
 
-  if (!VALID_ORIGINS.includes(origin as (typeof VALID_ORIGINS)[number])) {
+  if (!MANUAL_TRADE_ORIGINS.includes(origin as ManualTradeOrigin)) {
     throw new RequestValidationError(
-      "Trade origin must be DASHBOARD or TRADE_CALCULATOR.",
+      "Trade origin must be DASHBOARD, TRADE_CALCULATOR, or TRADE_QUEUE.",
     );
   }
 
-  return origin as (typeof VALID_ORIGINS)[number];
+  return origin as ManualTradeOrigin;
 }
 
 function parseShortLocateNumber(value: unknown) {
@@ -137,7 +141,7 @@ export async function POST(request: Request) {
 
     const tradeType = parseTradeType(body.tradeType);
 
-    const rawShares = parsePositiveNumber(body.shares, "Shares");
+    const shares = parsePositiveNumber(body.shares, "Shares");
 
     const avgPrice = parsePositiveNumber(body.avgPrice, "Average price");
 
@@ -154,21 +158,6 @@ export async function POST(request: Request) {
         "Short Locate Number is required for a short trade.",
       );
     }
-
-    const shortLocateNote =
-      tradeType === "SHORT" && shortLocateNumber
-        ? `Short Locate Number: ${shortLocateNumber}`
-        : null;
-
-    const comment =
-      userComment && shortLocateNote
-        ? `${userComment}\n\n${shortLocateNote}`
-        : userComment || shortLocateNote || null;
-
-    const shares =
-      tradeType === "SELL" || tradeType === "SHORT"
-        ? -Math.abs(rawShares)
-        : Math.abs(rawShares);
 
     const security = await prisma.security.findUnique({
       where: {
@@ -239,53 +228,21 @@ export async function POST(request: Request) {
       }
     }
 
-    const trade = await prisma.$transaction(async (tx) => {
-      const createdTrade = await tx.trade.create({
-        data: {
-          securityId,
-          positionId,
-          dateTraded,
-          shares,
-          avgPrice,
-          tradeType,
-          notional: shares * avgPrice,
-          comment,
-          source: "MANUAL",
-          reconciliationStatus: "MANUAL_PENDING",
-          manualEnteredById: currentUser.id,
-          isHidden: false,
-        },
-        include: {
-          security: true,
-        },
-      });
-
-      await tx.auditLog.create({
-        data: {
-          actorId: currentUser.id,
-          action: "MANUAL_TRADE_CREATED",
-          entityType: "TRADE",
-          entityId: createdTrade.id,
-          newValueJson: JSON.stringify({
-            securityId,
-            ticker: security.ticker,
-            positionId,
-            tradeType,
-            shares,
-            avgPrice,
-            notional: createdTrade.notional,
-            dateTraded,
-            comment,
-            shortLocateNumber,
-            source: createdTrade.source,
-            reconciliationStatus: createdTrade.reconciliationStatus,
-            origin,
-          }),
-        },
-      });
-
-      return createdTrade;
-    });
+    const trade = await prisma.$transaction(async (tx) =>
+      createManualPendingTrade(tx, {
+        actorId: currentUser.id,
+        securityId,
+        securityTicker: security.ticker,
+        positionId,
+        tradeType,
+        shares,
+        avgPrice,
+        dateTraded,
+        comment: userComment,
+        shortLocateNumber,
+        origin,
+      }),
+    );
 
     return NextResponse.json(
       {
@@ -296,7 +253,10 @@ export async function POST(request: Request) {
       },
     );
   } catch (error) {
-    if (error instanceof RequestValidationError) {
+    if (
+      error instanceof RequestValidationError ||
+      error instanceof ManualTradeCreationError
+    ) {
       return NextResponse.json(
         {
           error: error.message,
