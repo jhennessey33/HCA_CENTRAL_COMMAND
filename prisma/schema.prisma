@@ -27,6 +27,7 @@ model User {
 
   registrationApprovalsCreated RegistrationApproval[] @relation("RegistrationApprovalsApprovedBy")
   registrationApproval         RegistrationApproval?  @relation("RegistrationApprovalRegisteredUser")
+  tradeQueueItemsCreated TradeQueueItem[]
 
 }
 
@@ -110,6 +111,7 @@ model Security {
   watchlistEntries WatchlistEntry[]
   comments         Comment[]
   flags            Flag[]
+  tradeQueueItems TradeQueueItem[]
   marketData       MarketDataCache[]
 
   @@index([cik])
@@ -145,7 +147,7 @@ model Position {
 
   openedAt DateTime?
   closedAt DateTime?
-
+  executedFromQueue TradeQueueItem?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -235,6 +237,47 @@ model Trade {
   createdAt DateTime @default(now())
 }
 
+model TradeQueueItem {
+  id String @id @default(cuid())
+
+  securityId String
+  security   Security @relation(fields: [securityId], references: [id])
+
+  positionId String
+  position   Position @relation(fields: [positionId], references: [id])
+
+  createdById String
+  createdBy   User @relation(fields: [createdById], references: [id])
+
+  executedTradeId String? @unique
+  executedTrade   Trade? @relation(fields: [executedTradeId], references: [id])
+
+  tradeType String
+
+  shares Float
+  executionPrice Float
+
+  proposedTradeAt DateTime
+
+  comment String?
+  shortLocateNumber String?
+
+  status String @default("QUEUED")
+
+  triggeredAt DateTime?
+  executedAt DateTime?
+  canceledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  flags Flag[]
+
+  @@index([status, createdAt])
+  @@index([securityId, status])
+  @@index([positionId, status])
+}
+
 model WatchlistEntry {
   id String @id @default(cuid())
 
@@ -274,6 +317,9 @@ model Comment {
 
   watchlistEntryId String?
   watchlistEntry   WatchlistEntry? @relation(fields: [watchlistEntryId], references: [id])
+
+  tradeQueueItemId String?
+  tradeQueueItem   TradeQueueItem? @relation(fields: [tradeQueueItemId], references: [id])
 
   authorId String
   author   User   @relation(fields: [authorId], references: [id])
@@ -320,8 +366,9 @@ model Flag {
   resolvedAt DateTime?
 
   metadataJson String?
-}
 
+  @@index([tradeQueueItemId])
+}
 model MarketDataCache {
   id String @id @default(cuid())
 
