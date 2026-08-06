@@ -8,6 +8,7 @@ import {
   buildTradeHistoryAnalytics,
   type TradeHistoryRow,
 } from "@/lib/dashboard/trade-history-analytics";
+import ManualTradeEditModal from "@/components/trades/ManualTradeEditModal";
 
 type TradeFilter = "ALL" | "ENTRIES" | "EXITS";
 type TradeSort = "NEWEST" | "OLDEST";
@@ -16,11 +17,7 @@ type ExpandedTradeHistoryModalProps = {
   position: any | null;
   onClose: () => void;
   onTradeDeleted: (positionId: string, tradeId: string) => void;
-  onTradeNoteUpdated: (
-    positionId: string,
-    tradeId: string,
-    comment: string | null,
-  ) => void;
+  onTradeUpdated: (positionId: string, updatedTrade: any) => void;
 };
 
 function formatMoney(value: number | null | undefined) {
@@ -193,14 +190,14 @@ function TradeHistoryTableRow({
   setConfirmDeleteTradeId,
   deletingTradeId,
   onDeleteTrade,
-  onEditNote,
+  onEditTrade,
 }: {
   row: TradeHistoryRow;
   confirmDeleteTradeId: string | null;
   setConfirmDeleteTradeId: (id: string | null) => void;
   deletingTradeId: string | null;
   onDeleteTrade: (tradeId: string) => Promise<void>;
-  onEditNote: (trade: any) => void;
+  onEditTrade: (trade: any) => void;
 }) {
   return (
     <div className="grid min-w-[1800px] grid-cols-13 items-center gap-1 border-b border-slate-100 px-4 py-3 text-xs last:border-b-0 hover:bg-slate-50">
@@ -299,10 +296,10 @@ function TradeHistoryTableRow({
           <>
             <button
               type="button"
-              onClick={() => onEditNote(row.trade)}
+              onClick={() => onEditTrade(row.trade)}
               className="rounded-xl bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
             >
-              {row.trade.comment ? "Edit Note" : "Add Note"}
+              Edit
             </button>
 
             {deletingTradeId === row.trade.id ? (
@@ -361,7 +358,7 @@ export default function ExpandedTradeHistoryModal({
   position,
   onClose,
   onTradeDeleted,
-  onTradeNoteUpdated,
+  onTradeUpdated,
 }: ExpandedTradeHistoryModalProps) {
   const [tradeFilter, setTradeFilter] = useState<TradeFilter>("ALL");
 
@@ -377,8 +374,6 @@ export default function ExpandedTradeHistoryModal({
   const [deletingTradeId, setDeletingTradeId] = useState<string | null>(null);
 
   const [editingTrade, setEditingTrade] = useState<any | null>(null);
-
-  const [tradeNote, setTradeNote] = useState("");
 
   useEffect(() => {
     if (!confirmDeleteTradeId) {
@@ -438,44 +433,32 @@ export default function ExpandedTradeHistoryModal({
       setDeletingTradeId(null);
     }
   }
-  async function handleSaveTradeNote() {
-    if (!editingTrade) {
-      return;
-    }
-
-    const response = await fetch(`/api/trades/manual/${editingTrade.id}/note`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify({
-        comment: tradeNote,
-      }),
+  function handleOpenTradeEditor(trade: any) {
+    setEditingTrade({
+      ...trade,
+      ticker: position?.security?.ticker || "",
+      company: position?.security?.name || "",
+      side: position?.side || "",
     });
+  }
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      window.alert(data.error || "Failed to save trade note.");
-
-      return;
-    }
-
+  function handleManualTradeSaved(updatedTrade: any) {
     setLocalTrades((currentTrades) =>
       currentTrades.map((trade) =>
-        trade.id === editingTrade.id
+        trade.id === updatedTrade.id
           ? {
               ...trade,
-              comment: tradeNote || null,
+              ...updatedTrade,
             }
           : trade,
       ),
     );
-    onTradeNoteUpdated(position.id, editingTrade.id, tradeNote || null);
+
+    onTradeUpdated(position.id, updatedTrade);
 
     setEditingTrade(null);
   }
+
   const displayedRows = useMemo(() => {
     const filteredRows = analytics.rows.filter((row) => {
       if (tradeFilter === "ENTRIES") {
@@ -792,10 +775,7 @@ export default function ExpandedTradeHistoryModal({
                       setConfirmDeleteTradeId={setConfirmDeleteTradeId}
                       deletingTradeId={deletingTradeId}
                       onDeleteTrade={handleDeleteTrade}
-                      onEditNote={(trade) => {
-                        setEditingTrade(trade);
-                        setTradeNote(trade.comment || "");
-                      }}
+                      onEditTrade={handleOpenTradeEditor}
                     />
                   ))
                 ) : (
@@ -818,56 +798,11 @@ export default function ExpandedTradeHistoryModal({
           </section>
         </div>
         {editingTrade ? (
-          <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/30 p-4">
-            <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-950">
-                    {editingTrade.comment
-                      ? "Edit Trade Note"
-                      : "Add Trade Note"}
-                  </h3>
-
-                  <p className="mt-1 text-sm text-slate-500">
-                    {position.security.ticker}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setEditingTrade(null)}
-                  className="rounded-xl p-2 text-slate-500 hover:bg-slate-100"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <textarea
-                value={tradeNote}
-                onChange={(event) => setTradeNote(event.target.value)}
-                className="mt-4 h-32 w-full resize-none rounded-2xl border border-slate-200 p-4 text-sm outline-none focus:ring-2 focus:ring-slate-900"
-                placeholder="Enter trade note..."
-              />
-
-              <div className="mt-4 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingTrade(null)}
-                  className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleSaveTradeNote}
-                  className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-                >
-                  Save Note
-                </button>
-              </div>
-            </div>
-          </div>
+          <ManualTradeEditModal
+            trade={editingTrade}
+            onClose={() => setEditingTrade(null)}
+            onSaved={handleManualTradeSaved}
+          />
         ) : null}
         <div className="flex shrink-0 justify-end border-t border-slate-200 bg-white p-4">
           <button

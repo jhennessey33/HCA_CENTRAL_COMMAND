@@ -219,8 +219,9 @@ function PositionGrid({
           return (
             <div
               key={position.id}
-              className={`grid min-w-[1300px] grid-cols-13 justify-items-center items-center border-b border-slate-100 px-4 py-3 text-xs transition hover:bg-slate-50 ${selectedId === position.id ? "bg-slate-100" : "bg-white"
-                }`}
+              className={`grid min-w-[1300px] grid-cols-13 justify-items-center items-center border-b border-slate-100 px-4 py-3 text-xs transition hover:bg-slate-50 ${
+                selectedId === position.id ? "bg-slate-100" : "bg-white"
+              }`}
             >
               <button
                 onClick={() => onSelect(position)}
@@ -261,7 +262,6 @@ function PositionGrid({
               <div className="w-full px-1 text-center leading-tight">
                 {position.security.sector || "—"}
               </div>
-
 
               <div className="flex justify-center">
                 <button
@@ -573,7 +573,7 @@ function TickerDetailPanel({
                     )}
 
                     {trade.source === "SYSTEM" &&
-                      trade.reconciliationStatus === "MANUAL_PENDING" ? (
+                    trade.reconciliationStatus === "MANUAL_PENDING" ? (
                       <Badge tone="blue">Pending Completion</Badge>
                     ) : trade.reconciliationStatus === "REVIEW_REQUIRED" ? (
                       <Badge tone="red">Review</Badge>
@@ -664,10 +664,7 @@ function getFinnhubCurrentPrice(position: any) {
 
   const currentPrice = Number(marketData.currentPrice);
 
-  if (
-    !Number.isFinite(currentPrice) ||
-    currentPrice <= 0
-  ) {
+  if (!Number.isFinite(currentPrice) || currentPrice <= 0) {
     return null;
   }
 
@@ -684,8 +681,7 @@ function TaxLotsModal({
 
   const security = position.security;
   const lots = position.taxLots || [];
-  const currentPrice =
-    getFinnhubCurrentPrice(position);
+  const currentPrice = getFinnhubCurrentPrice(position);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 p-4 backdrop-blur-sm">
@@ -734,11 +730,9 @@ function TaxLotsModal({
                 const quantity = Number(lot.quantity);
                 const costBasis = Number(lot.costBasis);
 
-                const hasValidQuantity =
-                  Number.isFinite(quantity);
+                const hasValidQuantity = Number.isFinite(quantity);
 
-                const hasValidCostBasis =
-                  Number.isFinite(costBasis);
+                const hasValidCostBasis = Number.isFinite(costBasis);
 
                 const currentMarketValue =
                   currentPrice != null && hasValidQuantity
@@ -746,18 +740,15 @@ function TaxLotsModal({
                     : null;
 
                 const currentUnrealizedPnl =
-                  currentMarketValue != null &&
-                    hasValidCostBasis
+                  currentMarketValue != null && hasValidCostBasis
                     ? currentMarketValue - costBasis
                     : null;
 
                 const currentRoi =
                   currentUnrealizedPnl != null &&
-                    hasValidCostBasis &&
-                    Math.abs(costBasis) > 0
-                    ? (currentUnrealizedPnl /
-                      Math.abs(costBasis)) *
-                    100
+                  hasValidCostBasis &&
+                  Math.abs(costBasis) > 0
+                    ? (currentUnrealizedPnl / Math.abs(costBasis)) * 100
                     : null;
 
                 return (
@@ -771,21 +762,13 @@ function TaxLotsModal({
                       {lot.taxLotId || "—"}
                     </span>
 
-                    <span>
-                      {formatNumber(lot.quantity)}
-                    </span>
+                    <span>{formatNumber(lot.quantity)}</span>
 
-                    <span>
-                      {formatPrice(lot.unitCost)}
-                    </span>
+                    <span>{formatPrice(lot.unitCost)}</span>
 
-                    <span>
-                      {formatPrice(currentPrice)}
-                    </span>
+                    <span>{formatPrice(currentPrice)}</span>
 
-                    <span>
-                      {formatMoney(lot.costBasis)}
-                    </span>
+                    <span>{formatMoney(lot.costBasis)}</span>
 
                     <span>
                       {currentMarketValue != null
@@ -812,18 +795,13 @@ function TaxLotsModal({
                           : "text-slate-500"
                       }
                     >
-                      {currentRoi != null
-                        ? `${currentRoi.toFixed(1)}%`
-                        : "—"}
+                      {currentRoi != null ? `${currentRoi.toFixed(1)}%` : "—"}
                     </span>
 
-                    <span>
-                      {lot.daysToLongTerm || "—"}
-                    </span>
+                    <span>{lot.daysToLongTerm || "—"}</span>
                   </div>
                 );
               })
-
             ) : (
               <div className="px-3 py-4 text-slate-500">
                 No tax lot breakdown yet.
@@ -866,8 +844,8 @@ function MarketDataModal({
       "Avg Volume",
       marketData?.avgVolume != null
         ? marketData.avgVolume.toLocaleString("en-US", {
-          maximumFractionDigits: 0,
-        })
+            maximumFractionDigits: 0,
+          })
         : "N/A",
     ],
     [
@@ -932,8 +910,9 @@ function MarketDataModal({
           {rows.map(([label, value], index) => (
             <div
               key={label}
-              className={`grid grid-cols-2 px-4 py-3 text-sm ${index % 2 === 0 ? "bg-slate-50" : "bg-white"
-                }`}
+              className={`grid grid-cols-2 px-4 py-3 text-sm ${
+                index % 2 === 0 ? "bg-slate-50" : "bg-white"
+              }`}
             >
               <span className="font-medium text-slate-700">{label}</span>
               <span className="text-right font-semibold text-slate-950">
@@ -1228,10 +1207,11 @@ function AddTradeModal({
               setConfirmingSave(true);
             }}
             disabled={isSaving}
-            className={`rounded-2xl px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60 ${confirmingSave
-              ? "bg-amber-600 hover:bg-emerald-700"
-              : "bg-slate-900 hover:bg-slate-800"
-              }`}
+            className={`rounded-2xl px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60 ${
+              confirmingSave
+                ? "bg-amber-600 hover:bg-emerald-700"
+                : "bg-slate-900 hover:bg-slate-800"
+            }`}
           >
             {isSaving
               ? "Saving..."
@@ -1332,10 +1312,11 @@ function CommentModal({
             <button
               key={value}
               onClick={() => setTag(value)}
-              className={`rounded-2xl px-3 py-2 text-sm ${tag === value
-                ? "bg-slate-900 text-white"
-                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
+              className={`rounded-2xl px-3 py-2 text-sm ${
+                tag === value
+                  ? "bg-slate-900 text-white"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
             >
               {label}
             </button>
@@ -1643,8 +1624,7 @@ function SectorModal({
 
     const existingSector = availableSectors.find(
       (availableSector) =>
-        availableSector.trim().toLowerCase() ===
-        trimmedSector.toLowerCase(),
+        availableSector.trim().toLowerCase() === trimmedSector.toLowerCase(),
     );
 
     if (existingSector) {
@@ -1697,9 +1677,7 @@ function SectorModal({
       onClose();
     } catch (error) {
       setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to update sector.",
+        error instanceof Error ? error.message : "Failed to update sector.",
       );
     } finally {
       setIsSaving(false);
@@ -1764,15 +1742,13 @@ function SectorModal({
           </div>
 
           <p className="mt-1 text-xs text-slate-500">
-            The new sector will be selected automatically. Click Save Sector
-            to assign it to this security.
+            The new sector will be selected automatically. Click Save Sector to
+            assign it to this security.
           </p>
         </div>
 
         <div className="mt-5">
-          <label className="text-sm font-medium text-slate-700">
-            Sector
-          </label>
+          <label className="text-sm font-medium text-slate-700">Sector</label>
 
           <select
             value={sector}
@@ -1794,9 +1770,7 @@ function SectorModal({
         </div>
 
         {error ? (
-          <p className="mt-3 text-sm font-medium text-rose-600">
-            {error}
-          </p>
+          <p className="mt-3 text-sm font-medium text-rose-600">{error}</p>
         ) : null}
 
         <div className="mt-5 flex justify-end gap-2">
@@ -2194,20 +2168,16 @@ export default function DashboardClient({
     });
   }
 
-  function handleTradeNoteUpdated(
-    positionId: string,
-    tradeId: string,
-    comment: string | null,
-  ) {
-    function updateTrade(position: any) {
+  function handleTradeUpdated(positionId: string, updatedTrade: any) {
+    function updateTradeInPosition(position: any) {
       return {
         ...position,
         trades: (position.trades || []).map((trade: any) =>
-          trade.id === tradeId
+          trade.id === updatedTrade.id
             ? {
-              ...trade,
-              comment,
-            }
+                ...trade,
+                ...updatedTrade,
+              }
             : trade,
         ),
       };
@@ -2215,24 +2185,24 @@ export default function DashboardClient({
 
     setLocalPositions((currentPositions) =>
       currentPositions.map((position) =>
-        position.id === positionId ? updateTrade(position) : position,
+        position.id === positionId ? updateTradeInPosition(position) : position,
       ),
     );
 
-    setSelectedPosition((currentPosition: any) => {
+    setSelectedPosition((currentPosition: any | null) => {
       if (!currentPosition || currentPosition.id !== positionId) {
         return currentPosition;
       }
 
-      return updateTrade(currentPosition);
+      return updateTradeInPosition(currentPosition);
     });
 
-    setExpandedTradeHistoryPosition((currentPosition: any) => {
+    setExpandedTradeHistoryPosition((currentPosition: any | null) => {
       if (!currentPosition || currentPosition.id !== positionId) {
         return currentPosition;
       }
 
-      return updateTrade(currentPosition);
+      return updateTradeInPosition(currentPosition);
     });
   }
 
@@ -2246,8 +2216,7 @@ export default function DashboardClient({
     setAvailableSectors((currentSectors) => {
       const existingSector = currentSectors.find(
         (currentSector) =>
-          currentSector.trim().toLowerCase() ===
-          trimmedSector.toLowerCase(),
+          currentSector.trim().toLowerCase() === trimmedSector.toLowerCase(),
       );
 
       if (existingSector) {
@@ -2263,17 +2232,14 @@ export default function DashboardClient({
   function handleSectorUpdated(securityId: string, sector: string) {
     setAvailableSectors((currentSectors) => {
       const existingSector = currentSectors.some(
-        (currentSector) =>
-          currentSector.toLowerCase() === sector.toLowerCase(),
+        (currentSector) => currentSector.toLowerCase() === sector.toLowerCase(),
       );
 
       if (existingSector) {
         return currentSectors;
       }
 
-      return [...currentSectors, sector].sort((a, b) =>
-        a.localeCompare(b),
-      );
+      return [...currentSectors, sector].sort((a, b) => a.localeCompare(b));
     });
 
     setLocalPositions((currentPositions) =>
@@ -2452,10 +2418,11 @@ export default function DashboardClient({
                     <button
                       key={filter}
                       onClick={() => setActiveFilter(filter)}
-                      className={`rounded-xl px-3 py-2 text-sm ${activeFilter === filter
-                        ? "bg-slate-900 text-white"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                        }`}
+                      className={`rounded-xl px-3 py-2 text-sm ${
+                        activeFilter === filter
+                          ? "bg-slate-900 text-white"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      }`}
                     >
                       {filter}
                     </button>
@@ -2535,7 +2502,7 @@ export default function DashboardClient({
               position={expandedTradeHistoryPosition}
               onClose={() => setExpandedTradeHistoryPosition(null)}
               onTradeDeleted={handleTradeDeleted}
-              onTradeNoteUpdated={handleTradeNoteUpdated}
+              onTradeUpdated={handleTradeUpdated}
             />
             <SummaryModal
               open={showSummaryModal}
