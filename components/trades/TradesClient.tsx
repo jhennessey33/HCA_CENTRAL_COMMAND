@@ -210,6 +210,10 @@ export default function TradesClient({
   const [localQueueItems, setLocalQueueItems] =
     useState<any[]>(initialQueuedTrades);
 
+  const [highlightedQueueItemId, setHighlightedQueueItemId] = useState<
+    string | null
+  >(null);
+
   const [query, setQuery] = useState("");
 
   const [tradeFilter, setTradeFilter] = useState("ALL");
@@ -227,6 +231,15 @@ export default function TradesClient({
   >(null);
 
   const [deletingTradeId, setDeletingTradeId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+
+    const queueItemId = searchParams.get("queueItem")?.trim();
+
+    setHighlightedQueueItemId(queueItemId || null);
+  }, []);
+
   useEffect(() => {
     if (!confirmDeleteTradeId) {
       return;
@@ -377,11 +390,19 @@ export default function TradesClient({
     setLocalQueueItems((currentQueueItems) =>
       currentQueueItems.filter((queueItem) => queueItem.id !== queueItemId),
     );
+
+    setHighlightedQueueItemId((currentHighlightedId) =>
+      currentHighlightedId === queueItemId ? null : currentHighlightedId,
+    );
   }
 
   function handleLocalQueueItemExecuted(queueItemId: string, trade: any) {
     setLocalQueueItems((currentQueueItems) =>
       currentQueueItems.filter((queueItem) => queueItem.id !== queueItemId),
+    );
+
+    setHighlightedQueueItemId((currentHighlightedId) =>
+      currentHighlightedId === queueItemId ? null : currentHighlightedId,
     );
 
     setLocalPositions((currentPositions) =>
@@ -615,6 +636,7 @@ export default function TradesClient({
 
             <TradeQueueSection
               queueItems={localQueueItems}
+              highlightedQueueItemId={highlightedQueueItemId}
               onQueueItemUpdated={updateLocalQueueItem}
               onQueueItemCanceled={removeLocalQueueItem}
               onQueueItemExecuted={handleLocalQueueItemExecuted}

@@ -6,6 +6,7 @@ import LocalDateTime from "@/components/common/LocalDateTime";
 
 type TradeQueueSectionProps = {
   queueItems: any[];
+  highlightedQueueItemId: string | null;
   onQueueItemUpdated: (queueItem: any) => void;
   onQueueItemCanceled: (queueItemId: string) => void;
   onQueueItemExecuted: (queueItemId: string, trade: any) => void;
@@ -799,6 +800,7 @@ function ExecuteTradeQueueModal({
 
 export default function TradeQueueSection({
   queueItems,
+  highlightedQueueItemId,
   onQueueItemUpdated,
   onQueueItemCanceled,
   onQueueItemExecuted,
@@ -814,6 +816,36 @@ export default function TradeQueueSection({
     string | null
   >(null);
   const [actionError, setActionError] = useState("");
+
+  useEffect(() => {
+    if (!highlightedQueueItemId) {
+      return;
+    }
+
+    const matchingQueueItem = queueItems.find(
+      (queueItem) => queueItem.id === highlightedQueueItemId,
+    );
+
+    if (!matchingQueueItem) {
+      return;
+    }
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      const queueItemElement = document.getElementById(
+        `trade-queue-item-${highlightedQueueItemId}`,
+      );
+
+      queueItemElement?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+    };
+  }, [highlightedQueueItemId, queueItems]);
 
   useEffect(() => {
     if (!confirmCancelQueueItemId) {
@@ -893,6 +925,16 @@ export default function TradeQueueSection({
           </div>
         </div>
 
+        {highlightedQueueItemId &&
+        !queueItems.some(
+          (queueItem) => queueItem.id === highlightedQueueItemId,
+        ) ? (
+          <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-800">
+            The requested Trade Queue item is not currently active. It may have
+            been executed, canceled, or edited from another session.
+          </div>
+        ) : null}
+
         {actionError ? (
           <div className="border-b border-rose-200 bg-rose-50 px-5 py-3 text-sm font-medium text-rose-700">
             {actionError}
@@ -940,11 +982,15 @@ export default function TradeQueueSection({
 
                 return (
                   <div
+                    id={`trade-queue-item-${queueItem.id}`}
                     key={queueItem.id}
-                    className={`grid grid-cols-[0.8fr_1.8fr_0.9fr_1fr_1fr_1fr_0.9fr_1fr_1.4fr_1.2fr_2fr_1.8fr] items-center border-b border-slate-100 px-4 py-3 text-xs last:border-b-0 ${
-                      queueItem.status === "TRIGGERED"
-                        ? "bg-amber-50 hover:bg-amber-100/60"
-                        : "hover:bg-slate-50"
+                    data-trade-queue-item-id={queueItem.id}
+                    className={`relative grid grid-cols-[0.8fr_1.8fr_0.9fr_1fr_1fr_1fr_0.9fr_1fr_1.4fr_1.2fr_2fr_1.8fr] items-center border-b px-4 py-3 text-xs transition-all duration-300 last:border-b-0 ${
+                      highlightedQueueItemId === queueItem.id
+                        ? "z-10 border-emerald-300 bg-emerald-50 ring-2 ring-inset ring-emerald-500 shadow-sm"
+                        : queueItem.status === "TRIGGERED"
+                          ? "border-slate-100 bg-amber-50 hover:bg-amber-100/60"
+                          : "border-slate-100 hover:bg-slate-50"
                     }`}
                   >
                     <div className="font-semibold text-slate-950">
