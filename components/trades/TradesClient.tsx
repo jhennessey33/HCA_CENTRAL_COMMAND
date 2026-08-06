@@ -207,6 +207,9 @@ export default function TradesClient({
 }: TradesClientProps) {
   const [localPositions, setLocalPositions] = useState<any[]>(positions);
 
+  const [localQueueItems, setLocalQueueItems] =
+    useState<any[]>(initialQueuedTrades);
+
   const [query, setQuery] = useState("");
 
   const [tradeFilter, setTradeFilter] = useState("ALL");
@@ -361,6 +364,51 @@ export default function TradesClient({
   const netInvestmentPercent = hasValidLatestNetEquity
     ? (netInvestments / latestNetEquity) * 100
     : null;
+
+  function updateLocalQueueItem(updatedQueueItem: any) {
+    setLocalQueueItems((currentQueueItems) =>
+      currentQueueItems.map((queueItem) =>
+        queueItem.id === updatedQueueItem.id ? updatedQueueItem : queueItem,
+      ),
+    );
+  }
+
+  function removeLocalQueueItem(queueItemId: string) {
+    setLocalQueueItems((currentQueueItems) =>
+      currentQueueItems.filter((queueItem) => queueItem.id !== queueItemId),
+    );
+  }
+
+  function handleLocalQueueItemExecuted(queueItemId: string, trade: any) {
+    setLocalQueueItems((currentQueueItems) =>
+      currentQueueItems.filter((queueItem) => queueItem.id !== queueItemId),
+    );
+
+    setLocalPositions((currentPositions) =>
+      currentPositions.map((position) => {
+        if (position.id !== trade.positionId) {
+          return position;
+        }
+
+        const existingTrades = Array.isArray(position.trades)
+          ? position.trades
+          : [];
+
+        if (
+          existingTrades.some(
+            (existingTrade: any) => existingTrade.id === trade.id,
+          )
+        ) {
+          return position;
+        }
+
+        return {
+          ...position,
+          trades: [trade, ...existingTrades],
+        };
+      }),
+    );
+  }
 
   function updateLocalTrade(tradeId: string, updates: Record<string, unknown>) {
     setLocalPositions((currentPositions) =>
@@ -565,7 +613,12 @@ export default function TradesClient({
               />
             </div>
 
-            <TradeQueueSection queueItems={initialQueuedTrades} />
+            <TradeQueueSection
+              queueItems={localQueueItems}
+              onQueueItemUpdated={updateLocalQueueItem}
+              onQueueItemCanceled={removeLocalQueueItem}
+              onQueueItemExecuted={handleLocalQueueItemExecuted}
+            />
 
             <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-3">
               <input
