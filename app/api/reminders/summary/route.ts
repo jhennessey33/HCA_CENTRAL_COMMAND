@@ -103,6 +103,9 @@ export async function GET(request: Request) {
           {
             flagType: "PT Proximity Alert",
           },
+                    {
+            flagType: "Trade Queue Execution Alert",
+          },
         ],
       },
       select: {
@@ -117,6 +120,7 @@ export async function GET(request: Request) {
         securityId: true,
         positionId: true,
         watchlistEntryId: true,
+        tradeQueueItemId: true,
         security: {
           select: {
             id: true,
@@ -168,6 +172,7 @@ export async function GET(request: Request) {
         securityId: null,
         positionId: null,
         watchlistEntryId: null,
+        tradeQueueItemId: null,
         security: null,
         metadataJson: null,
         createdAt: startOfToday,
