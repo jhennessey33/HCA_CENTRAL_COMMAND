@@ -218,7 +218,7 @@ export default function TradeScenarioPanel({
   );
 
   const [sizingMode, setSizingMode] =
-    useState<TradeSizingMode>("TARGET_WEIGHT");
+    useState<TradeSizingMode>("AMOUNT_BPS");
 
   const [sharesInput, setSharesInput] = useState("");
 
@@ -250,7 +250,7 @@ export default function TradeScenarioPanel({
   useEffect(() => {
     setTradeAction(getDefaultAction(position?.side));
 
-    setSizingMode("TARGET_WEIGHT");
+    setSizingMode("AMOUNT_BPS");
     setSharesInput("");
     setNotionalInput("");
     setBasisPointsInput("");
@@ -417,7 +417,7 @@ export default function TradeScenarioPanel({
   function handleReset() {
     setTradeAction(getDefaultAction(position?.side));
 
-    setSizingMode("TARGET_WEIGHT");
+    setSizingMode("AMOUNT_BPS");
     setSharesInput("");
     setNotionalInput("");
     setBasisPointsInput("");
@@ -487,7 +487,7 @@ export default function TradeScenarioPanel({
       setIsReviewOpen(false);
       setSubmissionError("");
 
-      setSizingMode("TARGET_WEIGHT");
+      setSizingMode("AMOUNT_BPS");
       setSharesInput("");
       setNotionalInput("");
       setBasisPointsInput("");
@@ -570,7 +570,7 @@ export default function TradeScenarioPanel({
       setIsReviewOpen(false);
       setSubmissionError("");
       setQueueSubmissionError("");
-      setSizingMode("TARGET_WEIGHT");
+      setSizingMode("AMOUNT_BPS");
       setSharesInput("");
       setNotionalInput("");
       setBasisPointsInput("");
