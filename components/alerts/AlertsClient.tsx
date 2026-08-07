@@ -134,11 +134,10 @@ function formatQueueShares(value: unknown) {
   }
 
   return numericValue.toLocaleString("en-US", {
-    minimumFractionDigits: 0,
+    minimumFractionDigits: 1,
     maximumFractionDigits: 4,
   });
 }
-
 function getPtContextLabel(flag: any, metadata: any) {
   if (metadata?.context === "WATCHLIST" || flag.watchlistEntryId) {
     return metadata?.side === "SHORT" ? "Short Watchlist" : "Long Watchlist";
