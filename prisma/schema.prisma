@@ -27,17 +27,15 @@ model User {
 
   registrationApprovalsCreated RegistrationApproval[] @relation("RegistrationApprovalsApprovedBy")
   registrationApproval         RegistrationApproval?  @relation("RegistrationApprovalRegisteredUser")
-  tradeQueueItemsCreated TradeQueueItem[]
-
+  tradeQueueItemsCreated       TradeQueueItem[]
 }
 
-
 model ArcadeScore {
-  id        String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  game      String   @unique
+  game String @unique
 
-  bestScore Int
+  bestScore  Int
   holderName String
 
   createdAt DateTime @default(now())
@@ -111,7 +109,7 @@ model Security {
   watchlistEntries WatchlistEntry[]
   comments         Comment[]
   flags            Flag[]
-  tradeQueueItems TradeQueueItem[]
+  tradeQueueItems  TradeQueueItem[]
   marketData       MarketDataCache[]
 
   @@index([cik])
@@ -145,15 +143,15 @@ model Position {
 
   exitRationale String?
 
-  openedAt DateTime?
-  closedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  openedAt  DateTime?
+  closedAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  taxLots  TaxLot[]
-  trades   Trade[]
-  comments Comment[]
-  flags    Flag[]
+  taxLots         TaxLot[]
+  trades          Trade[]
+  comments        Comment[]
+  flags           Flag[]
   tradeQueueItems TradeQueueItem[]
 }
 
@@ -232,8 +230,8 @@ model Trade {
   reconciledAt          DateTime?
   reconciliationNotes   String?
   manualEnteredById     String?
-  isHidden              Boolean   @default(false)
-  executedFromQueue TradeQueueItem?
+  isHidden              Boolean         @default(false)
+  executedFromQueue     TradeQueueItem?
 
   createdAt DateTime @default(now())
 }
@@ -248,26 +246,25 @@ model TradeQueueItem {
   position   Position @relation(fields: [positionId], references: [id])
 
   createdById String
-  createdBy   User @relation(fields: [createdById], references: [id])
+  createdBy   User   @relation(fields: [createdById], references: [id])
 
   executedTradeId String? @unique
-  executedTrade   Trade? @relation(fields: [executedTradeId], references: [id])
+  executedTrade   Trade?  @relation(fields: [executedTradeId], references: [id])
 
   tradeType String
 
-  shares Float
+  shares         Float
   executionPrice Float
 
-  proposedTradeAt DateTime
-
-  comment String?
-  shortLocateNumber String?
-
-  status String @default("QUEUED")
+  proposedTradeAt       DateTime
+  comment               String?
+  shortLocateNumber     String?
+  shortAllocationShares Float?
+  status                String   @default("QUEUED")
 
   triggeredAt DateTime?
-  executedAt DateTime?
-  canceledAt DateTime?
+  executedAt  DateTime?
+  canceledAt  DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -318,8 +315,6 @@ model Comment {
 
   watchlistEntryId String?
   watchlistEntry   WatchlistEntry? @relation(fields: [watchlistEntryId], references: [id])
-
- 
 
   authorId String
   author   User   @relation(fields: [authorId], references: [id])
@@ -372,6 +367,7 @@ model Flag {
 
   @@index([tradeQueueItemId])
 }
+
 model MarketDataCache {
   id String @id @default(cuid())
 
@@ -500,4 +496,3 @@ model RegistrationApproval {
   @@index([status])
   @@index([approvedById])
 }
-
