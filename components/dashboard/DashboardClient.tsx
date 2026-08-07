@@ -6,6 +6,7 @@ import CurrentUserPill from "@/components/auth/CurrentUserPill";
 import AppSidebar from "@/components/common/AppSidebar";
 import ExpandedTradeHistoryModal from "@/components/dashboard/ExpandedTradeHistoryModal";
 import SummaryModal from "@/components/dashboard/SummaryModal";
+import Link from "next/link";
 import {
   canCreateComments,
   canCreateFlags,
@@ -56,14 +57,6 @@ function getCapitalIqUrl(ticker: string) {
 
 function openCapitalIq(ticker: string) {
   window.open(getCapitalIqUrl(ticker), "_blank");
-}
-
-function getLocalDateTimeInputValue(date = new Date()) {
-  const timezoneOffsetMilliseconds = date.getTimezoneOffset() * 60 * 1000;
-
-  return new Date(date.getTime() - timezoneOffsetMilliseconds)
-    .toISOString()
-    .slice(0, 16);
 }
 
 function formatNumber(value: number | null | undefined) {
@@ -301,7 +294,6 @@ function TickerDetailPanel({
   onMarketData,
   onFlag,
   onLots,
-  onAddTrade,
   onExpandHistory,
   canComment,
   canFlag,
@@ -315,7 +307,6 @@ function TickerDetailPanel({
   onMarketData: (position: any) => void;
   onFlag: (position: any) => void;
   onLots: (position: any) => void;
-  onAddTrade: (position: any) => void;
   onExpandHistory: (position: any) => void;
   canComment: boolean;
   canFlag: boolean;
@@ -497,12 +488,12 @@ function TickerDetailPanel({
             Lots
           </button>
 
-          <button
-            onClick={() => onAddTrade(position)}
+          <Link
+            href="/trade-calculator"
             className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
-            Add Trade
-          </button>
+            Trade Calculator
+          </Link>
 
           {canEditSectors ? (
             <button
@@ -966,264 +957,6 @@ function MarketDataModal({
   );
 }
 
-function AddTradeModal({
-  position,
-  onClose,
-  onSave,
-}: {
-  position: any | null;
-  onClose: () => void;
-  onSave: (payload: {
-    securityId: string;
-    positionId: string;
-    tradeType: string;
-    dateTraded: string;
-    shares: string;
-    avgPrice: string;
-    comment: string;
-    shortLocateNumber: string;
-  }) => Promise<void>;
-}) {
-  const [tradeType, setTradeType] = useState("BUY");
-  const [dateTraded, setDateTraded] = useState("");
-  const [shares, setShares] = useState("");
-  const [avgPrice, setAvgPrice] = useState("");
-  const [comment, setComment] = useState("");
-
-  const [shortLocateNumber, setShortLocateNumber] = useState("");
-
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [confirmingSave, setConfirmingSave] = useState(false);
-  useEffect(() => {
-    if (!confirmingSave) {
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      setConfirmingSave(false);
-    }, 5000);
-
-    return () => clearTimeout(timeout);
-  }, [confirmingSave]);
-
-  useEffect(() => {
-    if (!position) return;
-
-    setDateTraded(getLocalDateTimeInputValue());
-
-    setTradeType(position.side === "SHORT" ? "SHORT" : "BUY");
-
-    setShares("");
-    setAvgPrice("");
-    setComment("");
-    setShortLocateNumber("");
-    setError("");
-  }, [position]);
-
-  if (!position) return null;
-
-  const estimatedNotional =
-    Number.isFinite(Number(shares)) && Number.isFinite(Number(avgPrice))
-      ? Number(shares) * Number(avgPrice)
-      : null;
-
-  async function handleSave() {
-    setError("");
-
-    if (!shares.trim()) {
-      setError("Shares are required.");
-      return;
-    }
-
-    if (!avgPrice.trim()) {
-      setError("Average price is required.");
-      return;
-    }
-    if (tradeType === "SHORT" && !shortLocateNumber.trim()) {
-      setError("Short Locate Number is required for a short trade.");
-      return;
-    }
-
-    if (!dateTraded) {
-      setError("Trade date and time are required.");
-      return;
-    }
-
-    const parsedDateTraded = new Date(dateTraded);
-
-    if (Number.isNaN(parsedDateTraded.getTime())) {
-      setError("Enter a valid trade date and time.");
-      return;
-    }
-
-    const serializedDateTraded = parsedDateTraded.toISOString();
-
-    setIsSaving(true);
-
-    try {
-      await onSave({
-        securityId: position.securityId,
-        positionId: position.id,
-        tradeType,
-        dateTraded: serializedDateTraded,
-        shares,
-        avgPrice,
-        comment,
-        shortLocateNumber: shortLocateNumber.trim(),
-      });
-      onClose();
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : "Failed to add manual trade.",
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-950">
-              Add Manual Trade
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              {position.security.ticker} • {position.security.name}
-            </p>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="rounded-xl p-2 text-slate-500 hover:bg-slate-100"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="mt-5 space-y-3">
-          <select
-            value={tradeType}
-            onChange={(event) => setTradeType(event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
-          >
-            <option value="BUY">Buy</option>
-            <option value="SELL">Sell</option>
-            <option value="SHORT">Sell Short</option>
-            <option value="COVER">Cover Short</option>
-          </select>
-
-          <div>
-            <label className="text-sm font-medium text-slate-700">
-              Trade Date and Time
-            </label>
-
-            <input
-              type="datetime-local"
-              value={dateTraded}
-              onChange={(event) => setDateTraded(event.target.value)}
-              step="60"
-              required
-              className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
-            />
-
-            <p className="mt-1 text-xs text-slate-500">
-              Defaults to the current local date and time. An earlier trade
-              timestamp may be selected.
-            </p>
-          </div>
-
-          <input
-            value={shares}
-            onChange={(event) => setShares(event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
-            placeholder="Shares"
-          />
-
-          <input
-            value={avgPrice}
-            onChange={(event) => setAvgPrice(event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
-            placeholder="Average price"
-          />
-          {tradeType === "SHORT" ? (
-            <div>
-              <label className="text-sm font-medium text-slate-700">
-                Short Locate Number
-                <span className="ml-1 text-rose-600">*</span>
-              </label>
-
-              <input
-                value={shortLocateNumber}
-                onChange={(event) => setShortLocateNumber(event.target.value)}
-                required
-                autoComplete="off"
-                placeholder="Enter short locate number"
-                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
-              />
-
-              <p className="mt-1 text-xs text-slate-500">
-                Required for short trades and appended to the saved trade note.
-              </p>
-            </div>
-          ) : null}
-
-          <div className="rounded-2xl bg-slate-50 p-3 text-sm text-slate-600">
-            Estimated notional:{" "}
-            <span className="font-semibold text-slate-950">
-              {estimatedNotional != null ? formatMoney(estimatedNotional) : "—"}
-            </span>
-          </div>
-
-          <textarea
-            value={comment}
-            onChange={(event) => setComment(event.target.value)}
-            className="h-28 w-full resize-none rounded-2xl border border-slate-200 p-4 text-sm outline-none focus:ring-2 focus:ring-slate-900"
-            placeholder="Optional trade note..."
-          />
-        </div>
-
-        {error ? (
-          <p className="mt-3 text-sm font-medium text-rose-600">{error}</p>
-        ) : null}
-
-        <div className="mt-5 flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Cancel
-          </button>
-
-          <button
-            onClick={() => {
-              if (confirmingSave) {
-                handleSave();
-                return;
-              }
-
-              setConfirmingSave(true);
-            }}
-            disabled={isSaving}
-            className={`rounded-2xl px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60 ${
-              confirmingSave
-                ? "bg-amber-600 hover:bg-emerald-700"
-                : "bg-slate-900 hover:bg-slate-800"
-            }`}
-          >
-            {isSaving
-              ? "Saving..."
-              : confirmingSave
-                ? "Confirm Trade"
-                : "Add Trade"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 function CommentModal({
   position,
   onClose,
@@ -1822,9 +1555,7 @@ export default function DashboardClient({
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
   const [taxLotsPosition, setTaxLotsPosition] = useState<any | null>(null);
-  const [manualTradePosition, setManualTradePosition] = useState<any | null>(
-    null,
-  );
+
   const [expandedTradeHistoryPosition, setExpandedTradeHistoryPosition] =
     useState<any | null>(null);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
@@ -2002,55 +1733,6 @@ export default function DashboardClient({
 
   const { totalMarketValue, netMarketValue, totalUnrealizedPnl, dayPnl } =
     getDashboardStats(localPositions);
-
-  async function handleSaveManualTrade(payload: {
-    securityId: string;
-    positionId: string;
-    tradeType: string;
-    dateTraded: string;
-    shares: string;
-    avgPrice: string;
-    comment: string;
-    shortLocateNumber: string;
-  }) {
-    const response = await fetch("/api/trades/manual", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "Failed to add manual trade.");
-    }
-
-    const newTrade = data.trade;
-
-    setLocalPositions((currentPositions) =>
-      currentPositions.map((position) => {
-        if (position.id !== payload.positionId) return position;
-
-        return {
-          ...position,
-          trades: [newTrade, ...(position.trades || [])],
-        };
-      }),
-    );
-
-    setSelectedPosition((currentPosition: any | null) => {
-      if (!currentPosition || currentPosition.id !== payload.positionId) {
-        return currentPosition;
-      }
-
-      return {
-        ...currentPosition,
-        trades: [newTrade, ...(currentPosition.trades || [])],
-      };
-    });
-  }
 
   async function handleSaveComment(payload: {
     securityId: string;
@@ -2468,19 +2150,12 @@ export default function DashboardClient({
               onMarketData={setMarketDataPosition}
               onFlag={setFlagPosition}
               onLots={setTaxLotsPosition}
-              onAddTrade={setManualTradePosition}
               onExpandHistory={setExpandedTradeHistoryPosition}
               canComment={userCanCreateComments}
               canFlag={userCanCreateFlags}
               canEditSectors={userCanEditSectors}
               availableSectors={availableSectors}
               onSector={setSectorPosition}
-            />
-
-            <AddTradeModal
-              position={manualTradePosition}
-              onClose={() => setManualTradePosition(null)}
-              onSave={handleSaveManualTrade}
             />
 
             <MarketDataModal
