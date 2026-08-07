@@ -325,6 +325,13 @@ export async function keepManualTradeForFlag(params: {
   }
 
   const metadata = parseMetadata(flag.metadataJson);
+
+  if (metadata?.differences?.reconciliationKind === "PARTIAL_COMPLETION") {
+    throw new TradeReconciliationStateError(
+      "A partial Wells completion cannot be resolved by keeping the full Manual Trade. Accept Wells or add the remaining shares to the Trade Queue.",
+    );
+  }
+
   const manualTradeId = metadata?.manualTradeId;
   const wellsTradeId = metadata?.wellsTradeId;
 

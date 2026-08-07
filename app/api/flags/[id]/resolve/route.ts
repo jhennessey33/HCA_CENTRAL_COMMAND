@@ -79,6 +79,16 @@ export async function POST(_request: Request, context: RouteContext) {
       return NextResponse.json({ error: "Flag not found." }, { status: 404 });
     }
 
+    if (existingFlag.flagType === "Trade Reconciliation Review") {
+      return NextResponse.json(
+        {
+          error:
+            "Trade reconciliation alerts must be resolved through a reconciliation decision.",
+        },
+        { status: 409 },
+      );
+    }
+
     if (existingFlag.status === "RESOLVED") {
       return NextResponse.json(
         { error: "Flag is already resolved." },
@@ -116,7 +126,9 @@ export async function POST(_request: Request, context: RouteContext) {
         if (!currentFlag) {
           throw new Error("FLAG_NOT_FOUND");
         }
-
+        if (currentFlag.flagType === "Trade Reconciliation Review") {
+          throw new Error("RECONCILIATION_DECISION_REQUIRED");
+        }
         if (currentFlag.status !== "OPEN") {
           throw new Error("FLAG_NOT_OPEN");
         }
@@ -177,7 +189,18 @@ export async function POST(_request: Request, context: RouteContext) {
     if (error instanceof Error && error.message === "FLAG_NOT_FOUND") {
       return NextResponse.json({ error: "Flag not found." }, { status: 404 });
     }
-
+    if (
+      error instanceof Error &&
+      error.message === "RECONCILIATION_DECISION_REQUIRED"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Trade reconciliation alerts must be resolved through a reconciliation decision.",
+        },
+        { status: 409 },
+      );
+    }
     if (error instanceof Error && error.message === "FLAG_NOT_OPEN") {
       return NextResponse.json(
         {

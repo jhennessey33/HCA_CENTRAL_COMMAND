@@ -50,6 +50,46 @@ function parseFlagMetadata(flag: any) {
   }
 }
 
+function getLocalDateTimeInputValue(value: string | Date) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const timezoneOffsetMilliseconds = date.getTimezoneOffset() * 60 * 1000;
+
+  return new Date(date.getTime() - timezoneOffsetMilliseconds)
+    .toISOString()
+    .slice(0, 16);
+}
+
+function serializeLocalDateTime(value: string) {
+  if (!value) {
+    return null;
+  }
+
+  const parsedDate = new Date(value);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return null;
+  }
+
+  return parsedDate.toISOString();
+}
+
+function formatReconciliationShares(value: unknown) {
+  const parsedValue = Number(value);
+
+  if (!Number.isFinite(parsedValue)) {
+    return "—";
+  }
+
+  return Math.abs(parsedValue).toLocaleString("en-US", {
+    maximumFractionDigits: 0,
+  });
+}
+
 function formatDateTime(value: string | Date | null | undefined) {
   if (!value) return "—";
 
@@ -257,51 +297,394 @@ function AlertCard({
   );
 }
 
+function QueueReconciliationRemainingModal({
+  flag,
+  onClose,
+  onQueued,
+}: {
+  flag: any;
+  onClose: () => void;
+  onQueued: (result: { flag: any; queueItem: any }) => void;
+}) {
+  const metadata = parseFlagMetadata(flag);
+  const differences = metadata?.differences || {};
+
+  const tradeType = String(
+    differences.proposedQueueTradeType || metadata?.tradeType || "",
+  )
+    .trim()
+    .toUpperCase();
+
+  const remainingShares = Number(
+    differences.proposedQueueShares ??
+      differences.remainingAbsoluteShares ??
+      Math.abs(Number(differences.remainingShares)),
+  );
+
+  const defaultExecutionPrice = Number(
+    differences.proposedQueueExecutionPrice ?? differences.manualAvgPrice,
+  );
+
+  const defaultProposedTradeAt =
+    differences.proposedQueueTradeAt || new Date().toISOString();
+
+  const [executionPriceInput, setExecutionPriceInput] = useState(
+    Number.isFinite(defaultExecutionPrice) ? String(defaultExecutionPrice) : "",
+  );
+
+  const [proposedTradeAtInput, setProposedTradeAtInput] = useState(
+    getLocalDateTimeInputValue(defaultProposedTradeAt),
+  );
+
+  const [commentInput, setCommentInput] = useState(
+    String(differences.originalManualComment || ""),
+  );
+
+  const [shortLocateNumberInput, setShortLocateNumberInput] = useState("");
+
+  const [shortAllocationSharesInput, setShortAllocationSharesInput] = useState(
+    tradeType === "SHORT" && Number.isFinite(remainingShares)
+      ? String(remainingShares)
+      : "",
+  );
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [submissionError, setSubmissionError] = useState("");
+
+  const executionPrice = Number(executionPriceInput);
+
+  const shortAllocationShares = Number(shortAllocationSharesInput);
+
+  const isShort = tradeType === "SHORT";
+
+  const shortAllocationIsInvalid =
+    isShort &&
+    (!shortAllocationSharesInput.trim() ||
+      !Number.isFinite(shortAllocationShares) ||
+      shortAllocationShares <= 0 ||
+      !Number.isInteger(shortAllocationShares) ||
+      (Number.isFinite(remainingShares) &&
+        remainingShares > shortAllocationShares));
+
+  const canSubmit =
+    Number.isFinite(remainingShares) &&
+    remainingShares > 0 &&
+    Number.isInteger(remainingShares) &&
+    Number.isFinite(executionPrice) &&
+    executionPrice > 0 &&
+    Boolean(proposedTradeAtInput) &&
+    (!isShort ||
+      (Boolean(shortLocateNumberInput.trim()) && !shortAllocationIsInvalid));
+
+  async function handleSubmit() {
+    setSubmissionError("");
+
+    if (!Number.isFinite(executionPrice) || executionPrice <= 0) {
+      setSubmissionError("Execution price must be greater than zero.");
+      return;
+    }
+
+    const proposedTradeAt = serializeLocalDateTime(proposedTradeAtInput);
+
+    if (!proposedTradeAt) {
+      setSubmissionError("Proposed Trade date and time must be valid.");
+      return;
+    }
+
+    if (isShort && !shortLocateNumberInput.trim()) {
+      setSubmissionError("Short Locate Number is required.");
+      return;
+    }
+
+    if (isShort && shortAllocationIsInvalid) {
+      setSubmissionError(
+        "Short Allocation Shares must be a positive whole number covering all remaining SHORT shares.",
+      );
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      const response = await fetch(
+        `/api/trade-reconciliation/${flag.id}/queue-remaining`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            executionPrice,
+            proposedTradeAt,
+            comment: commentInput,
+            shortLocateNumber: isShort ? shortLocateNumberInput : null,
+            shortAllocationShares: isShort ? shortAllocationShares : null,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            "Failed to add the remaining shares to the Trade Queue.",
+        );
+      }
+
+      if (!data.flag || !data.queueItem) {
+        throw new Error(
+          "The reconciliation response did not include the resolved Flag and Trade Queue item.",
+        );
+      }
+
+      onQueued({
+        flag: data.flag,
+        queueItem: data.queueItem,
+      });
+    } catch (error) {
+      setSubmissionError(
+        error instanceof Error
+          ? error.message
+          : "Failed to add the remaining shares to the Trade Queue.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
+      <div className="max-h-[92vh] w-full max-w-2xl overflow-auto rounded-3xl border border-slate-200 bg-white shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-6">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-950">
+              Add Remaining Shares to Queue
+            </h2>
+
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              Accept the Wells partial fill and preserve the unfilled difference
+              in the Trade Queue.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            aria-label="Close queue reconciliation modal"
+            className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="space-y-5 p-6">
+          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+              Reconciliation Decision
+            </p>
+
+            <p className="mt-2 text-sm leading-6 text-amber-900">
+              Wells will become the accepted historical Trade. The original
+              Manual Trade will be superseded and hidden. Only the remaining
+              shares will be added to the Trade Queue.
+            </p>
+          </section>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Action
+              </p>
+
+              <p className="mt-2 font-semibold text-slate-950">
+                {tradeType || "—"}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Remaining Shares
+              </p>
+
+              <p className="mt-2 font-semibold tabular-nums text-slate-950">
+                {formatReconciliationShares(remainingShares)}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-slate-700">
+              Execution Threshold
+            </label>
+
+            <div className="relative mt-2">
+              <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm text-slate-400">
+                $
+              </span>
+
+              <input
+                value={executionPriceInput}
+                onChange={(event) => setExecutionPriceInput(event.target.value)}
+                disabled={isSubmitting}
+                inputMode="decimal"
+                placeholder="0.00"
+                className="w-full rounded-2xl border border-slate-200 py-3 pl-8 pr-4 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
+              />
+            </div>
+
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              The queue monitor will use this price as its action-aware trigger
+              threshold.
+            </p>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-slate-700">
+              Proposed Trade Date and Time
+            </label>
+
+            <input
+              type="datetime-local"
+              value={proposedTradeAtInput}
+              onChange={(event) => setProposedTradeAtInput(event.target.value)}
+              disabled={isSubmitting}
+              step="60"
+              className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
+            />
+          </div>
+
+          {isShort ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Short Locate Number
+                  <span className="ml-1 text-rose-600">*</span>
+                </label>
+
+                <input
+                  value={shortLocateNumberInput}
+                  onChange={(event) =>
+                    setShortLocateNumberInput(event.target.value)
+                  }
+                  disabled={isSubmitting}
+                  autoComplete="off"
+                  placeholder="Enter locate number"
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Short Allocation Shares
+                  <span className="ml-1 text-rose-600">*</span>
+                </label>
+
+                <input
+                  value={shortAllocationSharesInput}
+                  onChange={(event) =>
+                    setShortAllocationSharesInput(event.target.value)
+                  }
+                  disabled={isSubmitting}
+                  inputMode="numeric"
+                  min="1"
+                  step="1"
+                  placeholder="Enter allocated shares"
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
+                />
+              </div>
+
+              {Number.isFinite(shortAllocationShares) &&
+              Number.isFinite(remainingShares) &&
+              remainingShares > shortAllocationShares ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium leading-6 text-amber-800 md:col-span-2">
+                  Remaining SHORT shares of{" "}
+                  {formatReconciliationShares(remainingShares)} exceed the
+                  allocated {formatReconciliationShares(shortAllocationShares)}{" "}
+                  shares.
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div>
+            <label className="text-sm font-medium text-slate-700">
+              Queue Note
+            </label>
+
+            <textarea
+              value={commentInput}
+              onChange={(event) => setCommentInput(event.target.value)}
+              disabled={isSubmitting}
+              placeholder="Optional rationale or queue note..."
+              className="mt-2 h-28 w-full resize-none rounded-2xl border border-slate-200 p-4 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
+            />
+          </div>
+
+          {submissionError ? (
+            <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700">
+              {submissionError}
+            </section>
+          ) : null}
+
+          <section className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm leading-6 text-violet-800">
+            This operation does not create a Trade, place a broker order, or
+            modify the Wells-authoritative Position or tax lots. A Trade is
+            created only when the queue item is explicitly executed.
+          </section>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-slate-200 p-4">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isSubmitting || !canSubmit}
+            className="rounded-2xl bg-violet-700 px-4 py-2 text-sm font-medium text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            {isSubmitting
+              ? "Adding to Queue..."
+              : "Accept Wells & Add to Queue"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TradeReconciliationAlertCard({
   flag,
-  onResolve,
   onAcceptWells,
   onKeepManual,
+  onQueueRemaining,
   canResolve,
 }: {
   flag: any;
-  onResolve: (flagId: string) => Promise<void>;
   onAcceptWells: (flagId: string) => Promise<void>;
   onKeepManual: (flagId: string) => Promise<void>;
+  onQueueRemaining: (flag: any) => void;
   canResolve: boolean;
 }) {
   const metadata = parseFlagMetadata(flag);
 
   const differences = metadata?.differences || {};
 
+  const isPartialCompletion =
+    differences.reconciliationKind === "PARTIAL_COMPLETION";
+
   const isResolved = flag.status === "RESOLVED";
 
-  const [confirmingResolve, setConfirmingResolve] = useState(false);
-
-  const [isResolving, setIsResolving] = useState(false);
-
-  useEffect(() => {
-    if (!confirmingResolve) {
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      setConfirmingResolve(false);
-    }, 5000);
-
-    return () => clearTimeout(timeout);
-  }, [confirmingResolve]);
-
-  async function handleConfirmResolve() {
-    try {
-      setIsResolving(true);
-
-      await onResolve(flag.id);
-    } finally {
-      setIsResolving(false);
-      setConfirmingResolve(false);
-    }
-  }
   return (
     <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
       <div className="flex items-start justify-between gap-4">
@@ -348,52 +731,28 @@ function TradeReconciliationAlertCard({
         ) : canResolve ? (
           <div className="flex shrink-0 flex-col gap-2">
             <button
+              type="button"
               onClick={() => onAcceptWells(flag.id)}
               className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
             >
               Accept Wells
             </button>
 
-            <button
-              onClick={() => onKeepManual(flag.id)}
-              className="rounded-2xl border border-amber-200 bg-white px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100"
-            >
-              Keep Manual
-            </button>
-
-            {isResolving ? (
+            {isPartialCompletion ? (
               <button
                 type="button"
-                disabled
-                className="cursor-not-allowed rounded-2xl bg-slate-400 px-4 py-2 text-sm font-medium text-white"
+                onClick={() => onQueueRemaining(flag)}
+                className="rounded-2xl bg-violet-700 px-4 py-2 text-sm font-medium text-white hover:bg-violet-800"
               >
-                Resolving...
+                Add Remaining to Queue
               </button>
-            ) : confirmingResolve ? (
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleConfirmResolve}
-                  className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700"
-                >
-                  Confirm Resolve Only
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setConfirmingResolve(false)}
-                  className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-              </div>
             ) : (
               <button
                 type="button"
-                onClick={() => setConfirmingResolve(true)}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                onClick={() => onKeepManual(flag.id)}
+                className="rounded-2xl border border-amber-200 bg-white px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100"
               >
-                Resolve Only
+                Keep Manual
               </button>
             )}
           </div>
@@ -406,7 +765,39 @@ function TradeReconciliationAlertCard({
           </button>
         )}
       </div>
+      {isPartialCompletion ? (
+        <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-amber-100">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Original Request
+            </p>
 
+            <p className="mt-2 text-lg font-semibold tabular-nums text-slate-950">
+              {formatReconciliationShares(differences.originalManualShares)}
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-amber-100">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Wells Completed
+            </p>
+
+            <p className="mt-2 text-lg font-semibold tabular-nums text-emerald-700">
+              {formatReconciliationShares(differences.wellsCompletedShares)}
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-amber-100">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Remaining
+            </p>
+
+            <p className="mt-2 text-lg font-semibold tabular-nums text-violet-700">
+              {formatReconciliationShares(differences.remainingShares)}
+            </p>
+          </div>
+        </div>
+      ) : null}
       <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
         <div className="rounded-2xl bg-white p-4 ring-1 ring-amber-100">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -431,7 +822,9 @@ function TradeReconciliationAlertCard({
             <div className="flex justify-between gap-4">
               <span>Shares</span>
               <span className="font-semibold text-slate-950">
-                {differences.manualShares ?? "—"}
+                {formatReconciliationShares(
+                  differences.originalManualShares ?? differences.manualShares,
+                )}
               </span>
             </div>
 
@@ -460,7 +853,9 @@ function TradeReconciliationAlertCard({
             <div className="flex justify-between gap-4">
               <span>Shares</span>
               <span className="font-semibold text-slate-950">
-                {differences.wellsShares ?? "—"}
+                {formatReconciliationShares(
+                  differences.wellsCompletedShares ?? differences.wellsShares,
+                )}
               </span>
             </div>
 
@@ -1644,6 +2039,9 @@ export default function AlertsClient({
   const [flags, setFlags] = useState<any[]>(initialFlags);
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [isCreateFlagOpen, setIsCreateFlagOpen] = useState(false);
+  const [queueRemainingFlag, setQueueRemainingFlag] = useState<any | null>(
+    null,
+  );
   useEffect(() => {
     async function loadCurrentUser() {
       const response = await fetch("/api/auth/me");
@@ -1808,12 +2206,6 @@ export default function AlertsClient({
       !isTradeQueueExecutionAlert(flag),
   );
 
-  const datedFlagCount =
-    overdueFlags.length +
-    todayFlags.length +
-    upcomingFlags.length +
-    laterFlags.length;
-
   const dueSoonCount =
     overdueFlags.length + todayFlags.length + upcomingFlags.length;
 
@@ -1839,7 +2231,18 @@ export default function AlertsClient({
       ),
     );
   }
+  function handleQueueRemainingCompleted(result: {
+    flag: any;
+    queueItem: any;
+  }) {
+    setFlags((currentFlags) =>
+      currentFlags.map((flag) =>
+        flag.id === result.flag.id ? result.flag : flag,
+      ),
+    );
 
+    setQueueRemainingFlag(null);
+  }
   async function handleKeepManual(flagId: string) {
     const response = await fetch(
       `/api/trade-reconciliation/${flagId}/keep-manual`,
@@ -1925,9 +2328,9 @@ export default function AlertsClient({
         <TradeReconciliationAlertCard
           key={flag.id}
           flag={flag}
-          onResolve={handleResolveFlag}
           onAcceptWells={handleAcceptWells}
           onKeepManual={handleKeepManual}
+          onQueueRemaining={setQueueRemainingFlag}
           canResolve={userCanResolveFlags}
         />
       );
@@ -2154,6 +2557,13 @@ export default function AlertsClient({
         onSave={handleCreateFlag}
         securities={securities}
       />
+      {queueRemainingFlag ? (
+        <QueueReconciliationRemainingModal
+          flag={queueRemainingFlag}
+          onClose={() => setQueueRemainingFlag(null)}
+          onQueued={handleQueueRemainingCompleted}
+        />
+      ) : null}
     </main>
   );
 }
