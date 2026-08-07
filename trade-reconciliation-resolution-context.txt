@@ -1,0 +1,868 @@
+﻿HCA RECONCILIATION RESOLUTION CONTEXT
+Generated: 2026-08-07 11:16:06
+Git commit: 523c1d6ef0a5161f0034ebe4cc28c58cc044aec1
+
+================================================================================
+FILE: lib\reconciliation\trade-reconciliation-constants.ts
+================================================================================
+export const TRADE_SOURCES = {
+  MANUAL: "MANUAL",
+  SYSTEM: "SYSTEM",
+  WELLS_FARGO: "WELLS_FARGO",
+} as const;
+
+export const RECONCILIATION_STATUS = {
+  MANUAL_PENDING: "MANUAL_PENDING",
+  MATCHED: "MATCHED",
+  REVIEW_REQUIRED: "REVIEW_REQUIRED",
+  SUPERSEDED_BY_WELLS: "SUPERSEDED_BY_WELLS",
+  SUPERSEDED_BY_MANUAL: "SUPERSEDED_BY_MANUAL",
+  UNMATCHED: "UNMATCHED",
+} as const;
+
+export const RECONCILIATION_FLAG_TYPE = "Trade Reconciliation Review";
+
+
+================================================================================
+FILE: lib\reconciliation\trade-reconciliation-service.ts
+================================================================================
+import { prisma } from "@/lib/prisma";
+import {
+  RECONCILIATION_FLAG_TYPE,
+  RECONCILIATION_STATUS,
+  TRADE_SOURCES,
+} from "./trade-reconciliation-constants";
+
+function parseMetadata(metadataJson?: string | null) {
+  if (!metadataJson) return null;
+
+  try {
+    return JSON.parse(metadataJson);
+  } catch {
+    return null;
+  }
+}
+
+export async function getSystemFlagUserId() {
+  const adminUser = await prisma.user.findFirst({
+    where: { role: "ADMIN" },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (adminUser) return adminUser.id;
+
+  const complianceUser = await prisma.user.findFirst({
+    where: { role: "COMPLIANCE" },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (complianceUser) return complianceUser.id;
+
+  const anyUser = await prisma.user.findFirst({
+    orderBy: { createdAt: "asc" },
+  });
+
+  return anyUser?.id ?? null;
+}
+
+export async function createTradeReconciliationFlag(params: {
+  securityId: string;
+  positionId?: string | null;
+  createdById: string;
+  manualTradeId: string;
+  wellsTradeId: string;
+  wellsTransactionId?: string | null;
+  ticker?: string | null;
+  tradeType?: string | null;
+  reason: string;
+  differences: Record<string, unknown>;
+}) {
+  const existingReviewFlag = await prisma.flag.findFirst({
+    where: {
+      securityId: params.securityId,
+      positionId: params.positionId ?? undefined,
+      status: "OPEN",
+      flagType: RECONCILIATION_FLAG_TYPE,
+      metadataJson: {
+        contains: params.manualTradeId,
+      },
+    },
+  });
+
+  if (existingReviewFlag) return existingReviewFlag;
+
+  return await prisma.flag.create({
+    data: {
+      securityId: params.securityId,
+      positionId: params.positionId ?? undefined,
+      flagType: RECONCILIATION_FLAG_TYPE,
+      priority: "HIGH",
+      status: "OPEN",
+      description:
+        "Manual trade and Wells transaction appear similar but differ. Review required.",
+      createdById: params.createdById,
+      metadataJson: JSON.stringify({
+        manualTradeId: params.manualTradeId,
+        wellsTradeId: params.wellsTradeId,
+        wellsTransactionId: params.wellsTransactionId,
+        ticker: params.ticker,
+        tradeType: params.tradeType,
+        reason: params.reason,
+        differences: params.differences,
+      }),
+    },
+  });
+}
+
+export async function acceptWellsTradeForFlag(params: {
+  flagId: string;
+  userId: string;
+}) {
+  const flag = await prisma.flag.findUnique({
+    where: { id: params.flagId },
+  });
+
+  if (!flag) {
+    throw new Error("Flag not found.");
+  }
+
+  if (flag.flagType !== RECONCILIATION_FLAG_TYPE) {
+    throw new Error("Flag is not a trade reconciliation review.");
+  }
+
+  const metadata = parseMetadata(flag.metadataJson);
+  const manualTradeId = metadata?.manualTradeId;
+  const wellsTradeId = metadata?.wellsTradeId;
+
+  if (!manualTradeId || !wellsTradeId) {
+    throw new Error("Trade reconciliation metadata is incomplete.");
+  }
+
+  const originalManualTrade = await prisma.trade.findUnique({
+    where: {
+      id: manualTradeId,
+    },
+    select: {
+      id: true,
+      comment: true,
+    },
+  });
+
+  if (!originalManualTrade) {
+    throw new Error("Manual trade not found.");
+  }
+
+  const now = new Date();
+
+  const [manualTrade, wellsTrade, resolvedFlag] = await prisma.$transaction([
+    prisma.trade.update({
+      where: { id: manualTradeId },
+      data: {
+        reconciliationStatus: RECONCILIATION_STATUS.SUPERSEDED_BY_WELLS,
+        matchedTradeId: wellsTradeId,
+        reconciledAt: now,
+        isHidden: true,
+        reconciliationNotes:
+          "Trader accepted Wells trade during reconciliation review.",
+      },
+    }),
+
+    prisma.trade.update({
+      where: {
+        id: wellsTradeId,
+      },
+      data: {
+        comment: originalManualTrade.comment,
+        reconciliationStatus: RECONCILIATION_STATUS.MATCHED,
+        matchedTradeId: manualTradeId,
+        reconciledAt: now,
+        isHidden: false,
+        reconciliationNotes:
+          "Trader accepted Wells trade during reconciliation review.",
+      },
+    }),
+
+    prisma.flag.update({
+      where: { id: params.flagId },
+      data: {
+        status: "RESOLVED",
+        resolvedById: params.userId,
+        resolvedAt: now,
+      },
+      include: {
+        security: true,
+        position: true,
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+        resolvedBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  await prisma.auditLog.create({
+    data: {
+      actorId: params.userId,
+      action: "TRADE_RECONCILIATION_ACCEPT_WELLS",
+      entityType: "FLAG",
+      entityId: params.flagId,
+      previousValueJson: JSON.stringify({
+        flagStatus: flag.status,
+        manualTradeId,
+        wellsTradeId,
+        manualTradeComment: originalManualTrade.comment,
+      }),
+      newValueJson: JSON.stringify({
+        flagStatus: resolvedFlag.status,
+        manualTrade: {
+          id: manualTrade.id,
+          reconciliationStatus: manualTrade.reconciliationStatus,
+          isHidden: manualTrade.isHidden,
+        },
+        wellsTrade: {
+          id: wellsTrade.id,
+          reconciliationStatus: wellsTrade.reconciliationStatus,
+          isHidden: wellsTrade.isHidden,
+        },
+      }),
+    },
+  });
+
+  return {
+    flag: resolvedFlag,
+    manualTrade,
+    wellsTrade,
+  };
+}
+
+export async function keepManualTradeForFlag(params: {
+  flagId: string;
+  userId: string;
+}) {
+  const flag = await prisma.flag.findUnique({
+    where: { id: params.flagId },
+  });
+
+  if (!flag) {
+    throw new Error("Flag not found.");
+  }
+
+  if (flag.flagType !== RECONCILIATION_FLAG_TYPE) {
+    throw new Error("Flag is not a trade reconciliation review.");
+  }
+
+  const metadata = parseMetadata(flag.metadataJson);
+  const manualTradeId = metadata?.manualTradeId;
+  const wellsTradeId = metadata?.wellsTradeId;
+
+  if (!manualTradeId || !wellsTradeId) {
+    throw new Error("Trade reconciliation metadata is incomplete.");
+  }
+
+  const now = new Date();
+
+  const [manualTrade, wellsTrade, resolvedFlag] = await prisma.$transaction([
+    prisma.trade.update({
+      where: { id: manualTradeId },
+      data: {
+        reconciliationStatus: RECONCILIATION_STATUS.MATCHED,
+        matchedTradeId: wellsTradeId,
+        reconciledAt: now,
+        isHidden: false,
+        reconciliationNotes:
+          "Trader kept manual trade during reconciliation review.",
+      },
+    }),
+
+    prisma.trade.update({
+      where: { id: wellsTradeId },
+      data: {
+        reconciliationStatus: RECONCILIATION_STATUS.SUPERSEDED_BY_MANUAL,
+        matchedTradeId: manualTradeId,
+        reconciledAt: now,
+        isHidden: true,
+        reconciliationNotes:
+          "Trader kept manual trade during reconciliation review.",
+      },
+    }),
+
+    prisma.flag.update({
+      where: { id: params.flagId },
+      data: {
+        status: "RESOLVED",
+        resolvedById: params.userId,
+        resolvedAt: now,
+      },
+      include: {
+        security: true,
+        position: true,
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+        resolvedBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  await prisma.auditLog.create({
+    data: {
+      actorId: params.userId,
+      action: "TRADE_RECONCILIATION_KEEP_MANUAL",
+      entityType: "FLAG",
+      entityId: params.flagId,
+      previousValueJson: JSON.stringify({
+        flagStatus: flag.status,
+        manualTradeId,
+        wellsTradeId,
+      }),
+      newValueJson: JSON.stringify({
+        flagStatus: resolvedFlag.status,
+        manualTrade: {
+          id: manualTrade.id,
+          reconciliationStatus: manualTrade.reconciliationStatus,
+          isHidden: manualTrade.isHidden,
+        },
+        wellsTrade: {
+          id: wellsTrade.id,
+          reconciliationStatus: wellsTrade.reconciliationStatus,
+          isHidden: wellsTrade.isHidden,
+          comment: wellsTrade.comment,
+        },
+      }),
+    },
+  });
+
+  return {
+    flag: resolvedFlag,
+    manualTrade,
+    wellsTrade,
+  };
+}
+
+
+================================================================================
+FILE: app\api\trade-reconciliation\[flagId]\accept-wells\route.ts
+================================================================================
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+import { canCreateFlags } from "@/lib/permissions";
+import { acceptWellsTradeForFlag } from "@/lib/reconciliation/trade-reconciliation-service";
+
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ flagId: string }> },
+) {
+  try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Authentication required." },
+        { status: 401 },
+      );
+    }
+
+    if (!canCreateFlags(user.role)) {
+      return NextResponse.json(
+        { error: "You do not have permission to resolve trade reviews." },
+        { status: 403 },
+      );
+    }
+
+    const { flagId } = await context.params;
+
+    const result = await acceptWellsTradeForFlag({
+      flagId,
+      userId: user.id,
+    });
+
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("accept-wells failed", error);
+
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to accept Wells trade.",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+
+================================================================================
+FILE: app\api\trade-reconciliation\[flagId]\keep-manual\route.ts
+================================================================================
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+import { canCreateFlags } from "@/lib/permissions";
+import { keepManualTradeForFlag } from "@/lib/reconciliation/trade-reconciliation-service";
+
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ flagId: string }> },
+) {
+  try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Authentication required." },
+        { status: 401 },
+      );
+    }
+
+    if (!canCreateFlags(user.role)) {
+      return NextResponse.json(
+        { error: "You do not have permission to resolve trade reviews." },
+        { status: 403 },
+      );
+    }
+
+    const { flagId } = await context.params;
+
+    const result = await keepManualTradeForFlag({
+      flagId,
+      userId: user.id,
+    });
+
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("keep-manual failed", error);
+
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to keep manual trade.",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+
+================================================================================
+FILE: app\api\trade-reconciliation\[id]\accept-wells\route.ts
+================================================================================
+[FILE NOT FOUND]
+
+================================================================================
+FILE: app\api\trade-reconciliation\[id]\keep-manual\route.ts
+================================================================================
+[FILE NOT FOUND]
+
+================================================================================
+FILE: app\alerts\page.tsx
+================================================================================
+import { prisma } from "@/lib/prisma";
+import AlertsClient from "@/components/alerts/AlertsClient";
+
+export const dynamic = "force-dynamic";
+
+export default async function AlertsPage() {
+  const [flags, securities] = await Promise.all([
+    prisma.flag.findMany({
+      where: {
+        status: "OPEN",
+      },
+      include: {
+        security: true,
+        position: true,
+        watchlistEntry: true,
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+        resolvedBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
+      orderBy: [
+        {
+          reminderAt: "asc",
+        },
+        {
+          createdAt: "desc",
+        },
+      ],
+    }),
+
+    prisma.security.findMany({
+      select: {
+        id: true,
+        ticker: true,
+        name: true,
+        sector: true,
+      },
+      orderBy: {
+        ticker: "asc",
+      },
+    }),
+  ]);
+
+  const serializedFlags = JSON.parse(JSON.stringify(flags));
+
+  const serializedSecurities = JSON.parse(JSON.stringify(securities));
+
+  return (
+    <AlertsClient
+      initialFlags={serializedFlags}
+      securities={serializedSecurities}
+    />
+  );
+}
+
+
+================================================================================
+FILE: app\trades\page.tsx
+================================================================================
+import { prisma } from "@/lib/prisma";
+import TradesClient from "@/components/trades/TradesClient";
+
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const [wellsActivePositionCount, fundEquitySnapshots, activeTradeQueueItems] =
+    await Promise.all([
+      prisma.position.count({
+        where: {
+          status: "ACTIVE",
+          source: "WELLS_FARGO",
+        },
+      }),
+      prisma.fundEquitySnapshot.findMany({
+        orderBy: {
+          asOfDate: "desc",
+        },
+        select: {
+          id: true,
+          asOfDate: true,
+          netEquity: true,
+          source: true,
+        },
+      }),
+      prisma.tradeQueueItem.findMany({
+        where: {
+          status: {
+            in: ["QUEUED", "TRIGGERED"],
+          },
+        },
+        include: {
+          security: {
+            include: {
+              marketData: {
+                take: 1,
+                orderBy: {
+                  updatedAt: "desc",
+                },
+              },
+            },
+          },
+          position: {
+            select: {
+              id: true,
+              securityId: true,
+              side: true,
+              status: true,
+              shares: true,
+              marketValue: true,
+              source: true,
+              accountNumber: true,
+            },
+          },
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+        },
+        orderBy: [
+          {
+            status: "desc",
+          },
+          {
+            createdAt: "asc",
+          },
+        ],
+      }),
+    ]);
+
+  const positions = await prisma.position.findMany({
+    where: {
+      status: "ACTIVE",
+      ...(wellsActivePositionCount > 0
+        ? {
+            source: "WELLS_FARGO",
+          }
+        : {}),
+    },
+    include: {
+      security: {
+        include: {
+          marketData: {
+            take: 1,
+            orderBy: {
+              updatedAt: "desc",
+            },
+          },
+          comments: {
+            where: {
+              archivedAt: null,
+              OR: [
+                {
+                  watchlistEntryId: null,
+                },
+                {
+                  watchlistEntry: {
+                    archivedAt: null,
+                  },
+                },
+              ],
+            },
+            include: {
+              author: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  role: true,
+                },
+              },
+              position: {
+                select: {
+                  id: true,
+                  status: true,
+                },
+              },
+              watchlistEntry: {
+                select: {
+                  id: true,
+                  side: true,
+                  archivedAt: true,
+                },
+              },
+            },
+            orderBy: {
+              createdAt: "desc",
+            },
+          },
+        },
+      },
+      taxLots: {
+        orderBy: {
+          taxLotDate: "asc",
+        },
+      },
+      trades: {
+        where: {
+          isHidden: false,
+        },
+        orderBy: {
+          dateTraded: "desc",
+        },
+      },
+      comments: {
+        where: {
+          archivedAt: null,
+        },
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
+      flags: {
+        where: {
+          status: "OPEN",
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
+    },
+    orderBy: [
+      {
+        side: "asc",
+      },
+      {
+        marketValue: "desc",
+      },
+    ],
+  });
+
+  const serializedPositions = JSON.parse(JSON.stringify(positions));
+
+  const serializedFundEquitySnapshots = JSON.parse(
+    JSON.stringify(fundEquitySnapshots),
+  );
+
+  const serializedTradeQueueItems = JSON.parse(
+    JSON.stringify(activeTradeQueueItems),
+  );
+
+  return (
+    <TradesClient
+      positions={serializedPositions}
+      fundEquitySnapshots={serializedFundEquitySnapshots}
+      initialQueuedTrades={serializedTradeQueueItems}
+    />
+  );
+}
+
+
+================================================================================
+DISCOVERED TRADE RECONCILIATION ROUTES
+================================================================================
+
+FILE: app\api\trade-reconciliation\[flagId]\accept-wells\route.ts
+--------------------------------------------------------------------------------
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+import { canCreateFlags } from "@/lib/permissions";
+import { acceptWellsTradeForFlag } from "@/lib/reconciliation/trade-reconciliation-service";
+
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ flagId: string }> },
+) {
+  try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Authentication required." },
+        { status: 401 },
+      );
+    }
+
+    if (!canCreateFlags(user.role)) {
+      return NextResponse.json(
+        { error: "You do not have permission to resolve trade reviews." },
+        { status: 403 },
+      );
+    }
+
+    const { flagId } = await context.params;
+
+    const result = await acceptWellsTradeForFlag({
+      flagId,
+      userId: user.id,
+    });
+
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("accept-wells failed", error);
+
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to accept Wells trade.",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+
+FILE: app\api\trade-reconciliation\[flagId]\keep-manual\route.ts
+--------------------------------------------------------------------------------
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+import { canCreateFlags } from "@/lib/permissions";
+import { keepManualTradeForFlag } from "@/lib/reconciliation/trade-reconciliation-service";
+
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ flagId: string }> },
+) {
+  try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Authentication required." },
+        { status: 401 },
+      );
+    }
+
+    if (!canCreateFlags(user.role)) {
+      return NextResponse.json(
+        { error: "You do not have permission to resolve trade reviews." },
+        { status: 403 },
+      );
+    }
+
+    const { flagId } = await context.params;
+
+    const result = await keepManualTradeForFlag({
+      flagId,
+      userId: user.id,
+    });
+
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("keep-manual failed", error);
+
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to keep manual trade.",
+      },
+      { status: 500 },
+    );
+  }
+}
+

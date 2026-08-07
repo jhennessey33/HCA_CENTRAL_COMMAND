@@ -192,22 +192,38 @@ export async function POST(
           );
         }
 
+        const shortAllocationShares = Number(
+          queueItem.shortAllocationShares,
+        );
+
         if (
           queueItem.shortAllocationShares == null ||
-          !Number.isFinite(queueItem.shortAllocationShares) ||
-          queueItem.shortAllocationShares <= 0 ||
-          !Number.isInteger(queueItem.shortAllocationShares)
+          !Number.isFinite(shortAllocationShares) ||
+          shortAllocationShares <= 0 ||
+          !Number.isInteger(shortAllocationShares)
         ) {
           throw new QueueExecutionStateError(
             "This SHORT queue item does not include a valid Short Allocation Shares value. Edit the queue item before execution.",
           );
         }
 
-        if (queueItem.shares > queueItem.shortAllocationShares) {
+        const queuedShares = Number(queueItem.shares);
+
+        if (
+          !Number.isFinite(queuedShares) ||
+          queuedShares <= 0 ||
+          !Number.isInteger(queuedShares)
+        ) {
           throw new QueueExecutionStateError(
-            `Queued SHORT shares of ${queueItem.shares.toLocaleString(
+            "This SHORT queue item does not include a valid whole-share quantity. Edit the queue item before execution.",
+          );
+        }
+
+        if (queuedShares > shortAllocationShares) {
+          throw new QueueExecutionStateError(
+            `Queued SHORT shares of ${queuedShares.toLocaleString(
               "en-US",
-            )} exceed the allocated ${queueItem.shortAllocationShares.toLocaleString(
+            )} exceed the allocated ${shortAllocationShares.toLocaleString(
               "en-US",
             )} shares. Edit the queue item before execution.`,
           );
