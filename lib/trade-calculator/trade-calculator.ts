@@ -18,7 +18,9 @@ export type ManualTradeDraft = {
   dateTraded: string;
   comment: string;
   shortLocateNumber: string;
+  shortAllocationShares: number | null;
 };
+
 export type TradeCalculatorInput = {
   securityId: string;
   positionId: string | null;
@@ -45,6 +47,7 @@ export type TradeCalculatorInput = {
   dateTraded?: string | null;
   comment?: string | null;
   shortLocateNumber?: string | null;
+  shortAllocationShares?: number | null;
 };
 
 export type TradeCalculatorResult = {
@@ -299,8 +302,24 @@ export function calculateTradeScenario(
   const warnings: string[] = [];
   const shortLocateNumber = String(input.shortLocateNumber || "").trim();
 
+  const shortAllocationShares = toFiniteNumber(input.shortAllocationShares);
+
+  let shortAllocationIsValid = input.tradeAction !== "SHORT";
+
   if (input.tradeAction === "SHORT" && !shortLocateNumber) {
     errors.push("Short Locate Number is required for a short trade.");
+  }
+
+  if (input.tradeAction === "SHORT") {
+    if (shortAllocationShares == null || shortAllocationShares <= 0) {
+      errors.push(
+        "Short Allocation Shares are required and must be greater than zero.",
+      );
+    } else if (!Number.isInteger(shortAllocationShares)) {
+      errors.push("Short Allocation Shares must be a whole number.");
+    } else {
+      shortAllocationIsValid = true;
+    }
   }
 
   const wellsExposure = Math.abs(toFiniteNumber(input.wellsShares) ?? 0);
@@ -455,6 +474,24 @@ export function calculateTradeScenario(
         }
       }
     }
+  }
+
+  if (
+    input.tradeAction === "SHORT" &&
+    shortAllocationIsValid &&
+    proposedShares != null &&
+    shortAllocationShares != null &&
+    proposedShares > shortAllocationShares
+  ) {
+    shortAllocationIsValid = false;
+
+    warnings.push(
+      `Proposed SHORT shares of ${proposedShares.toLocaleString(
+        "en-US",
+      )} exceed the allocated ${shortAllocationShares.toLocaleString(
+        "en-US",
+      )} shares. Reduce the proposed trade or increase the Short Allocation Shares before submitting.`,
+    );
   }
 
   const actionMatchesScenario =
@@ -671,6 +708,7 @@ export function calculateTradeScenario(
 
   const canCreateDraft =
     isValid &&
+    shortAllocationIsValid &&
     hasActivePosition &&
     !crossesZero &&
     proposedShares != null &&
@@ -696,6 +734,8 @@ export function calculateTradeScenario(
           dateTraded: input.dateTraded,
           comment: String(input.comment || "").trim(),
           shortLocateNumber,
+          shortAllocationShares:
+            input.tradeAction === "SHORT" ? shortAllocationShares : null,
         }
       : null;
 

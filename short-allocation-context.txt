@@ -1,0 +1,5669 @@
+﻿
+================================================================================
+FILE: prisma\schema.prisma
+================================================================================
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  name         String?
+  passwordHash String
+  role         String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments            Comment[]
+  auditLogs           AuditLog[]
+  flagsCreated        Flag[]               @relation("FlagsCreated")
+  flagsResolved       Flag[]               @relation("FlagsResolved")
+  sessions            Session[]
+  fundEquitySnapshots FundEquitySnapshot[] @relation("FundEquitySnapshotsEnteredBy")
+
+  registrationApprovalsCreated RegistrationApproval[] @relation("RegistrationApprovalsApprovedBy")
+  registrationApproval         RegistrationApproval?  @relation("RegistrationApprovalRegisteredUser")
+  tradeQueueItemsCreated TradeQueueItem[]
+
+}
+
+
+model ArcadeScore {
+  id        String   @id @default(cuid())
+
+  game      String   @unique
+
+  bestScore Int
+  holderName String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FundEquitySnapshot {
+  id String @id @default(cuid())
+
+  asOfDate  DateTime @unique
+  netEquity Float
+
+  source String  @default("MANUAL")
+  note   String?
+
+  enteredById String
+  enteredBy   User   @relation("FundEquitySnapshotsEnteredBy", fields: [enteredById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enteredById])
+}
+
+model Session {
+  id    String @id @default(cuid())
+  token String @unique
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Meeting {
+  id String @id @default(cuid())
+
+  title String
+
+  meetingDate DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments Comment[]
+
+  @@index([meetingDate])
+}
+
+model Security {
+  id              String  @id @default(cuid())
+  ticker          String  @unique
+  name            String
+  sector          String?
+  industry        String?
+  exchange        String?
+  cik             String?
+  securityType    String?
+  wellsSecurityId String?
+  cusip           String?
+  isin            String?
+  sedol           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  taxLots          TaxLot[]
+  positions        Position[]
+  trades           Trade[]
+  watchlistEntries WatchlistEntry[]
+  comments         Comment[]
+  flags            Flag[]
+  tradeQueueItems TradeQueueItem[]
+  marketData       MarketDataCache[]
+
+  @@index([cik])
+}
+
+model Position {
+  id String @id @default(cuid())
+
+  securityId String
+  security   Security @relation(fields: [securityId], references: [id])
+
+  source           String?
+  accountNumber    String?
+  custodian        String?
+  costBasis        Float?
+  unrealizedPnl    Float?
+  sourceReportDate DateTime?
+  sourceFileName   String?
+  sourceRowHash    String?
+  ingestionRunId   String?
+
+  side   String // LONG, SHORT
+  status String // ACTIVE, CLOSED
+
+  shares         Float?
+  wap            Float?
+  marketValue    Float?
+  portfolioPct   Float?
+  totalPctChange Float?
+  dayPctChange   Float?
+
+  exitRationale String?
+
+  openedAt DateTime?
+  closedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  taxLots  TaxLot[]
+  trades   Trade[]
+  comments Comment[]
+  flags    Flag[]
+  tradeQueueItems TradeQueueItem[]
+}
+
+model TaxLot {
+  id String @id @default(cuid())
+
+  securityId String
+  security   Security @relation(fields: [securityId], references: [id])
+
+  positionId String?
+  position   Position? @relation(fields: [positionId], references: [id])
+
+  accountNumber String?
+  taxLotId      String?
+  taxLotDate    DateTime?
+
+  quantity       Float?
+  unitCost       Float?
+  marketPrice    Float?
+  costBasis      Float?
+  marketValue    Float?
+  unrealizedPnl  Float?
+  roi            Float?
+  holdingPeriod  String?
+  daysToLongTerm String?
+
+  source           String?
+  sourceFileName   String?
+  sourceRowHash    String    @unique
+  sourceReportDate DateTime?
+  ingestionRunId   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([securityId])
+  @@index([positionId])
+  @@index([taxLotDate])
+  @@index([sourceReportDate])
+}
+
+model Trade {
+  id String @id @default(cuid())
+
+  securityId String
+  security   Security @relation(fields: [securityId], references: [id])
+
+  positionId String?
+  position   Position? @relation(fields: [positionId], references: [id])
+
+  dateTraded        DateTime
+  shares            Float
+  avgPrice          Float
+  tradeType         String?
+  settlementDate    DateTime?
+  postDate          DateTime?
+  notional          Float?
+  commission        Float?
+  fees              Float?
+  accruedInterest   Float?
+  netAmount         Float?
+  currency          String?
+  transactionId     String?
+  clientReferenceId String?
+  source            String?
+  sourceFileName    String?
+  sourceRowHash     String?
+  sourceReportDate  DateTime?
+  ingestionRunId    String?
+  ptHistory         String?
+  comment           String?
+
+  reconciliationStatus  String? // MANUAL_PENDING, MATCHED, REVIEW_REQUIRED, SUPERSEDED_BY_WELLS, UNMATCHED
+  reconciliationGroupId String?
+  matchedTradeId        String?
+  reconciledAt          DateTime?
+  reconciliationNotes   String?
+  manualEnteredById     String?
+  isHidden              Boolean   @default(false)
+  executedFromQueue TradeQueueItem?
+
+  createdAt DateTime @default(now())
+}
+
+model TradeQueueItem {
+  id String @id @default(cuid())
+
+  securityId String
+  security   Security @relation(fields: [securityId], references: [id])
+
+  positionId String
+  position   Position @relation(fields: [positionId], references: [id])
+
+  createdById String
+  createdBy   User @relation(fields: [createdById], references: [id])
+
+  executedTradeId String? @unique
+  executedTrade   Trade? @relation(fields: [executedTradeId], references: [id])
+
+  tradeType String
+
+  shares Float
+  executionPrice Float
+
+  proposedTradeAt DateTime
+
+  comment String?
+  shortLocateNumber String?
+
+  status String @default("QUEUED")
+
+  triggeredAt DateTime?
+  executedAt DateTime?
+  canceledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  flags Flag[]
+
+  @@index([status, createdAt])
+  @@index([securityId, status])
+  @@index([positionId, status])
+}
+
+model WatchlistEntry {
+  id String @id @default(cuid())
+
+  securityId String
+  security   Security @relation(fields: [securityId], references: [id])
+
+  side String // LONG, SHORT
+
+  // Legacy target retained temporarily for safe host upgrades.
+  targetPrice Float?
+
+  // LONG: entry = Buy PT, exit = Sell PT
+  // SHORT: entry = Sell PT, exit = Cover PT
+  entryTargetPrice      Float?
+  exitTargetPrice       Float?
+  discussionTargetPrice Float?
+
+  notes String?
+
+  archivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments Comment[]
+  flags    Flag[]
+}
+
+model Comment {
+  id String @id @default(cuid())
+
+  securityId String?
+  security   Security? @relation(fields: [securityId], references: [id])
+
+  positionId String?
+  position   Position? @relation(fields: [positionId], references: [id])
+
+  watchlistEntryId String?
+  watchlistEntry   WatchlistEntry? @relation(fields: [watchlistEntryId], references: [id])
+
+ 
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
+  tag     String // COMMENT, NOTE, THESIS, RISK, CATALYST, TRADE, EXIT
+  content String
+
+  isPinned   Boolean   @default(false)
+  archivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  meetingId String?
+  meeting   Meeting? @relation(fields: [meetingId], references: [id])
+}
+
+model Flag {
+  id String @id @default(cuid())
+
+  tradeQueueItemId String?
+  tradeQueueItem   TradeQueueItem? @relation(fields: [tradeQueueItemId], references: [id])
+
+  securityId String?
+  security   Security? @relation(fields: [securityId], references: [id])
+
+  positionId String?
+  position   Position? @relation(fields: [positionId], references: [id])
+
+  watchlistEntryId String?
+  watchlistEntry   WatchlistEntry? @relation(fields: [watchlistEntryId], references: [id])
+
+  flagType    String
+  description String?
+  reminderAt  DateTime?
+
+  priority String // LOW, MEDIUM, HIGH
+  status   String @default("OPEN") // OPEN, RESOLVED, ARCHIVED
+
+  createdById String
+  createdBy   User   @relation("FlagsCreated", fields: [createdById], references: [id])
+
+  resolvedById String?
+  resolvedBy   User?   @relation("FlagsResolved", fields: [resolvedById], references: [id])
+
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  metadataJson String?
+
+  @@index([tradeQueueItemId])
+}
+model MarketDataCache {
+  id String @id @default(cuid())
+
+  securityId String
+  security   Security @relation(fields: [securityId], references: [id])
+
+  currentPrice        Float?
+  vwap                Float?
+  high52w             Float?
+  low52w              Float?
+  beta                Float?
+  avgVolume           Float?
+  shortFloat          Float?
+  marketCap           Float?
+  dayChange           Float?
+  dayPctChange        Float?
+  volume              Float?
+  sharesOutstanding   Float?
+  floatShares         Float?
+  shortInterestShares Float?
+
+  peLtm                     Float?
+  priceToTangBook           Float?
+  peNtm                     Float?
+  priceToBook               Float?
+  debtToEbitda              Float?
+  eps                       Float?
+  epsTtm                    Float?
+  epsNtm                    Float?
+  bookValue                 Float?
+  bookValuePerShare         Float?
+  tangibleBookValue         Float?
+  tangibleBookValuePerShare Float?
+  enterpriseValue           Float?
+  ebitda                    Float?
+  totalDebt                 Float?
+  revenue                   Float?
+  revenueTtm                Float?
+  grossProfit               Float?
+  operatingIncome           Float?
+  netIncome                 Float?
+  netIncomeTtm              Float?
+  cashAndEquivalents        Float?
+  totalAssets               Float?
+  totalLiabilities          Float?
+  shareholdersEquity        Float?
+
+  source                     String    @default("MOCK")
+  marketDataSource           String?
+  fundamentalsSource         String?
+  shortInterestSource        String?
+  snapshotAsOf               DateTime?
+  fundamentalsAsOf           DateTime?
+  shortInterestAsOf          DateTime?
+  dataQuality                String?
+  sourceDetailJson           String?
+  lastMarketDataRefreshAt    DateTime?
+  lastFundamentalsRefreshAt  DateTime?
+  lastShortInterestRefreshAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([securityId])
+  @@index([updatedAt])
+}
+
+model IngestionRun {
+  id String @id @default(cuid())
+
+  source           String // WELLS_FARGO, BLOOMBERG, MANUAL
+  status           String // STARTED, COMPLETED, FAILED
+  message          String?
+  fileName         String?
+  fileType         String?
+  fileHash         String?
+  sourceReportDate DateTime?
+  rowsProcessed    Int?
+  rowsFailed       Int?
+  detailsJson      String?
+  accountNumber    String?
+
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+
+  actorId String
+  actor   User   @relation(fields: [actorId], references: [id])
+
+  action     String
+  entityType String
+  entityId   String
+
+  previousValueJson String?
+  newValueJson      String?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+}
+
+model RegistrationApproval {
+  id String @id @default(cuid())
+
+  email  String @unique
+  role   String
+  status String @default("PENDING")
+
+  approvedById String
+  approvedBy   User   @relation("RegistrationApprovalsApprovedBy", fields: [approvedById], references: [id])
+
+  registeredUserId String? @unique
+  registeredUser   User?   @relation("RegistrationApprovalRegisteredUser", fields: [registeredUserId], references: [id])
+
+  approvedAt   DateTime  @default(now())
+  registeredAt DateTime?
+  revokedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([approvedById])
+}
+
+
+
+================================================================================
+FILE: lib\trade-calculator\trade-calculator.ts
+================================================================================
+export type TradeAction = "BUY" | "SELL" | "SHORT" | "COVER";
+
+export type TradeSizingMode =
+  "SHARES" | "NOTIONAL" | "TARGET_WEIGHT" | "AMOUNT_BPS";
+
+export type TradeBaselineMode = "WELLS" | "WELLS_PLUS_PENDING";
+
+export type PositionSide = "LONG" | "SHORT" | "FLAT";
+
+export type ManualTradeDraft = {
+  securityId: string;
+  positionId: string;
+  ticker: string;
+  companyName: string;
+  tradeType: TradeAction;
+  shares: number;
+  avgPrice: number;
+  dateTraded: string;
+  comment: string;
+  shortLocateNumber: string;
+};
+export type TradeCalculatorInput = {
+  securityId: string;
+  positionId: string | null;
+  ticker: string;
+  companyName: string;
+  wellsSide: "LONG" | "SHORT" | null;
+  wellsShares: number | null | undefined;
+  wellsMarketValue: number | null | undefined;
+  wellsWap: number | null | undefined;
+  pendingManualDelta: number;
+  pendingProjectionIsValid: boolean;
+  grossPortfolioMarketValue: number;
+  netEquity: number | null;
+  baselineMode: TradeBaselineMode;
+  tradeAction: TradeAction;
+  sizingMode: TradeSizingMode;
+  sharesInput?: number | null;
+  notionalInput?: number | null;
+  basisPointsInput?: number | null;
+  targetWeightPctInput?: number | null;
+  estimatedPrice?: number | null;
+  stopPrice?: number | null;
+  targetPrice?: number | null;
+  dateTraded?: string | null;
+  comment?: string | null;
+  shortLocateNumber?: string | null;
+};
+
+export type TradeCalculatorResult = {
+  isValid: boolean;
+  canCreateDraft: boolean;
+  errors: string[];
+  warnings: string[];
+
+  wellsSide: PositionSide;
+  wellsExposure: number;
+  wellsSignedShares: number;
+
+  selectedBaselineMode: TradeBaselineMode;
+  baselineSide: PositionSide;
+  baselineExposure: number;
+  baselineSignedShares: number;
+
+  proposedShares: number | null;
+  proposedSignedShareChange: number | null;
+  proposedNotional: number | null;
+  estimatedCashFlow: number | null;
+
+  projectedSide: PositionSide;
+  projectedExposure: number | null;
+  projectedSignedShares: number | null;
+  projectedMarketValue: number | null;
+
+  currentPortfolioWeightPct: number | null;
+  projectedPortfolioWeightPct: number | null;
+  portfolioWeightChangePctPoints: number | null;
+  projectedGrossPortfolioMarketValue: number | null;
+
+  exposureChangePct: number | null;
+  exposureChangeLabel: string;
+
+  estimatedBlendedWap: number | null;
+  blendedWapIsAvailable: boolean;
+
+  crossesZero: boolean;
+  closesPosition: boolean;
+  opensPosition: boolean;
+  actionMatchesScenario: boolean;
+
+  riskPerShare: number | null;
+  totalRisk: number | null;
+  portfolioRiskPct: number | null;
+  rewardPerShare: number | null;
+  totalReward: number | null;
+  rewardRiskRatio: number | null;
+  stopMovePct: number | null;
+  targetMovePct: number | null;
+
+  draft: ManualTradeDraft | null;
+};
+
+const NUMBER_TOLERANCE = 0.000001;
+
+function toFiniteNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const parsedValue = Number(value);
+
+  return Number.isFinite(parsedValue) ? parsedValue : null;
+}
+
+function roundShares(value: number) {
+  return Math.max(0, Math.round(value));
+}
+
+function getPositionSide(signedShares: number): PositionSide {
+  if (signedShares > NUMBER_TOLERANCE) {
+    return "LONG";
+  }
+
+  if (signedShares < -NUMBER_TOLERANCE) {
+    return "SHORT";
+  }
+
+  return "FLAT";
+}
+
+function getSignedShares(side: "LONG" | "SHORT" | null, shares: number) {
+  if (side === "SHORT") {
+    return -Math.abs(shares);
+  }
+
+  if (side === "LONG") {
+    return Math.abs(shares);
+  }
+
+  return 0;
+}
+
+function getActionDirection(action: TradeAction) {
+  if (action === "SELL" || action === "SHORT") {
+    return -1;
+  }
+
+  return 1;
+}
+
+function actionMatchesDirection(
+  action: TradeAction,
+  signedShareChange: number,
+) {
+  if (Math.abs(signedShareChange) <= NUMBER_TOLERANCE) {
+    return true;
+  }
+
+  return getActionDirection(action) === Math.sign(signedShareChange);
+}
+
+function getTargetSignedShares(
+  baselineSignedShares: number,
+  action: TradeAction,
+  targetAbsoluteShares: number,
+) {
+  const baselineSide = getPositionSide(baselineSignedShares);
+
+  if (baselineSide === "LONG") {
+    return targetAbsoluteShares;
+  }
+
+  if (baselineSide === "SHORT") {
+    return -targetAbsoluteShares;
+  }
+
+  return getActionDirection(action) * targetAbsoluteShares;
+}
+
+function calculateCurrentWeight(
+  wellsMarketValue: number | null,
+  netEquity: number,
+) {
+  if (wellsMarketValue == null || netEquity <= 0) {
+    return null;
+  }
+
+  return (Math.abs(wellsMarketValue) / netEquity) * 100;
+}
+
+function calculateTargetMarketValue(
+  targetWeightPct: number,
+  netEquity: number,
+) {
+  const targetWeight = targetWeightPct / 100;
+
+  if (targetWeight <= 0 || targetWeight >= 1 || netEquity <= 0) {
+    return null;
+  }
+
+  return netEquity * targetWeight;
+}
+
+function calculateRiskAndReward({
+  projectedSide,
+  proposedShares,
+  estimatedPrice,
+  stopPrice,
+  targetPrice,
+  netEquity,
+}: {
+  projectedSide: PositionSide;
+  proposedShares: number | null;
+  estimatedPrice: number | null;
+  stopPrice: number | null;
+  targetPrice: number | null;
+  netEquity: number;
+}) {
+  let riskPerShare: number | null = null;
+  let rewardPerShare: number | null = null;
+  let stopMovePct: number | null = null;
+  let targetMovePct: number | null = null;
+
+  if (
+    proposedShares == null ||
+    estimatedPrice == null ||
+    estimatedPrice <= 0 ||
+    projectedSide === "FLAT"
+  ) {
+    return {
+      riskPerShare,
+      totalRisk: null,
+      portfolioRiskPct: null,
+      rewardPerShare,
+      totalReward: null,
+      rewardRiskRatio: null,
+      stopMovePct,
+      targetMovePct,
+    };
+  }
+
+  if (stopPrice != null && stopPrice > 0) {
+    if (projectedSide === "LONG") {
+      riskPerShare = estimatedPrice - stopPrice;
+    } else {
+      riskPerShare = stopPrice - estimatedPrice;
+    }
+
+    stopMovePct = ((stopPrice - estimatedPrice) / estimatedPrice) * 100;
+
+    if (riskPerShare <= 0) {
+      riskPerShare = null;
+    }
+  }
+
+  if (targetPrice != null && targetPrice > 0) {
+    if (projectedSide === "LONG") {
+      rewardPerShare = targetPrice - estimatedPrice;
+    } else {
+      rewardPerShare = estimatedPrice - targetPrice;
+    }
+
+    targetMovePct = ((targetPrice - estimatedPrice) / estimatedPrice) * 100;
+
+    if (rewardPerShare <= 0) {
+      rewardPerShare = null;
+    }
+  }
+
+  const totalRisk = riskPerShare != null ? riskPerShare * proposedShares : null;
+
+  const totalReward =
+    rewardPerShare != null ? rewardPerShare * proposedShares : null;
+
+  const portfolioRiskPct =
+    totalRisk != null && netEquity > 0 ? (totalRisk / netEquity) * 100 : null;
+
+  const rewardRiskRatio =
+    totalReward != null && totalRisk != null && totalRisk > 0
+      ? totalReward / totalRisk
+      : null;
+
+  return {
+    riskPerShare,
+    totalRisk,
+    portfolioRiskPct,
+    rewardPerShare,
+    totalReward,
+    rewardRiskRatio,
+    stopMovePct,
+    targetMovePct,
+  };
+}
+
+export function calculateTradeScenario(
+  input: TradeCalculatorInput,
+): TradeCalculatorResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const shortLocateNumber = String(input.shortLocateNumber || "").trim();
+
+  if (input.tradeAction === "SHORT" && !shortLocateNumber) {
+    errors.push("Short Locate Number is required for a short trade.");
+  }
+
+  const wellsExposure = Math.abs(toFiniteNumber(input.wellsShares) ?? 0);
+
+  const wellsSignedShares = getSignedShares(input.wellsSide, wellsExposure);
+
+  const pendingManualDelta = toFiniteNumber(input.pendingManualDelta) ?? 0;
+
+  let baselineSignedShares = wellsSignedShares;
+
+  if (input.baselineMode === "WELLS_PLUS_PENDING") {
+    if (!input.pendingProjectionIsValid) {
+      errors.push(
+        "Pending manual trades do not produce a valid operational baseline.",
+      );
+    } else if (input.wellsSide === "SHORT") {
+      baselineSignedShares = wellsSignedShares - pendingManualDelta;
+    } else {
+      baselineSignedShares = wellsSignedShares + pendingManualDelta;
+    }
+  }
+
+  const baselineSide = getPositionSide(baselineSignedShares);
+
+  const baselineExposure = Math.abs(baselineSignedShares);
+
+  const estimatedPrice = toFiniteNumber(input.estimatedPrice);
+
+  if (estimatedPrice == null || estimatedPrice <= 0) {
+    errors.push("Estimated execution price must be greater than zero.");
+  }
+
+  const grossPortfolioMarketValue = Math.abs(
+    toFiniteNumber(input.grossPortfolioMarketValue) ?? 0,
+  );
+
+  const netEquity = Math.abs(toFiniteNumber(input.netEquity) ?? 0);
+
+  const wellsMarketValue = toFiniteNumber(input.wellsMarketValue);
+
+  const currentAbsoluteMarketValue = Math.abs(wellsMarketValue ?? 0);
+
+  const currentPortfolioWeightPct = calculateCurrentWeight(
+    wellsMarketValue,
+    netEquity,
+  );
+
+  let proposedShares: number | null = null;
+  let proposedSignedShareChange: number | null = null;
+
+  if (input.sizingMode === "SHARES") {
+    const sharesInput = toFiniteNumber(input.sharesInput);
+
+    if (sharesInput == null || sharesInput <= 0) {
+      errors.push("Proposed shares must be greater than zero.");
+    } else {
+      proposedShares = roundShares(sharesInput);
+
+      proposedSignedShareChange =
+        getActionDirection(input.tradeAction) * proposedShares;
+    }
+  }
+
+  if (input.sizingMode === "NOTIONAL") {
+    const notionalInput = toFiniteNumber(input.notionalInput);
+
+    if (notionalInput == null || notionalInput <= 0) {
+      errors.push("Proposed notional must be greater than zero.");
+    } else if (estimatedPrice != null && estimatedPrice > 0) {
+      proposedShares = roundShares(notionalInput / estimatedPrice);
+
+      if (proposedShares === 0) {
+        errors.push(
+          "The proposed notional is too small to purchase one share.",
+        );
+      }
+
+      proposedSignedShareChange =
+        getActionDirection(input.tradeAction) * proposedShares;
+    }
+  }
+  if (input.sizingMode === "AMOUNT_BPS") {
+    const basisPointsInput = toFiniteNumber(input.basisPointsInput);
+
+    if (basisPointsInput == null || basisPointsInput <= 0) {
+      errors.push("Amount (BPS) must be greater than zero.");
+    } else if (netEquity <= 0) {
+      errors.push("Net Equity is required for Amount (BPS) sizing.");
+    } else if (estimatedPrice != null && estimatedPrice > 0) {
+      const notionalAmount = netEquity * (basisPointsInput / 10_000);
+
+      proposedShares = roundShares(notionalAmount / estimatedPrice);
+
+      if (proposedShares === 0) {
+        errors.push(
+          "The Amount (BPS) value is too small to purchase one share.",
+        );
+      }
+
+      proposedSignedShareChange =
+        getActionDirection(input.tradeAction) * proposedShares;
+    }
+  }
+  if (input.sizingMode === "TARGET_WEIGHT") {
+    const targetWeightPct = toFiniteNumber(input.targetWeightPctInput);
+
+    if (
+      targetWeightPct == null ||
+      targetWeightPct <= 0 ||
+      targetWeightPct >= 100
+    ) {
+      errors.push(
+        "Target portfolio weight must be greater than zero and less than 100%.",
+      );
+    } else if (netEquity <= 0) {
+      errors.push("Net Equity is required for target-weight sizing.");
+    } else if (estimatedPrice != null && estimatedPrice > 0) {
+      const targetMarketValue = calculateTargetMarketValue(
+        targetWeightPct,
+        netEquity,
+      );
+
+      if (targetMarketValue == null) {
+        errors.push("Target portfolio weight could not be calculated.");
+      } else {
+        const targetAbsoluteShares = roundShares(
+          targetMarketValue / estimatedPrice,
+        );
+
+        const targetSignedShares = getTargetSignedShares(
+          baselineSignedShares,
+          input.tradeAction,
+          targetAbsoluteShares,
+        );
+
+        proposedSignedShareChange = targetSignedShares - baselineSignedShares;
+
+        proposedShares = Math.abs(proposedSignedShareChange);
+
+        if (proposedShares <= NUMBER_TOLERANCE) {
+          warnings.push(
+            "The selected position is already approximately at the target portfolio weight.",
+          );
+        }
+
+        if (
+          !actionMatchesDirection(input.tradeAction, proposedSignedShareChange)
+        ) {
+          errors.push(
+            "The selected trade action moves the position away from the requested target weight.",
+          );
+        }
+      }
+    }
+  }
+
+  const actionMatchesScenario =
+    proposedSignedShareChange == null
+      ? true
+      : actionMatchesDirection(input.tradeAction, proposedSignedShareChange);
+
+  let projectedSignedShares: number | null = null;
+
+  let projectedExposure: number | null = null;
+
+  let projectedSide: PositionSide = baselineSide;
+
+  let crossesZero = false;
+  let closesPosition = false;
+  let opensPosition = false;
+
+  if (proposedSignedShareChange != null) {
+    projectedSignedShares = baselineSignedShares + proposedSignedShareChange;
+
+    if (Math.abs(projectedSignedShares) <= NUMBER_TOLERANCE) {
+      projectedSignedShares = 0;
+    }
+
+    projectedExposure = Math.abs(projectedSignedShares);
+
+    projectedSide = getPositionSide(projectedSignedShares);
+
+    crossesZero =
+      baselineSide !== "FLAT" &&
+      projectedSide !== "FLAT" &&
+      baselineSide !== projectedSide;
+
+    closesPosition = baselineSide !== "FLAT" && projectedSide === "FLAT";
+
+    opensPosition = baselineSide === "FLAT" && projectedSide !== "FLAT";
+  }
+
+  if (crossesZero) {
+    warnings.push(
+      `This scenario crosses from ${baselineSide} to ${projectedSide}. Submit the close and opening activity as separate manual trades.`,
+    );
+  }
+
+  if (closesPosition) {
+    warnings.push("This scenario fully closes the selected position.");
+  }
+
+  if (opensPosition) {
+    warnings.push("This scenario opens a new position.");
+  }
+
+  if (
+    input.baselineMode === "WELLS_PLUS_PENDING" &&
+    Math.abs(pendingManualDelta) > NUMBER_TOLERANCE
+  ) {
+    warnings.push("The selected baseline includes unreconciled manual trades.");
+  }
+
+  const proposedNotional =
+    proposedShares != null && estimatedPrice != null && estimatedPrice > 0
+      ? proposedShares * estimatedPrice
+      : null;
+
+  const estimatedCashFlow =
+    proposedNotional != null
+      ? input.tradeAction === "BUY" || input.tradeAction === "COVER"
+        ? -proposedNotional
+        : proposedNotional
+      : null;
+
+  const projectedMarketValue =
+    projectedExposure != null && estimatedPrice != null && estimatedPrice > 0
+      ? projectedExposure * estimatedPrice
+      : null;
+
+  const projectedGrossPortfolioMarketValue =
+    projectedMarketValue != null
+      ? Math.max(
+          0,
+          grossPortfolioMarketValue -
+            currentAbsoluteMarketValue +
+            Math.abs(projectedMarketValue),
+        )
+      : null;
+
+  const projectedPortfolioWeightPct =
+    projectedMarketValue != null && netEquity > 0
+      ? (Math.abs(projectedMarketValue) / netEquity) * 100
+      : null;
+
+  const portfolioWeightChangePctPoints =
+    projectedPortfolioWeightPct != null && currentPortfolioWeightPct != null
+      ? projectedPortfolioWeightPct - currentPortfolioWeightPct
+      : null;
+
+  let exposureChangePct: number | null = null;
+
+  let exposureChangeLabel = "â€”";
+
+  if (
+    projectedExposure != null &&
+    baselineExposure === 0 &&
+    projectedExposure > 0
+  ) {
+    exposureChangeLabel = "New Position";
+  } else if (projectedExposure != null && baselineExposure > 0) {
+    exposureChangePct =
+      ((projectedExposure - baselineExposure) / baselineExposure) * 100;
+
+    exposureChangeLabel = `${
+      exposureChangePct >= 0 ? "+" : ""
+    }${exposureChangePct.toFixed(1)}%`;
+  }
+
+  const wellsWap = toFiniteNumber(input.wellsWap);
+
+  let estimatedBlendedWap: number | null = null;
+
+  let blendedWapIsAvailable = false;
+
+  const sameSideAdd =
+    !crossesZero &&
+    projectedSide === baselineSide &&
+    ((baselineSide === "LONG" && input.tradeAction === "BUY") ||
+      (baselineSide === "SHORT" && input.tradeAction === "SHORT"));
+
+  const wellsOnlyAdd =
+    input.baselineMode === "WELLS" ||
+    Math.abs(pendingManualDelta) <= NUMBER_TOLERANCE;
+
+  if (
+    sameSideAdd &&
+    wellsOnlyAdd &&
+    wellsWap != null &&
+    estimatedPrice != null &&
+    proposedShares != null &&
+    projectedExposure != null &&
+    projectedExposure > 0
+  ) {
+    estimatedBlendedWap =
+      (wellsExposure * wellsWap + proposedShares * estimatedPrice) /
+      projectedExposure;
+
+    blendedWapIsAvailable = true;
+  }
+
+  const stopPrice = toFiniteNumber(input.stopPrice);
+
+  const targetPrice = toFiniteNumber(input.targetPrice);
+
+  if (stopPrice != null && stopPrice <= 0) {
+    errors.push("Stop price must be greater than zero.");
+  }
+
+  if (targetPrice != null && targetPrice <= 0) {
+    errors.push("Target price must be greater than zero.");
+  }
+
+  if (
+    estimatedPrice != null &&
+    estimatedPrice > 0 &&
+    projectedSide === "LONG"
+  ) {
+    if (stopPrice != null && stopPrice >= estimatedPrice) {
+      errors.push(
+        "A Long stop price must be below the estimated execution price.",
+      );
+    }
+
+    if (targetPrice != null && targetPrice <= estimatedPrice) {
+      errors.push(
+        "A Long target price must be above the estimated execution price.",
+      );
+    }
+  }
+
+  if (
+    estimatedPrice != null &&
+    estimatedPrice > 0 &&
+    projectedSide === "SHORT"
+  ) {
+    if (stopPrice != null && stopPrice <= estimatedPrice) {
+      errors.push(
+        "A Short stop price must be above the estimated execution price.",
+      );
+    }
+
+    if (targetPrice != null && targetPrice >= estimatedPrice) {
+      errors.push(
+        "A Short target price must be below the estimated execution price.",
+      );
+    }
+  }
+
+  const riskAndReward = calculateRiskAndReward({
+    projectedSide,
+    proposedShares,
+    estimatedPrice,
+    stopPrice,
+    targetPrice,
+    netEquity,
+  });
+
+  const hasActivePosition = Boolean(input.positionId);
+
+  if (!hasActivePosition) {
+    warnings.push(
+      "This Security does not have an active HCA position. The scenario may be calculated, but manual-trade submission is unavailable.",
+    );
+  }
+
+  const isValid = errors.length === 0;
+
+  const canCreateDraft =
+    isValid &&
+    hasActivePosition &&
+    !crossesZero &&
+    proposedShares != null &&
+    proposedShares > 0 &&
+    estimatedPrice != null &&
+    estimatedPrice > 0 &&
+    Boolean(input.dateTraded);
+
+  const draft: ManualTradeDraft | null =
+    canCreateDraft &&
+    input.positionId &&
+    proposedShares != null &&
+    estimatedPrice != null &&
+    input.dateTraded
+      ? {
+          securityId: input.securityId,
+          positionId: input.positionId,
+          ticker: input.ticker,
+          companyName: input.companyName,
+          tradeType: input.tradeAction,
+          shares: proposedShares,
+          avgPrice: estimatedPrice,
+          dateTraded: input.dateTraded,
+          comment: String(input.comment || "").trim(),
+          shortLocateNumber,
+        }
+      : null;
+
+  return {
+    isValid,
+    canCreateDraft,
+    errors,
+    warnings,
+
+    wellsSide: getPositionSide(wellsSignedShares),
+    wellsExposure,
+    wellsSignedShares,
+
+    selectedBaselineMode: input.baselineMode,
+    baselineSide,
+    baselineExposure,
+    baselineSignedShares,
+
+    proposedShares,
+    proposedSignedShareChange,
+    proposedNotional,
+    estimatedCashFlow,
+
+    projectedSide,
+    projectedExposure,
+    projectedSignedShares,
+    projectedMarketValue,
+
+    currentPortfolioWeightPct,
+    projectedPortfolioWeightPct,
+    portfolioWeightChangePctPoints,
+    projectedGrossPortfolioMarketValue,
+
+    exposureChangePct,
+    exposureChangeLabel,
+
+    estimatedBlendedWap,
+    blendedWapIsAvailable,
+
+    crossesZero,
+    closesPosition,
+    opensPosition,
+    actionMatchesScenario,
+
+    ...riskAndReward,
+
+    draft,
+  };
+}
+
+
+================================================================================
+FILE: components\trade-calculator\TradeScenarioPanel.tsx
+================================================================================
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Badge from "@/components/common/Badge";
+import ManualTradeReviewModal from "@/components/trade-calculator/ManualTradeReviewModal";
+import {
+  calculateTradeScenario,
+  type PositionSide,
+  type TradeAction,
+  type TradeBaselineMode,
+  type TradeSizingMode,
+} from "@/lib/trade-calculator/trade-calculator";
+
+type FundEquitySnapshot = {
+  id: string;
+  asOfDate: string;
+  netEquity: number;
+  source: string;
+};
+
+type TradeScenarioPanelProps = {
+  security: any;
+  position: any;
+  baselineMode: TradeBaselineMode;
+  pendingManualDelta: number;
+  pendingProjectionIsValid: boolean;
+  currentPrice: number | null;
+  wellsWap: number | null;
+  grossPortfolioMarketValue: number;
+  fundEquitySnapshots: FundEquitySnapshot[];
+  canSubmitManualTrade: boolean;
+  onTradeCreated: (trade: any) => void;
+};
+
+function toInputNumber(value: string): number | null {
+  if (!value.trim()) {
+    return null;
+  }
+
+  const parsedValue = Number(value);
+
+  return Number.isFinite(parsedValue) ? parsedValue : null;
+}
+
+function getLocalDateTimeInputValue(date = new Date()) {
+  const timezoneOffsetMilliseconds = date.getTimezoneOffset() * 60 * 1000;
+
+  return new Date(date.getTime() - timezoneOffsetMilliseconds)
+    .toISOString()
+    .slice(0, 16);
+}
+
+function getSnapshotDateKey(value: string | Date) {
+  const date = new Date(value);
+
+  const year = date.getUTCFullYear();
+
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+
+  const day = String(date.getUTCDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function serializeLocalDateTime(value: string) {
+  if (!value) {
+    return null;
+  }
+
+  const parsedDate = new Date(value);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return null;
+  }
+
+  return parsedDate.toISOString();
+}
+
+function formatMoney(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
+    return "â€”";
+  }
+
+  return value.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
+
+function formatPrice(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
+    return "â€”";
+  }
+
+  return value.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function formatNumber(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
+    return "â€”";
+  }
+
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4,
+  });
+}
+
+function formatWholeShares(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
+    return "â€”";
+  }
+
+  return Math.round(value).toLocaleString("en-US", {
+    maximumFractionDigits: 0,
+  });
+}
+
+function formatSignedMoney(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
+    return "â€”";
+  }
+
+  const formattedValue = Math.abs(value).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+
+  if (Math.abs(value) < 0.000001) {
+    return formattedValue;
+  }
+
+  return `${value > 0 ? "+" : "-"}${formattedValue}`;
+}
+
+function formatPercent(value: number | null | undefined, includeSign = false) {
+  if (value == null || !Number.isFinite(value)) {
+    return "â€”";
+  }
+
+  const sign = includeSign && value > 0 ? "+" : "";
+
+  return `${sign}${value.toFixed(2)}%`;
+}
+
+function valueClass(value: number | null | undefined) {
+  if (value == null || Math.abs(value) < 0.000001) {
+    return "text-slate-950";
+  }
+
+  return value > 0 ? "text-emerald-600" : "text-rose-600";
+}
+
+function getDefaultAction(side: string | null | undefined): TradeAction {
+  return side === "SHORT" ? "SHORT" : "BUY";
+}
+
+function getSideLabel(side: PositionSide) {
+  if (side === "LONG") {
+    return "Long";
+  }
+
+  if (side === "SHORT") {
+    return "Short";
+  }
+
+  return "Flat";
+}
+
+function ResultCard({
+  label,
+  value,
+  detail,
+  valueClassName = "text-slate-950",
+}: {
+  label: string;
+  value: React.ReactNode;
+  detail: string;
+  valueClassName?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+
+      <div className={`mt-1 text-lg font-semibold ${valueClassName}`}>
+        {value}
+      </div>
+
+      <p className="mt-1 text-xs leading-5 text-slate-500">{detail}</p>
+    </div>
+  );
+}
+
+export default function TradeScenarioPanel({
+  security,
+  position,
+  baselineMode,
+  pendingManualDelta,
+  pendingProjectionIsValid,
+  currentPrice,
+  wellsWap,
+  grossPortfolioMarketValue,
+  fundEquitySnapshots,
+  canSubmitManualTrade,
+  onTradeCreated,
+}: TradeScenarioPanelProps) {
+  const [tradeAction, setTradeAction] = useState<TradeAction>(
+    getDefaultAction(position?.side),
+  );
+
+  const [sizingMode, setSizingMode] =
+    useState<TradeSizingMode>("AMOUNT_BPS");
+
+  const [sharesInput, setSharesInput] = useState("");
+
+  const [notionalInput, setNotionalInput] = useState("");
+
+  const [basisPointsInput, setBasisPointsInput] = useState("");
+  const [targetWeightPctInput, setTargetWeightPctInput] = useState("");
+
+  const [estimatedPriceInput, setEstimatedPriceInput] = useState(
+    currentPrice != null ? currentPrice.toFixed(2) : "",
+  );
+
+  const [stopPriceInput, setStopPriceInput] = useState("");
+
+  const [targetPriceInput, setTargetPriceInput] = useState("");
+
+  const [dateTraded, setDateTraded] = useState(getLocalDateTimeInputValue());
+
+  const [comment, setComment] = useState("");
+
+  const [shortLocateNumber, setShortLocateNumber] = useState("");
+
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isQueueSubmitting, setIsQueueSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState("");
+  const [queueSubmissionError, setQueueSubmissionError] = useState("");
+  const [submissionMessage, setSubmissionMessage] = useState("");
+  useEffect(() => {
+    setTradeAction(getDefaultAction(position?.side));
+
+    setSizingMode("AMOUNT_BPS");
+    setSharesInput("");
+    setNotionalInput("");
+    setBasisPointsInput("");
+    setTargetWeightPctInput("");
+
+    setEstimatedPriceInput(currentPrice != null ? currentPrice.toFixed(2) : "");
+
+    setStopPriceInput("");
+    setTargetPriceInput("");
+
+    setDateTraded(getLocalDateTimeInputValue());
+
+    setComment("");
+    setShortLocateNumber("");
+    setIsReviewOpen(false);
+    setIsSubmitting(false);
+    setIsQueueSubmitting(false);
+    setSubmissionError("");
+    setQueueSubmissionError("");
+    setSubmissionMessage("");
+  }, [position?.id, currentPrice]);
+
+  const serializedDateTraded = serializeLocalDateTime(dateTraded);
+
+  const proposedTradeDateKey = dateTraded ? dateTraded.slice(0, 10) : null;
+
+  const applicableFundEquity = proposedTradeDateKey
+    ? (fundEquitySnapshots.find(
+        (snapshot) =>
+          getSnapshotDateKey(snapshot.asOfDate) <= proposedTradeDateKey,
+      ) ?? null)
+    : null;
+
+  const netEquity = applicableFundEquity
+    ? Number(applicableFundEquity.netEquity)
+    : null;
+
+  const validNetEquity =
+    netEquity != null && Number.isFinite(netEquity) && netEquity > 0
+      ? netEquity
+      : null;
+
+  const result = useMemo(
+    () =>
+      calculateTradeScenario({
+        securityId: security.id,
+        positionId: position.id,
+        ticker: security.ticker,
+        companyName: security.name,
+        wellsSide: position.side === "SHORT" ? "SHORT" : "LONG",
+        wellsShares: position.shares,
+        wellsMarketValue: position.marketValue,
+        wellsWap,
+        pendingManualDelta,
+        pendingProjectionIsValid,
+        grossPortfolioMarketValue,
+        netEquity: validNetEquity,
+        baselineMode,
+        tradeAction,
+        sizingMode,
+        sharesInput: toInputNumber(sharesInput),
+        notionalInput: toInputNumber(notionalInput),
+        basisPointsInput: toInputNumber(basisPointsInput),
+        targetWeightPctInput: toInputNumber(targetWeightPctInput),
+        estimatedPrice: toInputNumber(estimatedPriceInput),
+        stopPrice: toInputNumber(stopPriceInput),
+        targetPrice: toInputNumber(targetPriceInput),
+        dateTraded: serializedDateTraded,
+        comment,
+        shortLocateNumber,
+      }),
+    [
+      security,
+      position,
+      wellsWap,
+      pendingManualDelta,
+      pendingProjectionIsValid,
+      grossPortfolioMarketValue,
+      validNetEquity,
+      baselineMode,
+      tradeAction,
+      sizingMode,
+      sharesInput,
+      notionalInput,
+      basisPointsInput,
+      targetWeightPctInput,
+      estimatedPriceInput,
+      stopPriceInput,
+      targetPriceInput,
+      serializedDateTraded,
+      comment,
+      shortLocateNumber,
+    ],
+  );
+  const scenarioActionLabel =
+    tradeAction === "BUY"
+      ? "Buy"
+      : tradeAction === "SELL"
+        ? "Sell"
+        : tradeAction === "SHORT"
+          ? "Short"
+          : "Cover";
+
+  const scenarioSizingDescription = (() => {
+    if (sizingMode === "AMOUNT_BPS") {
+      const basisPoints = toInputNumber(basisPointsInput);
+
+      return basisPoints != null
+        ? `${formatNumber(basisPoints)} bps of ${security.ticker}`
+        : `${security.ticker} using basis-point sizing`;
+    }
+
+    if (sizingMode === "SHARES") {
+      const shares = toInputNumber(sharesInput);
+
+      return shares != null
+        ? `${formatNumber(shares)} shares of ${security.ticker}`
+        : `${security.ticker} using share sizing`;
+    }
+
+    if (sizingMode === "NOTIONAL") {
+      const notional = toInputNumber(notionalInput);
+
+      return notional != null
+        ? `${formatMoney(notional)} of ${security.ticker}`
+        : `${security.ticker} using notional sizing`;
+    }
+
+    const targetWeight = toInputNumber(targetWeightPctInput);
+
+    return targetWeight != null
+      ? `${security.ticker} to a ${formatPercent(targetWeight)} target weight`
+      : `${security.ticker} using target-weight sizing`;
+  })();
+
+  const scenarioExecutionPrice = toInputNumber(estimatedPriceInput);
+
+  const scenarioSummary =
+    scenarioExecutionPrice != null
+      ? `${scenarioActionLabel} ${scenarioSizingDescription} at an estimated execution price of ${formatPrice(
+          scenarioExecutionPrice,
+        )}.`
+      : `${scenarioActionLabel} ${scenarioSizingDescription}.`;
+
+  function handleSizingModeChange(nextMode: TradeSizingMode) {
+    setSizingMode(nextMode);
+
+    if (nextMode !== "SHARES") {
+      setSharesInput("");
+    }
+
+    if (nextMode !== "NOTIONAL") {
+      setNotionalInput("");
+    }
+    if (nextMode !== "AMOUNT_BPS") {
+      setBasisPointsInput("");
+    }
+
+    if (nextMode !== "TARGET_WEIGHT") {
+      setTargetWeightPctInput("");
+    }
+  }
+
+  function handleReset() {
+    setTradeAction(getDefaultAction(position?.side));
+
+    setSizingMode("AMOUNT_BPS");
+    setSharesInput("");
+    setNotionalInput("");
+    setBasisPointsInput("");
+    setTargetWeightPctInput("");
+
+    setEstimatedPriceInput(currentPrice != null ? currentPrice.toFixed(2) : "");
+
+    setStopPriceInput("");
+    setTargetPriceInput("");
+
+    setDateTraded(getLocalDateTimeInputValue());
+
+    setComment("");
+    setIsReviewOpen(false);
+    setShortLocateNumber("");
+    setSubmissionError("");
+    setQueueSubmissionError("");
+    setSubmissionMessage("");
+  }
+
+  async function handleSubmitTrade() {
+    const draft = result.draft;
+
+    if (!draft) {
+      setSubmissionError("The trade scenario is not ready for submission.");
+      return;
+    }
+
+    if (!canSubmitManualTrade) {
+      setSubmissionError("You do not have permission to create manual trades.");
+      return;
+    }
+
+    setSubmissionError("");
+    setQueueSubmissionError("");
+    setSubmissionMessage("");
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/trades/manual", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          securityId: draft.securityId,
+          positionId: draft.positionId,
+          tradeType: draft.tradeType,
+          dateTraded: draft.dateTraded,
+          shares: draft.shares,
+          avgPrice: draft.avgPrice,
+          comment: draft.comment,
+          shortLocateNumber: draft.shortLocateNumber,
+          origin: "TRADE_CALCULATOR",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create manual trade.");
+      }
+
+      onTradeCreated(data.trade);
+
+      setIsReviewOpen(false);
+      setSubmissionError("");
+
+      setSizingMode("AMOUNT_BPS");
+      setSharesInput("");
+      setNotionalInput("");
+      setBasisPointsInput("");
+      setTargetWeightPctInput("");
+
+      setEstimatedPriceInput(
+        currentPrice != null ? currentPrice.toFixed(2) : "",
+      );
+
+      setStopPriceInput("");
+      setTargetPriceInput("");
+
+      setDateTraded(getLocalDateTimeInputValue());
+
+      setComment("");
+      setShortLocateNumber("");
+
+      setSubmissionMessage(
+        `${draft.tradeType} ${draft.shares.toLocaleString("en-US")} shares of ${
+          draft.ticker
+        } was added as a Manual Pending trade.`,
+      );
+    } catch (error) {
+      setSubmissionError(
+        error instanceof Error
+          ? error.message
+          : "Failed to create manual trade.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+  async function handleSubmitQueue() {
+    const draft = result.draft;
+
+    if (!draft) {
+      setQueueSubmissionError(
+        "The trade scenario is not ready to be added to the queue.",
+      );
+      return;
+    }
+
+    if (!canSubmitManualTrade) {
+      setQueueSubmissionError(
+        "You do not have permission to add trades to the queue.",
+      );
+      return;
+    }
+
+    setSubmissionError("");
+    setQueueSubmissionError("");
+    setSubmissionMessage("");
+    setIsQueueSubmitting(true);
+
+    try {
+      const response = await fetch("/api/trade-queue", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          securityId: draft.securityId,
+          positionId: draft.positionId,
+          tradeType: draft.tradeType,
+          shares: draft.shares,
+          executionPrice: draft.avgPrice,
+          proposedTradeAt: draft.dateTraded,
+          comment: draft.comment,
+          shortLocateNumber: draft.shortLocateNumber,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to add the trade to the queue.");
+      }
+
+      setIsReviewOpen(false);
+      setSubmissionError("");
+      setQueueSubmissionError("");
+      setSizingMode("AMOUNT_BPS");
+      setSharesInput("");
+      setNotionalInput("");
+      setBasisPointsInput("");
+      setTargetWeightPctInput("");
+      setEstimatedPriceInput(
+        currentPrice != null ? currentPrice.toFixed(2) : "",
+      );
+      setStopPriceInput("");
+      setTargetPriceInput("");
+      setDateTraded(getLocalDateTimeInputValue());
+      setComment("");
+      setShortLocateNumber("");
+      setSubmissionMessage(
+        `${draft.tradeType} ${draft.shares.toLocaleString(
+          "en-US",
+        )} shares of ${draft.ticker} was added to the Trade Queue at ${formatPrice(
+          draft.avgPrice,
+        )}.`,
+      );
+    } catch (error) {
+      setQueueSubmissionError(
+        error instanceof Error
+          ? error.message
+          : "Failed to add the trade to the queue.",
+      );
+    } finally {
+      setIsQueueSubmitting(false);
+    }
+  }
+  const sizingInputIsStarted =
+    sizingMode === "SHARES"
+      ? Boolean(sharesInput.trim())
+      : sizingMode === "NOTIONAL"
+        ? Boolean(notionalInput.trim())
+        : sizingMode === "AMOUNT_BPS"
+          ? Boolean(basisPointsInput.trim())
+          : Boolean(targetWeightPctInput.trim());
+
+  const showValidation =
+    sizingInputIsStarted ||
+    Boolean(stopPriceInput.trim()) ||
+    Boolean(targetPriceInput.trim());
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Step 2
+              </p>
+
+              <h3 className="mt-1 text-lg font-semibold text-slate-950">
+                Define the Proposed Trade
+              </h3>
+            </div>
+
+            <Badge tone="blue">Scenario</Badge>
+          </div>
+
+          <div className="mt-4">
+            <label className="text-sm font-medium text-slate-700">
+              Trade Action
+            </label>
+
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {(
+                [
+                  ["BUY", "Buy"],
+                  ["SELL", "Sell"],
+                  ["SHORT", "Short"],
+                  ["COVER", "Cover"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setTradeAction(value)}
+                  className={`rounded-2xl px-3 py-3 text-sm font-medium ${
+                    tradeAction === value
+                      ? "bg-slate-900 text-white"
+                      : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="text-sm font-medium text-slate-700">
+              Sizing Mode
+            </label>
+
+            <div className="mt-2 grid grid-cols-4 gap-2">
+              {(
+                [
+                  ["AMOUNT_BPS", "Amount (BPS)"],
+                  ["SHARES", "Shares"],
+                  ["TARGET_WEIGHT", "Target Weight"],
+                  ["NOTIONAL", "Notional"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => handleSizingModeChange(value)}
+                  className={`rounded-2xl px-2 py-3 text-xs font-medium ${
+                    sizingMode === value
+                      ? "bg-violet-700 text-white"
+                      : "border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {sizingMode === "TARGET_WEIGHT" ? (
+            <div className="mt-4">
+              <label className="text-sm font-medium text-slate-700">
+                Target Portfolio Weight
+              </label>
+
+              <div className="relative mt-2">
+                <input
+                  value={targetWeightPctInput}
+                  onChange={(event) =>
+                    setTargetWeightPctInput(event.target.value)
+                  }
+                  inputMode="decimal"
+                  placeholder="5.00"
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 pr-10 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+                />
+
+                <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm text-slate-400">
+                  %
+                </span>
+              </div>
+            </div>
+          ) : null}
+
+          {sizingMode === "SHARES" ? (
+            <div className="mt-4">
+              <label className="text-sm font-medium text-slate-700">
+                Proposed Shares
+              </label>
+
+              <input
+                value={sharesInput}
+                onChange={(event) => setSharesInput(event.target.value)}
+                inputMode="decimal"
+                placeholder="10,000"
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+              />
+            </div>
+          ) : null}
+
+          {sizingMode === "NOTIONAL" ? (
+            <div className="mt-4">
+              <label className="text-sm font-medium text-slate-700">
+                Proposed Notional
+              </label>
+
+              <div className="relative mt-2">
+                <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm text-slate-400">
+                  $
+                </span>
+
+                <input
+                  value={notionalInput}
+                  onChange={(event) => setNotionalInput(event.target.value)}
+                  inputMode="decimal"
+                  placeholder="750000"
+                  className="w-full rounded-2xl border border-slate-200 py-3 pl-8 pr-4 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {sizingMode === "AMOUNT_BPS" ? (
+            <div className="mt-4">
+              <label className="text-sm font-medium text-slate-700">
+                Amount (BPS)
+              </label>
+
+              <div className="relative mt-2">
+                <input
+                  value={basisPointsInput}
+                  onChange={(event) => setBasisPointsInput(event.target.value)}
+                  inputMode="decimal"
+                  placeholder="50"
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 pr-12 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+                />
+
+                <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm text-slate-400">
+                  bps
+                </span>
+              </div>
+
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                {applicableFundEquity && validNetEquity != null
+                  ? `Calculated using Net Equity of ${formatMoney(
+                      validNetEquity,
+                    )} as of ${new Date(
+                      applicableFundEquity.asOfDate,
+                    ).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      timeZone: "UTC",
+                    })}.`
+                  : "No Net Equity snapshot is available on or before the proposed trade date."}
+              </p>
+            </div>
+          ) : null}
+
+          {result.warnings.length > 0 ? (
+            <section className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+              <ul className="space-y-1 text-xs leading-5 text-amber-800">
+                {result.warnings.map((warning) => (
+                  <li key={warning}>â€¢ {warning}</li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+          {showValidation && result.errors.length > 0 ? (
+            <section className="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2">
+              <ul className="space-y-1 text-xs leading-5 text-rose-700">
+                {result.errors.map((error) => (
+                  <li key={error}>â€¢ {error}</li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+          <div className="mt-4">
+            <label className="text-sm font-medium text-slate-700">
+              Estimated Execution Price
+            </label>
+
+            <div className="relative mt-2">
+              <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm text-slate-400">
+                $
+              </span>
+
+              <input
+                value={estimatedPriceInput}
+                onChange={(event) => setEstimatedPriceInput(event.target.value)}
+                inputMode="decimal"
+                placeholder="0.00"
+                className="w-full rounded-2xl border border-slate-200 py-3 pl-8 pr-4 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+              />
+            </div>
+
+            <p className="mt-1 text-xs text-slate-500">
+              Defaults to the current HCA display price when available.
+            </p>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium text-slate-700">
+                Limit
+              </label>
+
+              <input
+                value={stopPriceInput}
+                onChange={(event) => setStopPriceInput(event.target.value)}
+                inputMode="decimal"
+                placeholder="Optional"
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700">
+                Target Price
+              </label>
+
+              <input
+                value={targetPriceInput}
+                onChange={(event) => setTargetPriceInput(event.target.value)}
+                inputMode="decimal"
+                placeholder="Optional"
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="text-sm font-medium text-slate-700">
+              Proposed Trade Date and Time
+            </label>
+
+            <input
+              type="datetime-local"
+              value={dateTraded}
+              onChange={(event) => setDateTraded(event.target.value)}
+              step="60"
+              className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+            />
+          </div>
+          {tradeAction === "SHORT" ? (
+            <div className="mt-4">
+              <label className="text-sm font-medium text-slate-700">
+                Short Locate Number
+                <span className="ml-1 text-rose-600">*</span>
+              </label>
+
+              <input
+                value={shortLocateNumber}
+                onChange={(event) => setShortLocateNumber(event.target.value)}
+                required
+                autoComplete="off"
+                placeholder="Enter short locate number"
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+              />
+
+              <p className="mt-1 text-xs text-slate-500">
+                Required for short trades. The locate number will be appended to
+                the saved trade note.
+              </p>
+            </div>
+          ) : null}
+          <div className="mt-4">
+            <label className="text-sm font-medium text-slate-700">
+              Trade Note
+            </label>
+
+            <textarea
+              value={comment}
+              onChange={(event) => setComment(event.target.value)}
+              placeholder="Optional rationale or scenario note..."
+              className="mt-2 h-20 w-full resize-none rounded-2xl border border-slate-200 p-4 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleReset}
+            className="mt-5 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Reset Scenario
+          </button>
+        </section>
+
+        <section className="min-w-0 space-y-4">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Projected Trade Impact
+                </p>
+
+                <h3 className="mt-1 text-lg font-semibold text-slate-950">
+                  {security.ticker} {tradeAction} Scenario
+                </h3>
+
+                <p className="mt-1 text-sm text-slate-500">{scenarioSummary}</p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Badge
+                  tone={
+                    result.projectedSide === "SHORT"
+                      ? "red"
+                      : result.projectedSide === "LONG"
+                        ? "green"
+                        : "slate"
+                  }
+                >
+                  {getSideLabel(result.projectedSide)}
+                </Badge>
+
+                <Badge tone="blue">
+                  {sizingMode.replace("_", " ").toLowerCase()}
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          <div
+            className={`overflow-hidden rounded-2xl border shadow-sm ${
+              tradeAction === "SELL" || tradeAction === "SHORT"
+                ? "border-rose-300 bg-rose-50"
+                : "border-emerald-300 bg-emerald-50"
+            }`}
+          >
+            <div
+              className={`px-5 py-2 text-xs font-bold uppercase tracking-widest ${
+                tradeAction === "SELL" || tradeAction === "SHORT"
+                  ? "bg-rose-600 text-white"
+                  : "bg-emerald-700 text-white"
+              }`}
+            >
+              Proposed Shares
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-5">
+              <div>
+                <p
+                  className={`text-3xl font-bold tabular-nums tracking-tight ${
+                    tradeAction === "SELL" || tradeAction === "SHORT"
+                      ? "text-rose-900"
+                      : "text-emerald-900"
+                  }`}
+                >
+                  {formatWholeShares(result.proposedShares)}
+                </p>
+
+                <p
+                  className={`mt-1 text-sm font-semibold ${
+                    tradeAction === "SELL" || tradeAction === "SHORT"
+                      ? "text-rose-700"
+                      : "text-emerald-700"
+                  }`}
+                >
+                  {tradeAction} {security.ticker} shares
+                </p>
+              </div>
+
+              <div className="text-left sm:text-right">
+                <p
+                  className={`text-xs font-semibold uppercase tracking-wide ${
+                    tradeAction === "SELL" || tradeAction === "SHORT"
+                      ? "text-rose-700"
+                      : "text-emerald-700"
+                  }`}
+                >
+                  Estimated Trade Notional
+                </p>
+
+                <p
+                  className={`mt-1 text-xl font-bold tabular-nums ${
+                    tradeAction === "SELL" || tradeAction === "SHORT"
+                      ? "text-rose-900"
+                      : "text-emerald-900"
+                  }`}
+                >
+                  {formatMoney(result.proposedNotional)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
+            <ResultCard
+              label="Trade Notional"
+              value={formatMoney(result.proposedNotional)}
+              detail="Shares Ã— estimated price"
+            />
+
+            <ResultCard
+              label="Projected Position"
+              value={
+                <span>
+                  {formatWholeShares(result.projectedExposure)}{" "}
+                  <span className="text-sm text-slate-500">
+                    {getSideLabel(result.projectedSide)}
+                  </span>
+                </span>
+              }
+              detail="Position after proposed trade"
+            />
+
+            <ResultCard
+              label="Position Change"
+              value={result.exposureChangeLabel}
+              detail="Change in absolute exposure"
+              valueClassName={valueClass(result.exposureChangePct)}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+            <ResultCard
+              label="Projected Market Value"
+              value={formatMoney(result.projectedMarketValue)}
+              detail="Projected exposure Ã— price"
+            />
+
+            <ResultCard
+              label="Projected Weight"
+              value={formatPercent(result.projectedPortfolioWeightPct)}
+              detail="Projected market value Ã· Net Equity"
+            />
+
+            <ResultCard
+              label="Weight Change"
+              value={formatPercent(result.portfolioWeightChangePctPoints, true)}
+              detail="Percentage-point change"
+              valueClassName={valueClass(result.portfolioWeightChangePctPoints)}
+            />
+
+            <ResultCard
+              label="Estimated Cash Flow"
+              value={formatSignedMoney(result.estimatedCashFlow)}
+              detail="Negative uses cash; positive adds cash"
+              valueClassName={valueClass(result.estimatedCashFlow)}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+            <ResultCard
+              label="Estimated Blended WAP"
+              value={formatPrice(result.estimatedBlendedWap)}
+              detail={
+                result.blendedWapIsAvailable
+                  ? "Estimated after a same-side add"
+                  : "Unavailable for this scenario"
+              }
+            />
+
+            <ResultCard
+              label="Current Wells Weight"
+              value={formatPercent(result.currentPortfolioWeightPct)}
+              detail="Wells market value Ã· Net Equity"
+            />
+
+            <ResultCard
+              label="Baseline Exposure"
+              value={
+                <span>
+                  {formatNumber(result.baselineExposure)}{" "}
+                  <span className="text-sm text-slate-500">
+                    {getSideLabel(result.baselineSide)}
+                  </span>
+                </span>
+              }
+              detail="Selected pre-trade baseline"
+            />
+
+            <ResultCard
+              label="Execution Price"
+              value={formatPrice(toInputNumber(estimatedPriceInput))}
+              detail="Scenario assumption"
+            />
+          </div>
+          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Risk / Reward
+            </p>
+
+            <div className="mt-4 grid grid-cols-2 gap-4 xl:grid-cols-3">
+              <ResultCard
+                label="Risk Per Share"
+                value={formatPrice(result.riskPerShare)}
+                detail="Execution to stop"
+              />
+
+              <ResultCard
+                label="Total Risk"
+                value={formatMoney(result.totalRisk)}
+                detail="Proposed shares Ã— risk/share"
+              />
+
+              <ResultCard
+                label="Portfolio Risk"
+                value={formatPercent(result.portfolioRiskPct)}
+                detail="Total risk Ã· Net Equity"
+              />
+
+              <ResultCard
+                label="Potential Reward"
+                value={formatMoney(result.totalReward)}
+                detail="Proposed shares Ã— reward/share"
+              />
+
+              <ResultCard
+                label="Reward / Risk"
+                value={
+                  result.rewardRiskRatio != null
+                    ? `${result.rewardRiskRatio.toFixed(2)}x`
+                    : "â€”"
+                }
+                detail="Potential reward Ã· total risk"
+              />
+
+              <ResultCard
+                label="Target Move"
+                value={formatPercent(result.targetMovePct, true)}
+                detail="Execution to target"
+                valueClassName={valueClass(result.targetMovePct)}
+              />
+            </div>
+          </section>
+        </section>
+      </div>
+
+      {submissionMessage ? (
+        <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-700">
+          {submissionMessage}
+        </section>
+      ) : null}
+      <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">
+              Calculation Only
+            </p>
+
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              This scenario has not created a trade or changed
+              Wells-authoritative records. Review the calculated trade before
+              any Manual Pending record is created.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSubmissionError("");
+              setQueueSubmissionError("");
+              setSubmissionMessage("");
+              setIsReviewOpen(true);
+            }}
+            disabled={!result?.canCreateDraft}
+            className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+          >
+            Review &amp; Add Trade
+          </button>
+        </div>
+      </section>
+
+      <ManualTradeReviewModal
+        open={isReviewOpen}
+        draft={result.draft}
+        result={result}
+        baselineLabel={
+          baselineMode === "WELLS"
+            ? "Wells-only scenario basis"
+            : "Wells plus pending manual trades"
+        }
+        canSubmit={canSubmitManualTrade}
+        isSubmitting={isSubmitting}
+        isQueueSubmitting={isQueueSubmitting}
+        submissionError={submissionError}
+        queueSubmissionError={queueSubmissionError}
+        onClose={() => {
+          if (isSubmitting || isQueueSubmitting) {
+            return;
+          }
+
+          setSubmissionError("");
+          setQueueSubmissionError("");
+          setIsReviewOpen(false);
+        }}
+        onSubmit={handleSubmitTrade}
+        onQueueSubmit={handleSubmitQueue}
+      />
+    </div>
+  );
+}
+
+
+================================================================================
+FILE: components\trade-calculator\ManualTradeReviewModal.tsx
+================================================================================
+"use client";
+
+import Badge from "@/components/common/Badge";
+import LocalDateTime from "@/components/common/LocalDateTime";
+import type {
+  ManualTradeDraft,
+  TradeCalculatorResult,
+} from "@/lib/trade-calculator/trade-calculator";
+
+type ManualTradeReviewModalProps = {
+  open: boolean;
+  draft: ManualTradeDraft | null;
+  result: TradeCalculatorResult;
+  baselineLabel: string;
+  canSubmit: boolean;
+  isSubmitting: boolean;
+  isQueueSubmitting: boolean;
+  submissionError: string;
+  queueSubmissionError: string;
+  onClose: () => void;
+  onSubmit: () => Promise<void>;
+  onQueueSubmit: () => Promise<void>;
+};
+function formatMoney(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
+    return "—";
+  }
+
+  return value.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
+
+function formatPrice(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
+    return "—";
+  }
+
+  return value.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function formatNumber(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
+    return "—";
+  }
+
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4,
+  });
+}
+
+function formatWholeShares(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
+    return "—";
+  }
+
+  return Math.round(value).toLocaleString("en-US", {
+    maximumFractionDigits: 0,
+  });
+}
+
+function formatPercent(value: number | null | undefined, includeSign = false) {
+  if (value == null || !Number.isFinite(value)) {
+    return "—";
+  }
+
+  const sign = includeSign && value > 0 ? "+" : "";
+
+  return `${sign}${value.toFixed(2)}%`;
+}
+
+function formatSide(side: "LONG" | "SHORT" | "FLAT") {
+  if (side === "LONG") {
+    return "Long";
+  }
+
+  if (side === "SHORT") {
+    return "Short";
+  }
+
+  return "Flat";
+}
+
+function ReviewValue({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: React.ReactNode;
+  detail?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+
+      <div className="mt-2 font-semibold text-slate-950">{value}</div>
+
+      {detail ? (
+        <p className="mt-1 text-xs leading-5 text-slate-500">{detail}</p>
+      ) : null}
+    </div>
+  );
+}
+
+export default function ManualTradeReviewModal({
+  open,
+  draft,
+  result,
+  baselineLabel,
+  canSubmit,
+  isSubmitting,
+  isQueueSubmitting,
+  submissionError,
+  queueSubmissionError,
+  onClose,
+  onSubmit,
+  onQueueSubmit,
+}: ManualTradeReviewModalProps) {
+  if (!open || !draft) {
+    return null;
+  }
+
+  const isBusy = isSubmitting || isQueueSubmitting;
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
+      <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 p-6">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-2xl font-semibold text-slate-950">
+                Review Manual Trade
+              </h2>
+
+              <Badge
+                tone={
+                  draft.tradeType === "SELL" || draft.tradeType === "SHORT"
+                    ? "red"
+                    : "green"
+                }
+              >
+                {draft.tradeType}
+              </Badge>
+
+              <Badge tone="amber">Manual Pending</Badge>
+            </div>
+
+            <p className="mt-1 text-sm text-slate-500">
+              {draft.ticker} - {draft.companyName}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isBusy}
+            className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="flex-1 space-y-5 overflow-auto p-6">
+          <section>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Proposed Trade
+            </p>
+
+            <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-3">
+              <ReviewValue
+                label="Security"
+                value={draft.ticker}
+                detail={draft.companyName}
+              />
+
+              <ReviewValue
+                label="Action"
+                value={draft.tradeType}
+                detail="Manual trade classification"
+              />
+
+              <ReviewValue
+                label="Shares"
+                value={formatWholeShares(draft.shares)}
+                detail="Positive submitted quantity"
+              />
+
+              <ReviewValue
+                label="Estimated Price"
+                value={formatPrice(draft.avgPrice)}
+                detail="Scenario execution price"
+              />
+
+              <ReviewValue
+                label="Estimated Notional"
+                value={formatMoney(result.proposedNotional)}
+                detail="Shares — estimated price"
+              />
+
+              <ReviewValue
+                label="Trade Date and Time"
+                value={<LocalDateTime value={draft.dateTraded} />}
+                detail="Stored as an exact timestamp"
+              />
+              {draft.tradeType === "SHORT" ? (
+                <ReviewValue
+                  label="Short Locate Number"
+                  value={draft.shortLocateNumber || "—"}
+                  detail="Required locate reference"
+                />
+              ) : null}
+            </div>
+          </section>
+
+          <section>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Position Impact
+            </p>
+
+            <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-4">
+              <ReviewValue
+                label="Wells Position"
+                value={
+                  <span>
+                    {formatNumber(result.wellsExposure)}{" "}
+                    <span className="text-sm text-slate-500">
+                      {formatSide(result.wellsSide)}
+                    </span>
+                  </span>
+                }
+                detail="Authoritative current exposure"
+              />
+
+              <ReviewValue
+                label="Selected Baseline"
+                value={
+                  <span>
+                    {formatNumber(result.baselineExposure)}{" "}
+                    <span className="text-sm text-slate-500">
+                      {formatSide(result.baselineSide)}
+                    </span>
+                  </span>
+                }
+                detail={baselineLabel}
+              />
+
+              <ReviewValue
+                label="Projected Position"
+                value={
+                  <span>
+                    {formatNumber(result.projectedExposure)}{" "}
+                    <span className="text-sm text-slate-500">
+                      {formatSide(result.projectedSide)}
+                    </span>
+                  </span>
+                }
+                detail="After the proposed trade"
+              />
+
+              <ReviewValue
+                label="Position Change"
+                value={result.exposureChangeLabel}
+                detail="Change in absolute exposure"
+              />
+
+              <ReviewValue
+                label="Current Wells Weight"
+                value={formatPercent(result.currentPortfolioWeightPct)}
+                detail="Wells market value ÷ Net Equity"
+              />
+
+              <ReviewValue
+                label="Projected Weight"
+                value={formatPercent(result.projectedPortfolioWeightPct)}
+                detail="Projected market value ÷ Net Equity"
+              />
+
+              <ReviewValue
+                label="Weight Change"
+                value={formatPercent(
+                  result.portfolioWeightChangePctPoints,
+                  true,
+                )}
+                detail="Percentage-point change"
+              />
+
+              <ReviewValue
+                label="Estimated Cash Flow"
+                value={formatMoney(result.estimatedCashFlow)}
+                detail={
+                  result.estimatedCashFlow != null &&
+                  result.estimatedCashFlow < 0
+                    ? "Estimated cash use"
+                    : "Estimated cash proceeds"
+                }
+              />
+            </div>
+          </section>
+
+          <section>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Scenario Risk and Reward
+            </p>
+
+            <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-5">
+              <ReviewValue
+                label="Risk Per Share"
+                value={formatPrice(result.riskPerShare)}
+                detail="Execution to stop"
+              />
+
+              <ReviewValue
+                label="Total Risk"
+                value={formatMoney(result.totalRisk)}
+                detail="Scenario estimate"
+              />
+
+              <ReviewValue
+                label="Portfolio Risk"
+                value={formatPercent(result.portfolioRiskPct)}
+                detail="Risk · projected gross portfolio"
+              />
+
+              <ReviewValue
+                label="Potential Reward"
+                value={formatMoney(result.totalReward)}
+                detail="Scenario estimate"
+              />
+
+              <ReviewValue
+                label="Reward / Risk"
+                value={
+                  result.rewardRiskRatio != null
+                    ? `${result.rewardRiskRatio.toFixed(2)}x`
+                    : "—"
+                }
+                detail="Reward divided by risk"
+              />
+            </div>
+          </section>
+
+          {draft.comment ? (
+            <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Trade Note
+              </p>
+
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                {draft.comment}
+              </p>
+            </section>
+          ) : null}
+
+          {result.warnings.length > 0 ? (
+            <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <p className="text-sm font-semibold text-amber-900">
+                Scenario Notes
+              </p>
+
+              <ul className="mt-2 space-y-1 text-sm leading-6 text-amber-800">
+                {result.warnings.map((warning) => (
+                  <li key={warning}>â€¢ {warning}</li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          <section className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm leading-6 text-violet-800">
+            <p className="font-semibold">Manual trade boundary</p>
+
+            <p className="mt-1">
+              Adding this trade will create a Manual Pending record for later
+              Wells reconciliation. This action does not place a broker order
+              and does not modify the Wells-authoritative position, WAP, market
+              value, portfolio weight, tax lots, or P&amp;L.
+            </p>
+            {!canSubmit ? (
+              <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+                <p className="font-semibold text-slate-900">Calculation Only</p>
+
+                <p className="mt-1">
+                  Your current role may calculate and review trade scenarios but
+                  cannot create Manual Pending trades.
+                </p>
+              </section>
+            ) : null}
+
+            {submissionError ? (
+              <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700">
+                {submissionError}
+              </section>
+            ) : null}
+
+            {queueSubmissionError ? (
+              <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700">
+                {queueSubmissionError}
+              </section>
+            ) : null}
+
+            <p className="mt-2">
+              Stop and target prices are scenario assumptions only and will not
+              be saved with the trade.
+            </p>
+          </section>
+        </div>
+
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-white p-4">
+          <p className="text-xs text-slate-500">
+            {canSubmit
+              ? "Create a Manual Pending trade now, or preserve this reviewed draft in the Trade Queue."
+              : "Your current role has calculation-only access."}
+          </p>
+
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isBusy}
+              className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Back to Calculator
+            </button>
+
+            <button
+              type="button"
+              onClick={onQueueSubmit}
+              disabled={!canSubmit || isBusy}
+              className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-medium text-violet-700 hover:bg-violet-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+            >
+              {isQueueSubmitting
+                ? "Adding to Queue..."
+                : canSubmit
+                  ? "Add Trade to Queue"
+                  : "Calculation Only"}
+            </button>
+
+            <button
+              type="button"
+              onClick={onSubmit}
+              disabled={!canSubmit || isBusy}
+              className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+            >
+              {isSubmitting
+                ? "Adding Trade..."
+                : canSubmit
+                  ? "Add Manual Trade"
+                  : "Calculation Only"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+================================================================================
+FILE: lib\trades\manual-trade-service.ts
+================================================================================
+import "server-only";
+
+import type { Prisma } from "@prisma/client";
+
+export const MANUAL_TRADE_ORIGINS = [
+  "DASHBOARD",
+  "TRADE_CALCULATOR",
+  "TRADE_QUEUE",
+] as const;
+
+export type ManualTradeOrigin = (typeof MANUAL_TRADE_ORIGINS)[number];
+
+export type CreateManualPendingTradeInput = {
+  actorId: string;
+  securityId: string;
+  securityTicker: string;
+  positionId: string | null;
+  tradeType: "BUY" | "SELL" | "SHORT" | "COVER";
+  shares: number;
+  avgPrice: number;
+  dateTraded: Date;
+  comment: string | null;
+  shortLocateNumber: string | null;
+  origin: ManualTradeOrigin;
+};
+
+export class ManualTradeCreationError extends Error {}
+
+function requirePositiveFiniteNumber(value: number, fieldName: string) {
+  if (!Number.isFinite(value)) {
+    throw new ManualTradeCreationError(`${fieldName} must be a valid number.`);
+  }
+
+  if (value <= 0) {
+    throw new ManualTradeCreationError(
+      `${fieldName} must be greater than zero.`,
+    );
+  }
+
+  return value;
+}
+
+function buildSavedComment({
+  tradeType,
+  comment,
+  shortLocateNumber,
+}: {
+  tradeType: CreateManualPendingTradeInput["tradeType"];
+  comment: string | null;
+  shortLocateNumber: string | null;
+}) {
+  const normalizedComment = comment?.trim() || null;
+  const normalizedShortLocateNumber = shortLocateNumber?.trim() || null;
+
+  if (tradeType === "SHORT" && !normalizedShortLocateNumber) {
+    throw new ManualTradeCreationError(
+      "Short Locate Number is required for a short trade.",
+    );
+  }
+
+  const shortLocateNote =
+    tradeType === "SHORT" && normalizedShortLocateNumber
+      ? `Short Locate Number: ${normalizedShortLocateNumber}`
+      : null;
+
+  if (normalizedComment && shortLocateNote) {
+    return `${normalizedComment}\n\n${shortLocateNote}`;
+  }
+
+  return normalizedComment || shortLocateNote || null;
+}
+
+function getSignedShares({
+  tradeType,
+  shares,
+}: {
+  tradeType: CreateManualPendingTradeInput["tradeType"];
+  shares: number;
+}) {
+  const positiveShares = requirePositiveFiniteNumber(shares, "Shares");
+
+  if (tradeType === "SELL" || tradeType === "SHORT") {
+    return -Math.abs(positiveShares);
+  }
+
+  return Math.abs(positiveShares);
+}
+
+export async function createManualPendingTrade(
+  tx: Prisma.TransactionClient,
+  input: CreateManualPendingTradeInput,
+) {
+  const avgPrice = requirePositiveFiniteNumber(input.avgPrice, "Average price");
+
+  if (Number.isNaN(input.dateTraded.getTime())) {
+    throw new ManualTradeCreationError("Trade date and time must be valid.");
+  }
+
+  const shortLocateNumber = input.shortLocateNumber?.trim() || null;
+
+  const comment = buildSavedComment({
+    tradeType: input.tradeType,
+    comment: input.comment,
+    shortLocateNumber,
+  });
+
+  const shares = getSignedShares({
+    tradeType: input.tradeType,
+    shares: input.shares,
+  });
+
+  const createdTrade = await tx.trade.create({
+    data: {
+      securityId: input.securityId,
+      positionId: input.positionId,
+      dateTraded: input.dateTraded,
+      shares,
+      avgPrice,
+      tradeType: input.tradeType,
+      notional: shares * avgPrice,
+      comment,
+      source: "MANUAL",
+      reconciliationStatus: "MANUAL_PENDING",
+      manualEnteredById: input.actorId,
+      isHidden: false,
+    },
+    include: {
+      security: true,
+    },
+  });
+
+  await tx.auditLog.create({
+    data: {
+      actorId: input.actorId,
+      action: "MANUAL_TRADE_CREATED",
+      entityType: "TRADE",
+      entityId: createdTrade.id,
+      newValueJson: JSON.stringify({
+        securityId: input.securityId,
+        ticker: input.securityTicker,
+        positionId: input.positionId,
+        tradeType: input.tradeType,
+        shares,
+        avgPrice,
+        notional: createdTrade.notional,
+        dateTraded: input.dateTraded,
+        comment,
+        shortLocateNumber,
+        source: createdTrade.source,
+        reconciliationStatus: createdTrade.reconciliationStatus,
+        origin: input.origin,
+      }),
+    },
+  });
+
+  return createdTrade;
+}
+
+
+================================================================================
+FILE: app\api\trades\manual\route.ts
+================================================================================
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+import {
+  createManualPendingTrade,
+  MANUAL_TRADE_ORIGINS,
+  ManualTradeCreationError,
+  type ManualTradeOrigin,
+} from "@/lib/trades/manual-trade-service";
+import { prisma } from "@/lib/prisma";
+
+const VALID_TRADE_TYPES = ["BUY", "SELL", "SHORT", "COVER"] as const;
+
+type ValidTradeType = (typeof VALID_TRADE_TYPES)[number];
+
+class RequestValidationError extends Error {}
+
+function parsePositiveNumber(value: unknown, fieldName: string) {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed)) {
+    throw new RequestValidationError(`${fieldName} must be a valid number.`);
+  }
+
+  if (parsed <= 0) {
+    throw new RequestValidationError(`${fieldName} must be greater than zero.`);
+  }
+
+  return parsed;
+}
+
+function parseTradeType(value: unknown): ValidTradeType {
+  const tradeType = String(value || "")
+    .trim()
+    .toUpperCase();
+
+  if (!VALID_TRADE_TYPES.includes(tradeType as ValidTradeType)) {
+    throw new RequestValidationError(
+      "Trade type must be BUY, SELL, SHORT, or COVER.",
+    );
+  }
+
+  return tradeType as ValidTradeType;
+}
+
+function parseOrigin(value: unknown): ManualTradeOrigin {
+  if (value === null || value === undefined || value === "") {
+    return "DASHBOARD";
+  }
+
+  const origin = String(value).trim().toUpperCase();
+
+  if (!MANUAL_TRADE_ORIGINS.includes(origin as ManualTradeOrigin)) {
+    throw new RequestValidationError(
+      "Trade origin must be DASHBOARD, TRADE_CALCULATOR, or TRADE_QUEUE.",
+    );
+  }
+
+  return origin as ManualTradeOrigin;
+}
+
+function parseShortLocateNumber(value: unknown) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const locateNumber = String(value).trim();
+
+  if (!locateNumber) {
+    return null;
+  }
+
+  if (locateNumber.length > 200) {
+    throw new RequestValidationError(
+      "Short Locate Number must be 200 characters or fewer.",
+    );
+  }
+
+  return locateNumber;
+}
+
+function parseTradeDate(value: unknown) {
+  if (value === null || value === undefined || value === "") {
+    return new Date();
+  }
+
+  const parsedDate = new Date(String(value));
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    throw new RequestValidationError("Trade date and time must be valid.");
+  }
+
+  return parsedDate;
+}
+
+function canLogManualTrade(role?: string | null) {
+  return ["ADMIN", "TRADER", "PM"].includes(role || "");
+}
+
+export async function POST(request: Request) {
+  try {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          error: "Authentication required.",
+        },
+        {
+          status: 401,
+        },
+      );
+    }
+
+    if (!canLogManualTrade(currentUser.role)) {
+      return NextResponse.json(
+        {
+          error: "You do not have permission to log trades.",
+        },
+        {
+          status: 403,
+        },
+      );
+    }
+
+    const body = await request.json();
+
+    const securityId = String(body.securityId || "").trim();
+
+    const positionId = body.positionId ? String(body.positionId).trim() : null;
+
+    if (!securityId) {
+      return NextResponse.json(
+        {
+          error: "securityId is required.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    const tradeType = parseTradeType(body.tradeType);
+
+    const shares = parsePositiveNumber(body.shares, "Shares");
+
+    const avgPrice = parsePositiveNumber(body.avgPrice, "Average price");
+
+    const dateTraded = parseTradeDate(body.dateTraded);
+
+    const origin = parseOrigin(body.origin);
+
+    const userComment = body.comment ? String(body.comment).trim() : null;
+
+    const shortLocateNumber = parseShortLocateNumber(body.shortLocateNumber);
+
+    if (tradeType === "SHORT" && !shortLocateNumber) {
+      throw new RequestValidationError(
+        "Short Locate Number is required for a short trade.",
+      );
+    }
+
+    const security = await prisma.security.findUnique({
+      where: {
+        id: securityId,
+      },
+      select: {
+        id: true,
+        ticker: true,
+        name: true,
+      },
+    });
+
+    if (!security) {
+      return NextResponse.json(
+        {
+          error: "Security not found.",
+        },
+        {
+          status: 404,
+        },
+      );
+    }
+
+    if (positionId) {
+      const position = await prisma.position.findUnique({
+        where: {
+          id: positionId,
+        },
+        select: {
+          id: true,
+          securityId: true,
+          status: true,
+        },
+      });
+
+      if (!position) {
+        return NextResponse.json(
+          {
+            error: "Position not found.",
+          },
+          {
+            status: 404,
+          },
+        );
+      }
+
+      if (position.securityId !== securityId) {
+        return NextResponse.json(
+          {
+            error:
+              "The selected position does not belong to the selected Security.",
+          },
+          {
+            status: 400,
+          },
+        );
+      }
+
+      if (position.status !== "ACTIVE") {
+        return NextResponse.json(
+          {
+            error: "Manual trades can only be added to an active position.",
+          },
+          {
+            status: 409,
+          },
+        );
+      }
+    }
+
+    const trade = await prisma.$transaction(async (tx) =>
+      createManualPendingTrade(tx, {
+        actorId: currentUser.id,
+        securityId,
+        securityTicker: security.ticker,
+        positionId,
+        tradeType,
+        shares,
+        avgPrice,
+        dateTraded,
+        comment: userComment,
+        shortLocateNumber,
+        origin,
+      }),
+    );
+
+    return NextResponse.json(
+      {
+        trade,
+      },
+      {
+        status: 201,
+      },
+    );
+  } catch (error) {
+    if (
+      error instanceof RequestValidationError ||
+      error instanceof ManualTradeCreationError
+    ) {
+      return NextResponse.json(
+        {
+          error: error.message,
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    if (error instanceof SyntaxError) {
+      return NextResponse.json(
+        {
+          error: "Request body must be valid JSON.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    console.error("POST /api/trades/manual failed", error);
+
+    return NextResponse.json(
+      {
+        error: "Failed to create manual trade.",
+      },
+      {
+        status: 500,
+      },
+    );
+  }
+}
+
+
+================================================================================
+FILE: app\api\trade-queue\route.ts
+================================================================================
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+const VALID_TRADE_TYPES = ["BUY", "SELL", "SHORT", "COVER"] as const;
+
+type ValidTradeType = (typeof VALID_TRADE_TYPES)[number];
+
+class RequestValidationError extends Error {}
+
+function parseRequiredId(value: unknown, fieldName: string) {
+  const parsedValue = String(value || "").trim();
+
+  if (!parsedValue) {
+    throw new RequestValidationError(`${fieldName} is required.`);
+  }
+
+  return parsedValue;
+}
+
+function parsePositiveNumber(value: unknown, fieldName: string) {
+  const parsedValue = Number(value);
+
+  if (!Number.isFinite(parsedValue)) {
+    throw new RequestValidationError(`${fieldName} must be a valid number.`);
+  }
+
+  if (parsedValue <= 0) {
+    throw new RequestValidationError(`${fieldName} must be greater than zero.`);
+  }
+
+  return parsedValue;
+}
+
+function parseTradeType(value: unknown): ValidTradeType {
+  const tradeType = String(value || "")
+    .trim()
+    .toUpperCase();
+
+  if (!VALID_TRADE_TYPES.includes(tradeType as ValidTradeType)) {
+    throw new RequestValidationError(
+      "Trade type must be BUY, SELL, SHORT, or COVER.",
+    );
+  }
+
+  return tradeType as ValidTradeType;
+}
+
+function parseProposedTradeAt(value: unknown) {
+  if (value === null || value === undefined || value === "") {
+    throw new RequestValidationError(
+      "Proposed trade date and time are required.",
+    );
+  }
+
+  const proposedTradeAt = new Date(String(value));
+
+  if (Number.isNaN(proposedTradeAt.getTime())) {
+    throw new RequestValidationError(
+      "Proposed trade date and time must be valid.",
+    );
+  }
+
+  return proposedTradeAt;
+}
+
+function parseOptionalComment(value: unknown) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const comment = String(value).trim();
+
+  if (!comment) {
+    return null;
+  }
+
+  if (comment.length > 5000) {
+    throw new RequestValidationError(
+      "Comment must be 5,000 characters or fewer.",
+    );
+  }
+
+  return comment;
+}
+
+function parseShortLocateNumber(value: unknown) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const shortLocateNumber = String(value).trim();
+
+  if (!shortLocateNumber) {
+    return null;
+  }
+
+  if (shortLocateNumber.length > 200) {
+    throw new RequestValidationError(
+      "Short Locate Number must be 200 characters or fewer.",
+    );
+  }
+
+  return shortLocateNumber;
+}
+
+function canLogManualTrade(role?: string | null) {
+  return ["ADMIN", "TRADER", "PM"].includes(role || "");
+}
+
+export async function POST(request: Request) {
+  try {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          error: "Authentication required.",
+        },
+        {
+          status: 401,
+        },
+      );
+    }
+
+    if (!canLogManualTrade(currentUser.role)) {
+      return NextResponse.json(
+        {
+          error: "You do not have permission to add trades to the queue.",
+        },
+        {
+          status: 403,
+        },
+      );
+    }
+
+    const body = await request.json();
+
+    const securityId = parseRequiredId(body.securityId, "securityId");
+
+    const positionId = parseRequiredId(body.positionId, "positionId");
+
+    const tradeType = parseTradeType(body.tradeType);
+
+    const shares = parsePositiveNumber(body.shares, "Shares");
+
+    const executionPrice = parsePositiveNumber(
+      body.executionPrice,
+      "Execution price",
+    );
+
+    const proposedTradeAt = parseProposedTradeAt(body.proposedTradeAt);
+
+    const comment = parseOptionalComment(body.comment);
+
+    const shortLocateNumber = parseShortLocateNumber(body.shortLocateNumber);
+
+    if (tradeType === "SHORT" && !shortLocateNumber) {
+      throw new RequestValidationError(
+        "Short Locate Number is required for a short trade.",
+      );
+    }
+
+    const security = await prisma.security.findUnique({
+      where: {
+        id: securityId,
+      },
+      select: {
+        id: true,
+        ticker: true,
+        name: true,
+      },
+    });
+
+    if (!security) {
+      return NextResponse.json(
+        {
+          error: "Security not found.",
+        },
+        {
+          status: 404,
+        },
+      );
+    }
+
+    const position = await prisma.position.findUnique({
+      where: {
+        id: positionId,
+      },
+      select: {
+        id: true,
+        securityId: true,
+        status: true,
+      },
+    });
+
+    if (!position) {
+      return NextResponse.json(
+        {
+          error: "Position not found.",
+        },
+        {
+          status: 404,
+        },
+      );
+    }
+
+    if (position.securityId !== securityId) {
+      return NextResponse.json(
+        {
+          error:
+            "The selected position does not belong to the selected Security.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    if (position.status !== "ACTIVE") {
+      return NextResponse.json(
+        {
+          error: "Trades can only be queued for an active position.",
+        },
+        {
+          status: 409,
+        },
+      );
+    }
+
+    const queueItem = await prisma.$transaction(async (tx) => {
+      const createdQueueItem = await tx.tradeQueueItem.create({
+        data: {
+          securityId,
+          positionId,
+          createdById: currentUser.id,
+          tradeType,
+          shares,
+          executionPrice,
+          proposedTradeAt,
+          comment,
+          shortLocateNumber,
+          status: "QUEUED",
+        },
+        include: {
+          security: true,
+          position: true,
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId: currentUser.id,
+          action: "TRADE_QUEUE_CREATED",
+          entityType: "TRADE_QUEUE_ITEM",
+          entityId: createdQueueItem.id,
+          newValueJson: JSON.stringify({
+            tradeQueueItemId: createdQueueItem.id,
+            securityId,
+            ticker: security.ticker,
+            positionId,
+            tradeType,
+            shares,
+            executionPrice,
+            proposedTradeAt,
+            comment,
+            shortLocateNumber,
+            status: createdQueueItem.status,
+            createdById: currentUser.id,
+            origin: "TRADE_CALCULATOR",
+          }),
+        },
+      });
+
+      return createdQueueItem;
+    });
+
+    return NextResponse.json(
+      {
+        queueItem,
+      },
+      {
+        status: 201,
+      },
+    );
+  } catch (error) {
+    if (error instanceof RequestValidationError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    if (error instanceof SyntaxError) {
+      return NextResponse.json(
+        {
+          error: "Request body must be valid JSON.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    console.error("POST /api/trade-queue failed", error);
+
+    return NextResponse.json(
+      {
+        error: "Failed to add trade to the queue.",
+      },
+      {
+        status: 500,
+      },
+    );
+  }
+}
+
+
+================================================================================
+FILE: app\api\trade-queue\[id]\route.ts
+================================================================================
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+const EDITABLE_STATUSES = ["QUEUED", "TRIGGERED"] as const;
+
+class RequestValidationError extends Error {}
+
+function canLogManualTrade(role?: string | null) {
+  return ["ADMIN", "TRADER", "PM"].includes(role || "");
+}
+
+function parsePositiveNumber(value: unknown, fieldName: string) {
+  const parsedValue = Number(value);
+
+  if (!Number.isFinite(parsedValue)) {
+    throw new RequestValidationError(`${fieldName} must be a valid number.`);
+  }
+
+  if (parsedValue <= 0) {
+    throw new RequestValidationError(`${fieldName} must be greater than zero.`);
+  }
+
+  return parsedValue;
+}
+
+function parseProposedTradeAt(value: unknown) {
+  if (value === null || value === undefined || value === "") {
+    throw new RequestValidationError(
+      "Proposed trade date and time are required.",
+    );
+  }
+
+  const proposedTradeAt = new Date(String(value));
+
+  if (Number.isNaN(proposedTradeAt.getTime())) {
+    throw new RequestValidationError(
+      "Proposed trade date and time must be valid.",
+    );
+  }
+
+  return proposedTradeAt;
+}
+
+function parseOptionalComment(value: unknown) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const comment = String(value).trim();
+
+  if (!comment) {
+    return null;
+  }
+
+  if (comment.length > 5000) {
+    throw new RequestValidationError(
+      "Comment must be 5,000 characters or fewer.",
+    );
+  }
+
+  return comment;
+}
+
+function parseShortLocateNumber(value: unknown) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const shortLocateNumber = String(value).trim();
+
+  if (!shortLocateNumber) {
+    return null;
+  }
+
+  if (shortLocateNumber.length > 200) {
+    throw new RequestValidationError(
+      "Short Locate Number must be 200 characters or fewer.",
+    );
+  }
+
+  return shortLocateNumber;
+}
+
+export async function PATCH(
+  request: Request,
+  context: {
+    params: Promise<{
+      id: string;
+    }>;
+  },
+) {
+  try {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          error: "Authentication required.",
+        },
+        {
+          status: 401,
+        },
+      );
+    }
+
+    if (!canLogManualTrade(currentUser.role)) {
+      return NextResponse.json(
+        {
+          error: "You do not have permission to edit queued trades.",
+        },
+        {
+          status: 403,
+        },
+      );
+    }
+
+    const { id } = await context.params;
+    const queueItemId = String(id || "").trim();
+
+    if (!queueItemId) {
+      return NextResponse.json(
+        {
+          error: "Trade Queue item ID is required.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    const body = await request.json();
+
+    const shares = parsePositiveNumber(body.shares, "Shares");
+    const executionPrice = parsePositiveNumber(
+      body.executionPrice,
+      "Execution price",
+    );
+    const proposedTradeAt = parseProposedTradeAt(body.proposedTradeAt);
+    const comment = parseOptionalComment(body.comment);
+    const shortLocateNumber = parseShortLocateNumber(body.shortLocateNumber);
+
+    const existingQueueItem = await prisma.tradeQueueItem.findUnique({
+      where: {
+        id: queueItemId,
+      },
+      select: {
+        id: true,
+        securityId: true,
+        positionId: true,
+        tradeType: true,
+        shares: true,
+        executionPrice: true,
+        proposedTradeAt: true,
+        comment: true,
+        shortLocateNumber: true,
+        status: true,
+        triggeredAt: true,
+        executedTradeId: true,
+        executedAt: true,
+        canceledAt: true,
+      },
+    });
+
+    if (!existingQueueItem) {
+      return NextResponse.json(
+        {
+          error: "Trade Queue item not found.",
+        },
+        {
+          status: 404,
+        },
+      );
+    }
+
+    if (
+      !EDITABLE_STATUSES.includes(
+        existingQueueItem.status as (typeof EDITABLE_STATUSES)[number],
+      )
+    ) {
+      return NextResponse.json(
+        {
+          error: "Only queued or triggered Trade Queue items can be edited.",
+        },
+        {
+          status: 409,
+        },
+      );
+    }
+
+    if (existingQueueItem.tradeType === "SHORT" && !shortLocateNumber) {
+      throw new RequestValidationError(
+        "Short Locate Number is required for a short trade.",
+      );
+    }
+
+    const activePosition = await prisma.position.findFirst({
+      where: {
+        id: existingQueueItem.positionId,
+        securityId: existingQueueItem.securityId,
+        status: "ACTIVE",
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!activePosition) {
+      return NextResponse.json(
+        {
+          error:
+            "The Trade Queue item is no longer associated with an active position.",
+        },
+        {
+          status: 409,
+        },
+      );
+    }
+
+    const updatedQueueItem = await prisma.$transaction(async (tx) => {
+      const currentQueueItem = await tx.tradeQueueItem.findUnique({
+        where: {
+          id: queueItemId,
+        },
+        select: {
+          id: true,
+          securityId: true,
+          positionId: true,
+          tradeType: true,
+          shares: true,
+          executionPrice: true,
+          proposedTradeAt: true,
+          comment: true,
+          shortLocateNumber: true,
+          status: true,
+          triggeredAt: true,
+          executedTradeId: true,
+          executedAt: true,
+          canceledAt: true,
+        },
+      });
+
+      if (!currentQueueItem) {
+        throw new RequestValidationError("Trade Queue item no longer exists.");
+      }
+
+      if (
+        !EDITABLE_STATUSES.includes(
+          currentQueueItem.status as (typeof EDITABLE_STATUSES)[number],
+        )
+      ) {
+        throw new RequestValidationError(
+          "The Trade Queue item is no longer editable.",
+        );
+      }
+
+      const wasTriggered = currentQueueItem.status === "TRIGGERED";
+
+      if (wasTriggered) {
+        await tx.flag.updateMany({
+          where: {
+            tradeQueueItemId: queueItemId,
+            status: "OPEN",
+          },
+          data: {
+            status: "RESOLVED",
+            resolvedAt: new Date(),
+            resolvedById: currentUser.id,
+          },
+        });
+      }
+
+      const queueItem = await tx.tradeQueueItem.update({
+        where: {
+          id: queueItemId,
+        },
+        data: {
+          shares,
+          executionPrice,
+          proposedTradeAt,
+          comment,
+          shortLocateNumber,
+          status: wasTriggered ? "QUEUED" : currentQueueItem.status,
+          triggeredAt: wasTriggered ? null : currentQueueItem.triggeredAt,
+        },
+        include: {
+          security: {
+            include: {
+              marketData: {
+                take: 1,
+                orderBy: {
+                  updatedAt: "desc",
+                },
+              },
+            },
+          },
+          position: {
+            select: {
+              id: true,
+              securityId: true,
+              side: true,
+              status: true,
+              shares: true,
+              marketValue: true,
+              source: true,
+              accountNumber: true,
+            },
+          },
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId: currentUser.id,
+          action: "TRADE_QUEUE_UPDATED",
+          entityType: "TRADE_QUEUE_ITEM",
+          entityId: queueItem.id,
+          previousValueJson: JSON.stringify({
+            shares: currentQueueItem.shares,
+            executionPrice: currentQueueItem.executionPrice,
+            proposedTradeAt: currentQueueItem.proposedTradeAt,
+            comment: currentQueueItem.comment,
+            shortLocateNumber: currentQueueItem.shortLocateNumber,
+            status: currentQueueItem.status,
+            triggeredAt: currentQueueItem.triggeredAt,
+          }),
+          newValueJson: JSON.stringify({
+            shares: queueItem.shares,
+            executionPrice: queueItem.executionPrice,
+            proposedTradeAt: queueItem.proposedTradeAt,
+            comment: queueItem.comment,
+            shortLocateNumber: queueItem.shortLocateNumber,
+            status: queueItem.status,
+            triggeredAt: queueItem.triggeredAt,
+            resetFromTriggered: wasTriggered,
+          }),
+        },
+      });
+
+      return queueItem;
+    });
+
+    return NextResponse.json({
+      queueItem: updatedQueueItem,
+    });
+  } catch (error) {
+    if (error instanceof RequestValidationError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    if (error instanceof SyntaxError) {
+      return NextResponse.json(
+        {
+          error: "Request body must be valid JSON.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    console.error("PATCH /api/trade-queue/[id] failed", error);
+
+    return NextResponse.json(
+      {
+        error: "Failed to update the Trade Queue item.",
+      },
+      {
+        status: 500,
+      },
+    );
+  }
+}
+
+
+================================================================================
+FILE: app\api\trade-queue\[id]\execute\route.ts
+================================================================================
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import {
+  createManualPendingTrade,
+  ManualTradeCreationError,
+} from "@/lib/trades/manual-trade-service";
+
+const EXECUTABLE_STATUSES = ["QUEUED", "TRIGGERED"] as const;
+
+class RequestValidationError extends Error {}
+
+class QueueExecutionStateError extends Error {}
+
+function canLogManualTrade(role?: string | null) {
+  return ["ADMIN", "TRADER", "PM"].includes(role || "");
+}
+
+function parsePositiveNumber(value: unknown, fieldName: string) {
+  const parsedValue = Number(value);
+
+  if (!Number.isFinite(parsedValue)) {
+    throw new RequestValidationError(`${fieldName} must be a valid number.`);
+  }
+
+  if (parsedValue <= 0) {
+    throw new RequestValidationError(`${fieldName} must be greater than zero.`);
+  }
+
+  return parsedValue;
+}
+
+function parseTradeDate(value: unknown) {
+  if (value === null || value === undefined || value === "") {
+    throw new RequestValidationError(
+      "Actual trade date and time are required.",
+    );
+  }
+
+  const dateTraded = new Date(String(value));
+
+  if (Number.isNaN(dateTraded.getTime())) {
+    throw new RequestValidationError(
+      "Actual trade date and time must be valid.",
+    );
+  }
+
+  return dateTraded;
+}
+
+export async function POST(
+  request: Request,
+  context: {
+    params: Promise<{
+      id: string;
+    }>;
+  },
+) {
+  try {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          error: "Authentication required.",
+        },
+        {
+          status: 401,
+        },
+      );
+    }
+
+    if (!canLogManualTrade(currentUser.role)) {
+      return NextResponse.json(
+        {
+          error: "You do not have permission to execute queued trades.",
+        },
+        {
+          status: 403,
+        },
+      );
+    }
+
+    const { id } = await context.params;
+    const queueItemId = String(id || "").trim();
+
+    if (!queueItemId) {
+      return NextResponse.json(
+        {
+          error: "Trade Queue item ID is required.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    const body = await request.json();
+
+    const avgPrice = parsePositiveNumber(
+      body.avgPrice,
+      "Actual execution price",
+    );
+
+    const dateTraded = parseTradeDate(body.dateTraded);
+
+    const executionResult = await prisma.$transaction(async (tx) => {
+      const queueItem = await tx.tradeQueueItem.findUnique({
+        where: {
+          id: queueItemId,
+        },
+        select: {
+          id: true,
+          securityId: true,
+          positionId: true,
+          createdById: true,
+          executedTradeId: true,
+          tradeType: true,
+          shares: true,
+          executionPrice: true,
+          proposedTradeAt: true,
+          comment: true,
+          shortLocateNumber: true,
+          status: true,
+          triggeredAt: true,
+          executedAt: true,
+          canceledAt: true,
+          security: {
+            select: {
+              id: true,
+              ticker: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      if (!queueItem) {
+        throw new QueueExecutionStateError("Trade Queue item not found.");
+      }
+
+      if (
+        !EXECUTABLE_STATUSES.includes(
+          queueItem.status as (typeof EXECUTABLE_STATUSES)[number],
+        )
+      ) {
+        throw new QueueExecutionStateError(
+          "Only queued or triggered Trade Queue items can be executed.",
+        );
+      }
+
+      if (queueItem.executedTradeId) {
+        throw new QueueExecutionStateError(
+          "This Trade Queue item has already been linked to a Trade.",
+        );
+      }
+
+      const position = await tx.position.findUnique({
+        where: {
+          id: queueItem.positionId,
+        },
+        select: {
+          id: true,
+          securityId: true,
+          status: true,
+        },
+      });
+
+      if (!position) {
+        throw new QueueExecutionStateError(
+          "The Position associated with this Trade Queue item no longer exists.",
+        );
+      }
+
+      if (position.securityId !== queueItem.securityId) {
+        throw new QueueExecutionStateError(
+          "The Trade Queue item Position no longer belongs to its Security.",
+        );
+      }
+
+      if (position.status !== "ACTIVE") {
+        throw new QueueExecutionStateError(
+          "Queued trades can only be executed against an active Position.",
+        );
+      }
+
+      const createdTrade = await createManualPendingTrade(tx, {
+        actorId: currentUser.id,
+        securityId: queueItem.securityId,
+        securityTicker: queueItem.security.ticker,
+        positionId: queueItem.positionId,
+        tradeType: queueItem.tradeType as "BUY" | "SELL" | "SHORT" | "COVER",
+        shares: queueItem.shares,
+        avgPrice,
+        dateTraded,
+        comment: queueItem.comment,
+        shortLocateNumber: queueItem.shortLocateNumber,
+        origin: "TRADE_QUEUE",
+      });
+
+      const executedAt = new Date();
+
+      const queueUpdateResult = await tx.tradeQueueItem.updateMany({
+        where: {
+          id: queueItem.id,
+          status: {
+            in: ["QUEUED", "TRIGGERED"],
+          },
+          executedTradeId: null,
+          canceledAt: null,
+        },
+        data: {
+          status: "EXECUTED",
+          executedTradeId: createdTrade.id,
+          executedAt,
+        },
+      });
+
+      if (queueUpdateResult.count !== 1) {
+        throw new QueueExecutionStateError(
+          "The Trade Queue item changed state before execution could be completed.",
+        );
+      }
+
+      const resolvedQueueAlerts = await tx.flag.updateMany({
+        where: {
+          tradeQueueItemId: queueItem.id,
+          status: "OPEN",
+        },
+        data: {
+          status: "RESOLVED",
+          resolvedAt: executedAt,
+          resolvedById: currentUser.id,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId: currentUser.id,
+          action: "TRADE_QUEUE_EXECUTED",
+          entityType: "TRADE_QUEUE_ITEM",
+          entityId: queueItem.id,
+          previousValueJson: JSON.stringify({
+            status: queueItem.status,
+            executedTradeId: queueItem.executedTradeId,
+            executedAt: queueItem.executedAt,
+            triggeredAt: queueItem.triggeredAt,
+          }),
+          newValueJson: JSON.stringify({
+            status: "EXECUTED",
+            executedTradeId: createdTrade.id,
+            executedAt,
+            tradeType: queueItem.tradeType,
+            shares: queueItem.shares,
+            queuedExecutionPrice: queueItem.executionPrice,
+            actualExecutionPrice: avgPrice,
+            proposedTradeAt: queueItem.proposedTradeAt,
+            actualTradeAt: dateTraded,
+            resolvedQueueAlertCount: resolvedQueueAlerts.count,
+          }),
+        },
+      });
+
+      const updatedQueueItem = await tx.tradeQueueItem.findUnique({
+        where: {
+          id: queueItem.id,
+        },
+        include: {
+          security: {
+            include: {
+              marketData: {
+                take: 1,
+                orderBy: {
+                  updatedAt: "desc",
+                },
+              },
+            },
+          },
+          position: {
+            select: {
+              id: true,
+              securityId: true,
+              side: true,
+              status: true,
+              shares: true,
+              marketValue: true,
+              source: true,
+              accountNumber: true,
+            },
+          },
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+          executedTrade: {
+            include: {
+              security: true,
+            },
+          },
+        },
+      });
+
+      if (!updatedQueueItem) {
+        throw new QueueExecutionStateError(
+          "The executed Trade Queue item could not be reloaded.",
+        );
+      }
+
+      return {
+        queueItem: updatedQueueItem,
+        trade: createdTrade,
+      };
+    });
+
+    return NextResponse.json(executionResult, {
+      status: 201,
+    });
+  } catch (error) {
+    if (error instanceof QueueExecutionStateError) {
+      const status =
+        error.message === "Trade Queue item not found." ? 404 : 409;
+
+      return NextResponse.json(
+        {
+          error: error.message,
+        },
+        {
+          status,
+        },
+      );
+    }
+
+    if (
+      error instanceof RequestValidationError ||
+      error instanceof ManualTradeCreationError
+    ) {
+      return NextResponse.json(
+        {
+          error: error.message,
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    if (error instanceof SyntaxError) {
+      return NextResponse.json(
+        {
+          error: "Request body must be valid JSON.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    console.error("POST /api/trade-queue/[id]/execute failed", error);
+
+    return NextResponse.json(
+      {
+        error: "Failed to execute the Trade Queue item.",
+      },
+      {
+        status: 500,
+      },
+    );
+  }
+}
+
+
+================================================================================
+FILE: components\trades\TradeQueueSection.tsx
+================================================================================
+"use client";
+
+import { useEffect, useState } from "react";
+import Badge from "@/components/common/Badge";
+import LocalDateTime from "@/components/common/LocalDateTime";
+
+type TradeQueueSectionProps = {
+  queueItems: any[];
+  highlightedQueueItemId: string | null;
+  onQueueItemUpdated: (queueItem: any) => void;
+  onQueueItemCanceled: (queueItemId: string) => void;
+  onQueueItemExecuted: (queueItemId: string, trade: any) => void;
+};
+
+function toFiniteNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const parsedValue = Number(value);
+
+  return Number.isFinite(parsedValue) ? parsedValue : null;
+}
+
+function formatPrice(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
+    return "â€”";
+  }
+
+  return value.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function formatShares(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
+    return "â€”";
+  }
+
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4,
+  });
+}
+
+function formatDistance(value: number | null) {
+  if (value == null || !Number.isFinite(value)) {
+    return "â€”";
+  }
+
+  return `${value.toFixed(2)}%`;
+}
+
+function getLocalDateTimeInputValue(value: string | Date) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const timezoneOffsetMilliseconds = date.getTimezoneOffset() * 60 * 1000;
+
+  return new Date(date.getTime() - timezoneOffsetMilliseconds)
+    .toISOString()
+    .slice(0, 16);
+}
+
+function serializeLocalDateTime(value: string) {
+  if (!value) {
+    return null;
+  }
+
+  const parsedDate = new Date(value);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return null;
+  }
+
+  return parsedDate.toISOString();
+}
+
+function getWellsImpliedPrice(position: any) {
+  const shares = toFiniteNumber(position?.shares);
+  const marketValue = toFiniteNumber(position?.marketValue);
+
+  if (shares == null || marketValue == null || shares === 0) {
+    return null;
+  }
+
+  return Math.abs(marketValue / shares);
+}
+
+function getCurrentPrice(queueItem: any) {
+  const marketData = queueItem.security?.marketData?.[0];
+  const marketPrice = toFiniteNumber(marketData?.currentPrice);
+
+  if (marketPrice != null) {
+    return marketPrice;
+  }
+
+  return getWellsImpliedPrice(queueItem.position);
+}
+
+function getDistancePercent(
+  currentPrice: number | null,
+  executionPrice: number | null,
+) {
+  if (currentPrice == null || executionPrice == null || executionPrice <= 0) {
+    return null;
+  }
+
+  return (Math.abs(currentPrice - executionPrice) / executionPrice) * 100;
+}
+
+function getCreatorLabel(queueItem: any) {
+  return queueItem.createdBy?.name || queueItem.createdBy?.email || "Unknown";
+}
+
+function statusTone(status: string) {
+  if (status === "TRIGGERED") {
+    return "amber";
+  }
+
+  return "blue";
+}
+
+function actionTone(tradeType: string) {
+  if (tradeType === "SELL" || tradeType === "SHORT") {
+    return "red";
+  }
+
+  return "green";
+}
+
+function getThresholdDescription(
+  tradeType: string,
+  executionPrice: number | null,
+) {
+  const formattedExecutionPrice = formatPrice(executionPrice);
+
+  if (tradeType === "BUY" || tradeType === "COVER") {
+    return `Triggers when market price is at or below ${formattedExecutionPrice}.`;
+  }
+
+  return `Triggers when market price is at or above ${formattedExecutionPrice}.`;
+}
+
+function EditTradeQueueModal({
+  queueItem,
+  onClose,
+  onSaved,
+}: {
+  queueItem: any;
+  onClose: () => void;
+  onSaved: (queueItem: any) => void;
+}) {
+  const [sharesInput, setSharesInput] = useState(
+    String(queueItem.shares ?? ""),
+  );
+  const [executionPriceInput, setExecutionPriceInput] = useState(
+    String(queueItem.executionPrice ?? ""),
+  );
+  const [proposedTradeAtInput, setProposedTradeAtInput] = useState(
+    getLocalDateTimeInputValue(queueItem.proposedTradeAt),
+  );
+  const [commentInput, setCommentInput] = useState(queueItem.comment || "");
+  const [shortLocateNumberInput, setShortLocateNumberInput] = useState(
+    queueItem.shortLocateNumber || "",
+  );
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  async function handleSave() {
+    const shares = Number(sharesInput);
+    const executionPrice = Number(executionPriceInput);
+    const proposedTradeAt = serializeLocalDateTime(proposedTradeAtInput);
+
+    if (!Number.isFinite(shares) || shares <= 0) {
+      setSaveError("Shares must be greater than zero.");
+      return;
+    }
+
+    if (!Number.isFinite(executionPrice) || executionPrice <= 0) {
+      setSaveError("Execution price must be greater than zero.");
+      return;
+    }
+
+    if (!proposedTradeAt) {
+      setSaveError("Proposed trade date and time must be valid.");
+      return;
+    }
+
+    if (queueItem.tradeType === "SHORT" && !shortLocateNumberInput.trim()) {
+      setSaveError("Short Locate Number is required for a short trade.");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      setSaveError("");
+
+      const response = await fetch(`/api/trade-queue/${queueItem.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          shares,
+          executionPrice,
+          proposedTradeAt,
+          comment: commentInput,
+          shortLocateNumber: shortLocateNumberInput,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update the Trade Queue item.");
+      }
+
+      onSaved(data.queueItem);
+    } catch (error) {
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : "Failed to update the Trade Queue item.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
+      <div className="max-h-[92vh] w-full max-w-2xl overflow-auto rounded-3xl border border-slate-200 bg-white shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-6">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-xl font-semibold text-slate-950">
+                Edit Trade Queue Item
+              </h3>
+
+              <Badge tone={actionTone(queueItem.tradeType) as any}>
+                {queueItem.tradeType}
+              </Badge>
+
+              <Badge tone={statusTone(queueItem.status) as any}>
+                {queueItem.status}
+              </Badge>
+            </div>
+
+            <p className="mt-1 text-sm text-slate-500">
+              {queueItem.security?.ticker || "Unknown"} -{" "}
+              {queueItem.security?.name || "Unknown Security"}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSaving}
+            aria-label="Close edit modal"
+            className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            âœ•
+          </button>
+        </div>
+
+        <div className="space-y-5 p-6">
+          <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Immutable Trade Details
+            </p>
+
+            <div className="mt-3 grid grid-cols-3 gap-3">
+              <div className="rounded-xl border border-slate-200 bg-white p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Security
+                </p>
+                <p className="mt-1 font-semibold text-slate-950">
+                  {queueItem.security?.ticker || "â€”"}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Action
+                </p>
+                <p className="mt-1 font-semibold text-slate-950">
+                  {queueItem.tradeType}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Position
+                </p>
+                <p
+                  title={queueItem.position?.id || ""}
+                  className="mt-1 truncate font-semibold text-slate-950"
+                >
+                  {queueItem.position?.side || "â€”"}
+                  {queueItem.position?.accountNumber
+                    ? ` - ${queueItem.position.accountNumber}`
+                    : ""}
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-3 text-xs leading-5 text-slate-500">
+              Security, Position, and trade action cannot be changed. Cancel and
+              recreate the queue item if any of those details are incorrect.
+            </p>
+          </section>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-slate-700">
+                Shares
+              </label>
+
+              <input
+                value={sharesInput}
+                onChange={(event) => setSharesInput(event.target.value)}
+                disabled={isSaving}
+                inputMode="decimal"
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700">
+                Execution Price
+              </label>
+
+              <div className="relative mt-2">
+                <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm text-slate-400">
+                  $
+                </span>
+
+                <input
+                  value={executionPriceInput}
+                  onChange={(event) =>
+                    setExecutionPriceInput(event.target.value)
+                  }
+                  disabled={isSaving}
+                  inputMode="decimal"
+                  className="w-full rounded-2xl border border-slate-200 py-3 pl-8 pr-4 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
+                />
+              </div>
+
+              <p className="mt-1 text-xs text-slate-500">
+                This is the exact market-price threshold monitored for this
+                queued trade.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-slate-700">
+              Proposed Trade Date and Time
+            </label>
+
+            <input
+              type="datetime-local"
+              value={proposedTradeAtInput}
+              onChange={(event) => setProposedTradeAtInput(event.target.value)}
+              disabled={isSaving}
+              step="60"
+              className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
+            />
+          </div>
+
+          {queueItem.tradeType === "SHORT" ? (
+            <div>
+              <label className="text-sm font-medium text-slate-700">
+                Short Locate Number
+                <span className="ml-1 text-rose-600">*</span>
+              </label>
+
+              <input
+                value={shortLocateNumberInput}
+                onChange={(event) =>
+                  setShortLocateNumberInput(event.target.value)
+                }
+                disabled={isSaving}
+                required
+                autoComplete="off"
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
+              />
+            </div>
+          ) : null}
+
+          <div>
+            <label className="text-sm font-medium text-slate-700">
+              Trade Note
+            </label>
+
+            <textarea
+              value={commentInput}
+              onChange={(event) => setCommentInput(event.target.value)}
+              disabled={isSaving}
+              placeholder="Optional rationale or queue note..."
+              className="mt-2 h-28 w-full resize-none rounded-2xl border border-slate-200 p-4 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
+            />
+          </div>
+
+          {queueItem.status === "TRIGGERED" ? (
+            <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
+              Saving changes will reset this item to QUEUED, clear its prior
+              trigger timestamp, and resolve its old open queue alerts. The
+              revised execution price can then trigger a new alert later.
+            </section>
+          ) : null}
+
+          <section className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm leading-6 text-violet-800">
+            Editing this queue item does not create a Trade and does not change
+            Wells-authoritative Position values, WAP, market value, portfolio
+            weight, tax lots, or P&amp;L.
+          </section>
+
+          {saveError ? (
+            <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700">
+              {saveError}
+            </section>
+          ) : null}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-slate-200 p-4">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSaving}
+            className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            {isSaving ? "Saving..." : "Save Queue Item"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ExecuteTradeQueueModal({
+  queueItem,
+  onClose,
+  onExecuted,
+}: {
+  queueItem: any;
+  onClose: () => void;
+  onExecuted: (queueItemId: string, trade: any) => void;
+}) {
+  const [actualPriceInput, setActualPriceInput] = useState(
+    String(queueItem.executionPrice ?? ""),
+  );
+  const [actualTradeAtInput, setActualTradeAtInput] = useState(
+    getLocalDateTimeInputValue(queueItem.proposedTradeAt),
+  );
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [executionError, setExecutionError] = useState("");
+
+  const actualPrice = toFiniteNumber(actualPriceInput);
+  const queuedExecutionPrice = toFiniteNumber(queueItem.executionPrice);
+  const actualTradeAt = serializeLocalDateTime(actualTradeAtInput);
+
+  const estimatedNotional =
+    actualPrice != null && actualPrice > 0
+      ? Number(queueItem.shares) * actualPrice
+      : null;
+
+  async function handleExecute() {
+    if (actualPrice == null || actualPrice <= 0) {
+      setExecutionError("Actual execution price must be greater than zero.");
+      return;
+    }
+
+    if (!actualTradeAt) {
+      setExecutionError("Actual trade date and time must be valid.");
+      return;
+    }
+
+    try {
+      setIsExecuting(true);
+      setExecutionError("");
+
+      const response = await fetch(`/api/trade-queue/${queueItem.id}/execute`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          avgPrice: actualPrice,
+          dateTraded: actualTradeAt,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Failed to execute the Trade Queue item.",
+        );
+      }
+
+      if (!data.trade || !data.queueItem) {
+        throw new Error(
+          "The execution response did not include the created Trade.",
+        );
+      }
+
+      onExecuted(data.queueItem.id, data.trade);
+    } catch (error) {
+      setExecutionError(
+        error instanceof Error
+          ? error.message
+          : "Failed to execute the Trade Queue item.",
+      );
+    } finally {
+      setIsExecuting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
+      <div className="max-h-[92vh] w-full max-w-2xl overflow-auto rounded-3xl border border-slate-200 bg-white shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-6">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-xl font-semibold text-slate-950">
+                Confirm Trade Execution
+              </h3>
+
+              <Badge tone={actionTone(queueItem.tradeType) as any}>
+                {queueItem.tradeType}
+              </Badge>
+
+              <Badge tone={statusTone(queueItem.status) as any}>
+                {queueItem.status}
+              </Badge>
+            </div>
+
+            <p className="mt-1 text-sm text-slate-500">
+              {queueItem.security?.ticker || "Unknown"} -{" "}
+              {queueItem.security?.name || "Unknown Security"}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isExecuting}
+            aria-label="Close execution confirmation"
+            className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            âœ•
+          </button>
+        </div>
+
+        <div className="space-y-5 p-6">
+          <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Queued Trade
+            </p>
+
+            <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="rounded-xl border border-slate-200 bg-white p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Security
+                </p>
+
+                <p className="mt-1 font-semibold text-slate-950">
+                  {queueItem.security?.ticker || "â€”"}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Action
+                </p>
+
+                <p className="mt-1 font-semibold text-slate-950">
+                  {queueItem.tradeType}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Shares
+                </p>
+
+                <p className="mt-1 font-semibold tabular-nums text-slate-950">
+                  {formatShares(toFiniteNumber(queueItem.shares))}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Queue Status
+                </p>
+
+                <p className="mt-1 font-semibold text-slate-950">
+                  {queueItem.status}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Actual Fill Details
+            </p>
+
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              Adjust the execution price and timestamp to match the actual fill
+              before creating the Manual Pending Trade.
+            </p>
+
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Actual Execution Price
+                </label>
+
+                <div className="relative mt-2">
+                  <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm text-slate-400">
+                    $
+                  </span>
+
+                  <input
+                    value={actualPriceInput}
+                    onChange={(event) =>
+                      setActualPriceInput(event.target.value)
+                    }
+                    disabled={isExecuting}
+                    inputMode="decimal"
+                    className="w-full rounded-2xl border border-slate-200 py-3 pl-8 pr-4 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
+                  />
+                </div>
+
+                <p className="mt-1 text-xs text-slate-500">
+                  Queued threshold: {formatPrice(queuedExecutionPrice)}
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Actual Trade Date and Time
+                </label>
+
+                <input
+                  type="datetime-local"
+                  value={actualTradeAtInput}
+                  onChange={(event) =>
+                    setActualTradeAtInput(event.target.value)
+                  }
+                  disabled={isExecuting}
+                  step="60"
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
+                />
+
+                <p className="mt-1 text-xs text-slate-500">
+                  Initially populated from the proposed queue time.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-violet-200 bg-violet-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">
+              Execution Summary
+            </p>
+
+            <div className="mt-3 grid grid-cols-3 gap-3">
+              <div className="rounded-xl bg-white p-3 ring-1 ring-violet-100">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Signed Direction
+                </p>
+
+                <p className="mt-1 font-semibold text-slate-950">
+                  {queueItem.tradeType === "SELL" ||
+                  queueItem.tradeType === "SHORT"
+                    ? "Negative Shares"
+                    : "Positive Shares"}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-white p-3 ring-1 ring-violet-100">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Actual Price
+                </p>
+
+                <p className="mt-1 font-semibold tabular-nums text-slate-950">
+                  {formatPrice(actualPrice)}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-white p-3 ring-1 ring-violet-100">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Estimated Notional
+                </p>
+
+                <p className="mt-1 font-semibold tabular-nums text-slate-950">
+                  {formatPrice(estimatedNotional)}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {queueItem.comment ? (
+            <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Queue Note
+              </p>
+
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                {queueItem.comment}
+              </p>
+            </section>
+          ) : null}
+
+          {queueItem.tradeType === "SHORT" ? (
+            <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+                Short Locate Number
+              </p>
+
+              <p className="mt-2 text-sm font-semibold text-amber-900">
+                {queueItem.shortLocateNumber || "Missing"}
+              </p>
+            </section>
+          ) : null}
+
+          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
+            <p className="font-semibold">Manual Pending conversion</p>
+
+            <p className="mt-1">
+              Confirming this action will create a Manual Pending Trade for
+              Wells reconciliation, mark this queue item as EXECUTED, link the
+              Trade to the queue item, and resolve linked open queue alerts.
+            </p>
+          </section>
+
+          <section className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm leading-6 text-violet-800">
+            This action does not place a broker order and does not directly
+            modify Wells-authoritative Position shares, WAP, market value,
+            portfolio weight, cost basis, tax lots, or P&amp;L.
+          </section>
+
+          {executionError ? (
+            <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700">
+              {executionError}
+            </section>
+          ) : null}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 p-4">
+          <p className="text-xs text-slate-500">
+            This conversion is transactional and cannot be partially completed.
+          </p>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isExecuting}
+              className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Back to Queue
+            </button>
+
+            <button
+              type="button"
+              onClick={handleExecute}
+              disabled={isExecuting}
+              className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              {isExecuting ? "Adding Trade..." : "Confirm Add Trade"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function TradeQueueSection({
+  queueItems,
+  highlightedQueueItemId,
+  onQueueItemUpdated,
+  onQueueItemCanceled,
+  onQueueItemExecuted,
+}: TradeQueueSectionProps) {
+  const [editingQueueItem, setEditingQueueItem] = useState<any | null>(null);
+  const [executingQueueItem, setExecutingQueueItem] = useState<any | null>(
+    null,
+  );
+  const [confirmCancelQueueItemId, setConfirmCancelQueueItemId] = useState<
+    string | null
+  >(null);
+  const [cancelingQueueItemId, setCancelingQueueItemId] = useState<
+    string | null
+  >(null);
+  const [actionError, setActionError] = useState("");
+
+  useEffect(() => {
+    if (!highlightedQueueItemId) {
+      return;
+    }
+
+    const matchingQueueItem = queueItems.find(
+      (queueItem) => queueItem.id === highlightedQueueItemId,
+    );
+
+    if (!matchingQueueItem) {
+      return;
+    }
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      const queueItemElement = document.getElementById(
+        `trade-queue-item-${highlightedQueueItemId}`,
+      );
+
+      queueItemElement?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+    };
+  }, [highlightedQueueItemId, queueItems]);
+
+  useEffect(() => {
+    if (!confirmCancelQueueItemId) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setConfirmCancelQueueItemId(null);
+    }, 5000);
+
+    return () => clearTimeout(timeout);
+  }, [confirmCancelQueueItemId]);
+
+  async function handleCancelQueueItem(queueItemId: string) {
+    try {
+      setCancelingQueueItemId(queueItemId);
+      setActionError("");
+
+      const response = await fetch(`/api/trade-queue/${queueItemId}/cancel`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to cancel the Trade Queue item.");
+      }
+
+      onQueueItemCanceled(queueItemId);
+      setConfirmCancelQueueItemId(null);
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "Failed to cancel the Trade Queue item.",
+      );
+    } finally {
+      setCancelingQueueItemId(null);
+    }
+  }
+
+  function handleEditSaved(updatedQueueItem: any) {
+    onQueueItemUpdated(updatedQueueItem);
+    setEditingQueueItem(null);
+    setActionError("");
+  }
+
+  function handleExecutionCompleted(queueItemId: string, trade: any) {
+    onQueueItemExecuted(queueItemId, trade);
+    setExecutingQueueItem(null);
+    setConfirmCancelQueueItemId(null);
+    setActionError("");
+  }
+
+  return (
+    <>
+      <section className="mb-6 overflow-hidden rounded-3xl border border-violet-200 bg-white shadow-sm">
+        <div className="border-b border-violet-200 bg-violet-50 px-5 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-lg font-semibold text-slate-950">
+                  Trade Queue
+                </h3>
+
+                <Badge tone="blue">{queueItems.length} Active</Badge>
+              </div>
+
+              <p className="mt-1 text-sm text-violet-700">
+                Reviewed trades preserved for later execution. Queue items do
+                not modify Wells-authoritative positions.
+              </p>
+            </div>
+
+            <Badge tone="slate">Manual Review Workflow</Badge>
+          </div>
+        </div>
+
+        {highlightedQueueItemId &&
+        !queueItems.some(
+          (queueItem) => queueItem.id === highlightedQueueItemId,
+        ) ? (
+          <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-800">
+            The requested Trade Queue item is not currently active. It may have
+            been executed, canceled, or edited from another session.
+          </div>
+        ) : null}
+
+        {actionError ? (
+          <div className="border-b border-rose-200 bg-rose-50 px-5 py-3 text-sm font-medium text-rose-700">
+            {actionError}
+          </div>
+        ) : null}
+
+        {queueItems.length === 0 ? (
+          <div className="px-5 py-8 text-center">
+            <p className="text-sm font-medium text-slate-700">
+              No active queued trades
+            </p>
+
+            <p className="mt-1 text-xs text-slate-500">
+              Reviewed trades added from the Trade Calculator will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <div className="min-w-[1450px]">
+              <div className="grid grid-cols-[0.8fr_1.8fr_0.9fr_1fr_1fr_1fr_0.9fr_1fr_1.4fr_1.2fr_2fr_1.8fr] border-b border-slate-200 bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                <div>Ticker</div>
+                <div>Company</div>
+                <div>Action</div>
+                <div>Shares</div>
+                <div>Execution</div>
+                <div>Current</div>
+                <div>Distance</div>
+                <div>Status</div>
+                <div>Proposed Time</div>
+                <div>Creator</div>
+                <div>Note</div>
+                <div>Actions</div>
+              </div>
+
+              {queueItems.map((queueItem) => {
+                const executionPrice = toFiniteNumber(queueItem.executionPrice);
+                const currentPrice = getCurrentPrice(queueItem);
+                const distancePercent = getDistancePercent(
+                  currentPrice,
+                  executionPrice,
+                );
+                const isCanceling = cancelingQueueItemId === queueItem.id;
+                const isConfirmingCancel =
+                  confirmCancelQueueItemId === queueItem.id;
+
+                return (
+                  <div
+                    id={`trade-queue-item-${queueItem.id}`}
+                    key={queueItem.id}
+                    data-trade-queue-item-id={queueItem.id}
+                    className={`relative grid grid-cols-[0.8fr_1.8fr_0.9fr_1fr_1fr_1fr_0.9fr_1fr_1.4fr_1.2fr_2fr_1.8fr] items-center border-b px-4 py-3 text-xs transition-all duration-300 last:border-b-0 ${
+                      highlightedQueueItemId === queueItem.id
+                        ? "z-10 border-emerald-300 bg-emerald-50 ring-2 ring-inset ring-emerald-500 shadow-sm"
+                        : queueItem.status === "TRIGGERED"
+                          ? "border-slate-100 bg-amber-50 hover:bg-amber-100/60"
+                          : "border-slate-100 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="font-semibold text-slate-950">
+                      {queueItem.security?.ticker || "â€”"}
+                    </div>
+
+                    <div
+                      title={queueItem.security?.name || ""}
+                      className="truncate pr-3 text-slate-700"
+                    >
+                      {queueItem.security?.name || "â€”"}
+                    </div>
+
+                    <div>
+                      <Badge tone={actionTone(queueItem.tradeType) as any}>
+                        {queueItem.tradeType}
+                      </Badge>
+                    </div>
+
+                    <div className="tabular-nums text-slate-700">
+                      {formatShares(toFiniteNumber(queueItem.shares))}
+                    </div>
+
+                    <div
+                      className="tabular-nums text-slate-950"
+                      title={getThresholdDescription(
+                        queueItem.tradeType,
+                        executionPrice,
+                      )}
+                    >
+                      {formatPrice(executionPrice)}
+                    </div>
+
+                    <div className="tabular-nums text-slate-700">
+                      {formatPrice(currentPrice)}
+                    </div>
+
+                    <div className="tabular-nums text-violet-700">
+                      {formatDistance(distancePercent)}
+                    </div>
+
+                    <div>
+                      <Badge tone={statusTone(queueItem.status) as any}>
+                        {queueItem.status}
+                      </Badge>
+                    </div>
+
+                    <div>
+                      <LocalDateTime value={queueItem.proposedTradeAt} />
+                    </div>
+
+                    <div
+                      title={getCreatorLabel(queueItem)}
+                      className="truncate pr-3 text-slate-600"
+                    >
+                      {getCreatorLabel(queueItem)}
+                    </div>
+
+                    <div
+                      title={queueItem.comment || ""}
+                      className="truncate pr-3 text-slate-500"
+                    >
+                      {queueItem.comment || "â€”"}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActionError("");
+                          setConfirmCancelQueueItemId(null);
+                          setEditingQueueItem(null);
+                          setExecutingQueueItem(queueItem);
+                        }}
+                        disabled={isCanceling}
+                        className="rounded-xl bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Add Trade
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActionError("");
+                          setConfirmCancelQueueItemId(null);
+                          setEditingQueueItem(queueItem);
+                        }}
+                        disabled={isCanceling}
+                        className="rounded-xl bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Edit
+                      </button>
+
+                      {isCanceling ? (
+                        <span className="px-2 py-1 text-[11px] font-semibold text-slate-500">
+                          Canceling...
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActionError("");
+
+                            if (isConfirmingCancel) {
+                              void handleCancelQueueItem(queueItem.id);
+                              return;
+                            }
+
+                            setConfirmCancelQueueItemId(queueItem.id);
+                          }}
+                          className={`rounded-xl px-2 py-1 text-[11px] font-medium ${
+                            isConfirmingCancel
+                              ? "bg-rose-600 text-white hover:bg-rose-700"
+                              : "text-rose-600 hover:bg-rose-50"
+                          }`}
+                        >
+                          {isConfirmingCancel ? "Confirm Cancel" : "Cancel"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {editingQueueItem ? (
+        <EditTradeQueueModal
+          queueItem={editingQueueItem}
+          onClose={() => setEditingQueueItem(null)}
+          onSaved={handleEditSaved}
+        />
+      ) : null}
+      {executingQueueItem ? (
+        <ExecuteTradeQueueModal
+          queueItem={executingQueueItem}
+          onClose={() => setExecutingQueueItem(null)}
+          onExecuted={handleExecutionCompleted}
+        />
+      ) : null}
+    </>
+  );
+}
+

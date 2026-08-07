@@ -32,6 +32,16 @@ function parsePositiveNumber(value: unknown, fieldName: string) {
   return parsedValue;
 }
 
+function parsePositiveWholeNumber(value: unknown, fieldName: string) {
+  const parsedValue = parsePositiveNumber(value, fieldName);
+
+  if (!Number.isInteger(parsedValue)) {
+    throw new RequestValidationError(`${fieldName} must be a whole number.`);
+  }
+
+  return parsedValue;
+}
+
 function parseTradeType(value: unknown): ValidTradeType {
   const tradeType = String(value || "")
     .trim()
@@ -142,7 +152,7 @@ export async function POST(request: Request) {
 
     const tradeType = parseTradeType(body.tradeType);
 
-    const shares = parsePositiveNumber(body.shares, "Shares");
+    const shares = parsePositiveWholeNumber(body.shares, "Shares");
 
     const executionPrice = parsePositiveNumber(
       body.executionPrice,
@@ -155,9 +165,42 @@ export async function POST(request: Request) {
 
     const shortLocateNumber = parseShortLocateNumber(body.shortLocateNumber);
 
+    let shortAllocationShares: number | null = null;
+
+    if (tradeType === "SHORT") {
+      if (
+        body.shortAllocationShares === null ||
+        body.shortAllocationShares === undefined ||
+        body.shortAllocationShares === ""
+      ) {
+        throw new RequestValidationError(
+          "Short Allocation Shares are required for a short trade.",
+        );
+      }
+
+      shortAllocationShares = parsePositiveWholeNumber(
+        body.shortAllocationShares,
+        "Short Allocation Shares",
+      );
+    }
+
     if (tradeType === "SHORT" && !shortLocateNumber) {
       throw new RequestValidationError(
         "Short Locate Number is required for a short trade.",
+      );
+    }
+
+    if (
+      tradeType === "SHORT" &&
+      shortAllocationShares != null &&
+      shares > shortAllocationShares
+    ) {
+      throw new RequestValidationError(
+        `Proposed SHORT shares of ${shares.toLocaleString(
+          "en-US",
+        )} exceed the allocated ${shortAllocationShares.toLocaleString(
+          "en-US",
+        )} shares.`,
       );
     }
 
@@ -240,6 +283,7 @@ export async function POST(request: Request) {
           proposedTradeAt,
           comment,
           shortLocateNumber,
+          shortAllocationShares,
           status: "QUEUED",
         },
         include: {
@@ -273,6 +317,7 @@ export async function POST(request: Request) {
             proposedTradeAt,
             comment,
             shortLocateNumber,
+            shortAllocationShares,
             status: createdQueueItem.status,
             createdById: currentUser.id,
             origin: "TRADE_CALCULATOR",

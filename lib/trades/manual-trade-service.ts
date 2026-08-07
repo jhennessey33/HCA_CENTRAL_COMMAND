@@ -21,6 +21,7 @@ export type CreateManualPendingTradeInput = {
   dateTraded: Date;
   comment: string | null;
   shortLocateNumber: string | null;
+  shortAllocationShares: number | null;
   origin: ManualTradeOrigin;
 };
 
@@ -40,34 +41,62 @@ function requirePositiveFiniteNumber(value: number, fieldName: string) {
   return value;
 }
 
+function requirePositiveWholeNumber(value: number, fieldName: string) {
+  const parsedValue = requirePositiveFiniteNumber(value, fieldName);
+
+  if (!Number.isInteger(parsedValue)) {
+    throw new ManualTradeCreationError(`${fieldName} must be a whole number.`);
+  }
+
+  return parsedValue;
+}
+
 function buildSavedComment({
   tradeType,
   comment,
   shortLocateNumber,
+  shortAllocationShares,
 }: {
   tradeType: CreateManualPendingTradeInput["tradeType"];
   comment: string | null;
   shortLocateNumber: string | null;
+  shortAllocationShares: number | null;
 }) {
   const normalizedComment = comment?.trim() || null;
+
   const normalizedShortLocateNumber = shortLocateNumber?.trim() || null;
 
-  if (tradeType === "SHORT" && !normalizedShortLocateNumber) {
+  if (tradeType !== "SHORT") {
+    return normalizedComment;
+  }
+
+  if (!normalizedShortLocateNumber) {
     throw new ManualTradeCreationError(
       "Short Locate Number is required for a short trade.",
     );
   }
 
-  const shortLocateNote =
-    tradeType === "SHORT" && normalizedShortLocateNumber
-      ? `Short Locate Number: ${normalizedShortLocateNumber}`
-      : null;
-
-  if (normalizedComment && shortLocateNote) {
-    return `${normalizedComment}\n\n${shortLocateNote}`;
+  if (shortAllocationShares == null) {
+    throw new ManualTradeCreationError(
+      "Short Allocation Shares are required for a short trade.",
+    );
   }
 
-  return normalizedComment || shortLocateNote || null;
+  const validatedAllocation = requirePositiveWholeNumber(
+    shortAllocationShares,
+    "Short Allocation Shares",
+  );
+
+  const shortControlNote = [
+    `Short Locate Number: ${normalizedShortLocateNumber}`,
+    `Short Allocation Shares: ${validatedAllocation.toLocaleString("en-US")}`,
+  ].join("\n");
+
+  if (normalizedComment) {
+    return `${normalizedComment}\n\n${shortControlNote}`;
+  }
+
+  return shortControlNote;
 }
 
 function getSignedShares({
@@ -98,15 +127,47 @@ export async function createManualPendingTrade(
 
   const shortLocateNumber = input.shortLocateNumber?.trim() || null;
 
+  const positiveShares = requirePositiveWholeNumber(
+    Math.abs(input.shares),
+    "Shares",
+  );
+
+  const shortAllocationShares =
+    input.tradeType === "SHORT" ? input.shortAllocationShares : null;
+
+  if (input.tradeType === "SHORT") {
+    if (shortAllocationShares == null) {
+      throw new ManualTradeCreationError(
+        "Short Allocation Shares are required for a short trade.",
+      );
+    }
+
+    const validatedAllocation = requirePositiveWholeNumber(
+      shortAllocationShares,
+      "Short Allocation Shares",
+    );
+
+    if (positiveShares > validatedAllocation) {
+      throw new ManualTradeCreationError(
+        `Proposed SHORT shares of ${positiveShares.toLocaleString(
+          "en-US",
+        )} exceed the allocated ${validatedAllocation.toLocaleString(
+          "en-US",
+        )} shares.`,
+      );
+    }
+  }
+
   const comment = buildSavedComment({
     tradeType: input.tradeType,
     comment: input.comment,
     shortLocateNumber,
+    shortAllocationShares,
   });
 
   const shares = getSignedShares({
     tradeType: input.tradeType,
-    shares: input.shares,
+    shares: positiveShares,
   });
 
   const createdTrade = await tx.trade.create({
@@ -146,6 +207,7 @@ export async function createManualPendingTrade(
         dateTraded: input.dateTraded,
         comment,
         shortLocateNumber,
+        shortAllocationShares,
         source: createdTrade.source,
         reconciliationStatus: createdTrade.reconciliationStatus,
         origin: input.origin,

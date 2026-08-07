@@ -217,8 +217,7 @@ export default function TradeScenarioPanel({
     getDefaultAction(position?.side),
   );
 
-  const [sizingMode, setSizingMode] =
-    useState<TradeSizingMode>("AMOUNT_BPS");
+  const [sizingMode, setSizingMode] = useState<TradeSizingMode>("AMOUNT_BPS");
 
   const [sharesInput, setSharesInput] = useState("");
 
@@ -240,6 +239,9 @@ export default function TradeScenarioPanel({
   const [comment, setComment] = useState("");
 
   const [shortLocateNumber, setShortLocateNumber] = useState("");
+
+  const [shortAllocationSharesInput, setShortAllocationSharesInput] =
+    useState("");
 
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -265,7 +267,9 @@ export default function TradeScenarioPanel({
 
     setComment("");
     setShortLocateNumber("");
+    setShortAllocationSharesInput("");
     setIsReviewOpen(false);
+
     setIsSubmitting(false);
     setIsQueueSubmitting(false);
     setSubmissionError("");
@@ -321,6 +325,7 @@ export default function TradeScenarioPanel({
         dateTraded: serializedDateTraded,
         comment,
         shortLocateNumber,
+        shortAllocationShares: toInputNumber(shortAllocationSharesInput),
       }),
     [
       security,
@@ -343,6 +348,7 @@ export default function TradeScenarioPanel({
       serializedDateTraded,
       comment,
       shortLocateNumber,
+      shortAllocationSharesInput,
     ],
   );
   const scenarioActionLabel =
@@ -433,6 +439,7 @@ export default function TradeScenarioPanel({
     setComment("");
     setIsReviewOpen(false);
     setShortLocateNumber("");
+    setShortAllocationSharesInput("");
     setSubmissionError("");
     setQueueSubmissionError("");
     setSubmissionMessage("");
@@ -472,6 +479,7 @@ export default function TradeScenarioPanel({
           avgPrice: draft.avgPrice,
           comment: draft.comment,
           shortLocateNumber: draft.shortLocateNumber,
+          shortAllocationShares: draft.shortAllocationShares,
           origin: "TRADE_CALCULATOR",
         }),
       });
@@ -504,6 +512,7 @@ export default function TradeScenarioPanel({
 
       setComment("");
       setShortLocateNumber("");
+      setShortAllocationSharesInput("");
 
       setSubmissionMessage(
         `${draft.tradeType} ${draft.shares.toLocaleString("en-US")} shares of ${
@@ -558,6 +567,7 @@ export default function TradeScenarioPanel({
           proposedTradeAt: draft.dateTraded,
           comment: draft.comment,
           shortLocateNumber: draft.shortLocateNumber,
+          shortAllocationShares: draft.shortAllocationShares,
         }),
       });
 
@@ -583,6 +593,7 @@ export default function TradeScenarioPanel({
       setDateTraded(getLocalDateTimeInputValue());
       setComment("");
       setShortLocateNumber("");
+      setShortAllocationSharesInput("");
       setSubmissionMessage(
         `${draft.tradeType} ${draft.shares.toLocaleString(
           "en-US",
@@ -612,7 +623,9 @@ export default function TradeScenarioPanel({
   const showValidation =
     sizingInputIsStarted ||
     Boolean(stopPriceInput.trim()) ||
-    Boolean(targetPriceInput.trim());
+    Boolean(targetPriceInput.trim()) ||
+    Boolean(shortLocateNumber.trim()) ||
+    Boolean(shortAllocationSharesInput.trim());
 
   return (
     <div className="space-y-4">
@@ -876,28 +889,70 @@ export default function TradeScenarioPanel({
               className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
             />
           </div>
+
           {tradeAction === "SHORT" ? (
-            <div className="mt-4">
-              <label className="text-sm font-medium text-slate-700">
-                Short Locate Number
-                <span className="ml-1 text-rose-600">*</span>
-              </label>
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Short Locate Number
+                  <span className="ml-1 text-rose-600">*</span>
+                </label>
 
-              <input
-                value={shortLocateNumber}
-                onChange={(event) => setShortLocateNumber(event.target.value)}
-                required
-                autoComplete="off"
-                placeholder="Enter short locate number"
-                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
-              />
+                <input
+                  value={shortLocateNumber}
+                  onChange={(event) => setShortLocateNumber(event.target.value)}
+                  required
+                  autoComplete="off"
+                  placeholder="Enter short locate number"
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+                />
 
-              <p className="mt-1 text-xs text-slate-500">
-                Required for short trades. The locate number will be appended to
-                the saved trade note.
-              </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Required for short trades. The locate reference will be
+                  appended to the saved Trade note.
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Short Allocation Shares
+                  <span className="ml-1 text-rose-600">*</span>
+                </label>
+
+                <input
+                  value={shortAllocationSharesInput}
+                  onChange={(event) =>
+                    setShortAllocationSharesInput(event.target.value)
+                  }
+                  required
+                  autoComplete="off"
+                  inputMode="numeric"
+                  min="1"
+                  step="1"
+                  placeholder="Enter allocated shares"
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+                />
+
+                {result.proposedShares != null &&
+                toInputNumber(shortAllocationSharesInput) != null &&
+                result.proposedShares > Number(shortAllocationSharesInput) ? (
+                  <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium leading-5 text-amber-800">
+                    Proposed SHORT shares of{" "}
+                    {formatWholeShares(result.proposedShares)} exceed the
+                    allocated{" "}
+                    {formatWholeShares(Number(shortAllocationSharesInput))}{" "}
+                    shares.
+                  </p>
+                ) : null}
+
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  Required whole-share allocation from the short locate.
+                  Proposed SHORT shares cannot exceed this allocation.
+                </p>
+              </div>
             </div>
           ) : null}
+
           <div className="mt-4">
             <label className="text-sm font-medium text-slate-700">
               Trade Note

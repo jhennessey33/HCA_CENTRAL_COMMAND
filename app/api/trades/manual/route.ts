@@ -28,6 +28,16 @@ function parsePositiveNumber(value: unknown, fieldName: string) {
   return parsed;
 }
 
+function parsePositiveWholeNumber(value: unknown, fieldName: string) {
+  const parsedValue = parsePositiveNumber(value, fieldName);
+
+  if (!Number.isInteger(parsedValue)) {
+    throw new RequestValidationError(`${fieldName} must be a whole number.`);
+  }
+
+  return parsedValue;
+}
+
 function parseTradeType(value: unknown): ValidTradeType {
   const tradeType = String(value || "")
     .trim()
@@ -153,12 +163,24 @@ export async function POST(request: Request) {
 
     const shortLocateNumber = parseShortLocateNumber(body.shortLocateNumber);
 
-    if (tradeType === "SHORT" && !shortLocateNumber) {
-      throw new RequestValidationError(
-        "Short Locate Number is required for a short trade.",
+    let shortAllocationShares: number | null = null;
+
+    if (tradeType === "SHORT") {
+      if (
+        body.shortAllocationShares === null ||
+        body.shortAllocationShares === undefined ||
+        body.shortAllocationShares === ""
+      ) {
+        throw new RequestValidationError(
+          "Short Allocation Shares are required for a short trade.",
+        );
+      }
+
+      shortAllocationShares = parsePositiveWholeNumber(
+        body.shortAllocationShares,
+        "Short Allocation Shares",
       );
     }
-
     const security = await prisma.security.findUnique({
       where: {
         id: securityId,
@@ -240,6 +262,7 @@ export async function POST(request: Request) {
         dateTraded,
         comment: userComment,
         shortLocateNumber,
+        shortAllocationShares,
         origin,
       }),
     );
