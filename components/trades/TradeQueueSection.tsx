@@ -170,8 +170,44 @@ function EditTradeQueueModal({
   const [shortLocateNumberInput, setShortLocateNumberInput] = useState(
     queueItem.shortLocateNumber || "",
   );
+
+  const [shortAllocationSharesInput, setShortAllocationSharesInput] = useState(
+    queueItem.shortAllocationShares != null
+      ? String(queueItem.shortAllocationShares)
+      : "",
+  );
+
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+
+  const editedShares = Number(sharesInput);
+
+  const editedShortAllocationShares = Number(shortAllocationSharesInput);
+
+  const shortAllocationIsMissing =
+    queueItem.tradeType === "SHORT" && !shortAllocationSharesInput.trim();
+
+  const shortAllocationIsInvalid =
+    queueItem.tradeType === "SHORT" &&
+    Boolean(shortAllocationSharesInput.trim()) &&
+    (!Number.isFinite(editedShortAllocationShares) ||
+      editedShortAllocationShares <= 0 ||
+      !Number.isInteger(editedShortAllocationShares));
+
+  const shortAllocationIsExceeded =
+    queueItem.tradeType === "SHORT" &&
+    Number.isFinite(editedShares) &&
+    editedShares > 0 &&
+    Number.isFinite(editedShortAllocationShares) &&
+    editedShortAllocationShares > 0 &&
+    editedShares > editedShortAllocationShares;
+
+  const shortControlsAreInvalid =
+    queueItem.tradeType === "SHORT" &&
+    (!shortLocateNumberInput.trim() ||
+      shortAllocationIsMissing ||
+      shortAllocationIsInvalid ||
+      shortAllocationIsExceeded);
 
   async function handleSave() {
     const shares = Number(sharesInput);
@@ -197,6 +233,26 @@ function EditTradeQueueModal({
       setSaveError("Short Locate Number is required for a short trade.");
       return;
     }
+    if (queueItem.tradeType === "SHORT" && shortAllocationIsMissing) {
+      setSaveError("Short Allocation Shares are required for a short trade.");
+      return;
+    }
+
+    if (queueItem.tradeType === "SHORT" && shortAllocationIsInvalid) {
+      setSaveError("Short Allocation Shares must be a positive whole number.");
+      return;
+    }
+
+    if (queueItem.tradeType === "SHORT" && shortAllocationIsExceeded) {
+      setSaveError(
+        `Proposed SHORT shares of ${shares.toLocaleString(
+          "en-US",
+        )} exceed the allocated ${editedShortAllocationShares.toLocaleString(
+          "en-US",
+        )} shares.`,
+      );
+      return;
+    }
 
     try {
       setIsSaving(true);
@@ -214,6 +270,10 @@ function EditTradeQueueModal({
           proposedTradeAt,
           comment: commentInput,
           shortLocateNumber: shortLocateNumberInput,
+          shortAllocationShares:
+            queueItem.tradeType === "SHORT"
+              ? editedShortAllocationShares
+              : null,
         }),
       });
 
@@ -377,22 +437,62 @@ function EditTradeQueueModal({
           </div>
 
           {queueItem.tradeType === "SHORT" ? (
-            <div>
-              <label className="text-sm font-medium text-slate-700">
-                Short Locate Number
-                <span className="ml-1 text-rose-600">*</span>
-              </label>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Short Locate Number
+                  <span className="ml-1 text-rose-600">*</span>
+                </label>
 
-              <input
-                value={shortLocateNumberInput}
-                onChange={(event) =>
-                  setShortLocateNumberInput(event.target.value)
-                }
-                disabled={isSaving}
-                required
-                autoComplete="off"
-                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
-              />
+                <input
+                  value={shortLocateNumberInput}
+                  onChange={(event) =>
+                    setShortLocateNumberInput(event.target.value)
+                  }
+                  disabled={isSaving}
+                  required
+                  autoComplete="off"
+                  placeholder="Enter locate number"
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Short Allocation Shares
+                  <span className="ml-1 text-rose-600">*</span>
+                </label>
+
+                <input
+                  value={shortAllocationSharesInput}
+                  onChange={(event) =>
+                    setShortAllocationSharesInput(event.target.value)
+                  }
+                  disabled={isSaving}
+                  required
+                  autoComplete="off"
+                  inputMode="numeric"
+                  min="1"
+                  step="1"
+                  placeholder="Enter allocated shares"
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
+                />
+              </div>
+
+              {shortAllocationIsExceeded ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium leading-6 text-amber-800 md:col-span-2">
+                  Proposed SHORT shares of {formatShares(editedShares)} exceed
+                  the allocated {formatShares(editedShortAllocationShares)}{" "}
+                  shares. Reduce the queue quantity or increase the allocation
+                  before saving.
+                </div>
+              ) : null}
+
+              {shortAllocationIsInvalid ? (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm font-medium text-rose-700 md:col-span-2">
+                  Short Allocation Shares must be a positive whole number.
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -444,7 +544,7 @@ function EditTradeQueueModal({
           <button
             type="button"
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || shortControlsAreInvalid}
             className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
             {isSaving ? "Saving..." : "Save Queue Item"}
@@ -482,7 +582,27 @@ function ExecuteTradeQueueModal({
       ? Number(queueItem.shares) * actualPrice
       : null;
 
+  const queueShares = toFiniteNumber(queueItem.shares);
+
+  const shortAllocationShares = toFiniteNumber(queueItem.shortAllocationShares);
+
+  const shortExecutionIsInvalid =
+    queueItem.tradeType === "SHORT" &&
+    (!queueItem.shortLocateNumber?.trim() ||
+      shortAllocationShares == null ||
+      shortAllocationShares <= 0 ||
+      !Number.isInteger(shortAllocationShares) ||
+      queueShares == null ||
+      queueShares <= 0 ||
+      queueShares > shortAllocationShares);
+
   async function handleExecute() {
+    if (shortExecutionIsInvalid) {
+      setExecutionError(
+        "This SHORT queue item does not have a valid allocation covering its queued shares. Edit the queue item before execution.",
+      );
+      return;
+    }
     if (actualPrice == null || actualPrice <= 0) {
       setExecutionError("Actual execution price must be greater than zero.");
       return;
@@ -734,14 +854,45 @@ function ExecuteTradeQueueModal({
           ) : null}
 
           {queueItem.tradeType === "SHORT" ? (
-            <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
-                Short Locate Number
+            <section
+              className={`rounded-2xl border p-4 ${
+                shortExecutionIsInvalid
+                  ? "border-rose-200 bg-rose-50"
+                  : "border-amber-200 bg-amber-50"
+              }`}
+            >
+              <p
+                className={`text-xs font-semibold uppercase tracking-wide ${
+                  shortExecutionIsInvalid ? "text-rose-700" : "text-amber-700"
+                }`}
+              >
+                Short Locate Controls
               </p>
 
-              <p className="mt-2 text-sm font-semibold text-amber-900">
-                {queueItem.shortLocateNumber || "Missing"}
-              </p>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-slate-500">Locate Number</p>
+
+                  <p className="mt-1 text-sm font-semibold text-slate-950">
+                    {queueItem.shortLocateNumber || "Missing"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-slate-500">Allocation Shares</p>
+
+                  <p className="mt-1 text-sm font-semibold tabular-nums text-slate-950">
+                    {formatShares(shortAllocationShares)}
+                  </p>
+                </div>
+              </div>
+
+              {shortExecutionIsInvalid ? (
+                <p className="mt-3 text-sm font-medium leading-6 text-rose-700">
+                  The queued SHORT shares are not covered by a valid saved
+                  allocation. Return to the queue editor before execution.
+                </p>
+              ) : null}
             </section>
           ) : null}
 
@@ -786,7 +937,7 @@ function ExecuteTradeQueueModal({
             <button
               type="button"
               onClick={handleExecute}
-              disabled={isExecuting}
+              disabled={isExecuting || shortExecutionIsInvalid}
               className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               {isExecuting ? "Adding Trade..." : "Confirm Add Trade"}

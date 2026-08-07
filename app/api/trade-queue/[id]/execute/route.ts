@@ -121,6 +121,7 @@ export async function POST(
           proposedTradeAt: true,
           comment: true,
           shortLocateNumber: true,
+          shortAllocationShares: true,
           status: true,
           triggeredAt: true,
           executedAt: true,
@@ -184,6 +185,35 @@ export async function POST(
         );
       }
 
+      if (queueItem.tradeType === "SHORT") {
+        if (!queueItem.shortLocateNumber?.trim()) {
+          throw new QueueExecutionStateError(
+            "This SHORT queue item does not include a Short Locate Number. Edit the queue item before execution.",
+          );
+        }
+
+        if (
+          queueItem.shortAllocationShares == null ||
+          !Number.isFinite(queueItem.shortAllocationShares) ||
+          queueItem.shortAllocationShares <= 0 ||
+          !Number.isInteger(queueItem.shortAllocationShares)
+        ) {
+          throw new QueueExecutionStateError(
+            "This SHORT queue item does not include a valid Short Allocation Shares value. Edit the queue item before execution.",
+          );
+        }
+
+        if (queueItem.shares > queueItem.shortAllocationShares) {
+          throw new QueueExecutionStateError(
+            `Queued SHORT shares of ${queueItem.shares.toLocaleString(
+              "en-US",
+            )} exceed the allocated ${queueItem.shortAllocationShares.toLocaleString(
+              "en-US",
+            )} shares. Edit the queue item before execution.`,
+          );
+        }
+      }
+
       const createdTrade = await createManualPendingTrade(tx, {
         actorId: currentUser.id,
         securityId: queueItem.securityId,
@@ -195,6 +225,7 @@ export async function POST(
         dateTraded,
         comment: queueItem.comment,
         shortLocateNumber: queueItem.shortLocateNumber,
+        shortAllocationShares: queueItem.shortAllocationShares,
         origin: "TRADE_QUEUE",
       });
 
@@ -252,6 +283,8 @@ export async function POST(
             executedAt,
             tradeType: queueItem.tradeType,
             shares: queueItem.shares,
+            shortLocateNumber: queueItem.shortLocateNumber,
+            shortAllocationShares: queueItem.shortAllocationShares,
             queuedExecutionPrice: queueItem.executionPrice,
             actualExecutionPrice: avgPrice,
             proposedTradeAt: queueItem.proposedTradeAt,
