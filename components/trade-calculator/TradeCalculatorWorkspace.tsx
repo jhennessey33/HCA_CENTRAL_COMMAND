@@ -21,6 +21,22 @@ type TradeCalculatorWorkspaceProps = {
   fundEquitySnapshots: FundEquitySnapshot[];
 };
 
+type FinnhubSecurityOption = {
+  id: string;
+  ticker: string;
+  name: string;
+  sector: null;
+  industry: string | null;
+  marketData: Array<{
+    currentPrice: number;
+    marketDataSource: "FINNHUB";
+    snapshotAsOf: string;
+    updatedAt: string;
+  }>;
+  positions: [];
+  isExternalLookup: true;
+};
+
 function toFiniteNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === "") {
     return null;
@@ -143,7 +159,21 @@ export default function TradeCalculatorWorkspace({
 
   const [highlightedSecurityIndex, setHighlightedSecurityIndex] = useState(0);
 
+  const [remoteSecurities, setRemoteSecurities] = useState<
+    FinnhubSecurityOption[]
+  >([]);
+
+  const [isSecuritySearchLoading, setIsSecuritySearchLoading] = useState(false);
+
+  const [securitySearchError, setSecuritySearchError] = useState("");
+
+  const [isSecurityQuoteLoading, setIsSecurityQuoteLoading] = useState(false);
+
+  const [securityQuoteError, setSecurityQuoteError] = useState("");
+
   const securityComboboxRef = useRef<HTMLDivElement | null>(null);
+
+  const securityQuoteRequestRef = useRef(0);
 
   const [selectedSecurityId, setSelectedSecurityId] = useState("");
 
@@ -214,10 +244,78 @@ export default function TradeCalculatorWorkspace({
     setHighlightedSecurityIndex(0);
   }, [normalizedQuery]);
 
-  const filteredSecurities = useMemo(
-    () =>
-      localSecurities
-        .filter((security) => {
+  useEffect(() => {
+    if (!normalizedQuery || selectedSecurityId) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const query = securityQuery.trim();
+
+    const timeoutId = window.setTimeout(async () => {
+      setIsSecuritySearchLoading(true);
+      setSecuritySearchError("");
+
+      try {
+        const response = await fetch(
+          `/api/trade-calculator/security-search?q=${encodeURIComponent(query)}`,
+          {
+            credentials: "include",
+            signal: controller.signal,
+          },
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Unable to search securities.");
+        }
+
+        const results = Array.isArray(data.results) ? data.results : [];
+
+        setRemoteSecurities(
+          results.map(
+            (result: {
+              ticker: string;
+              name: string;
+              type: string | null;
+            }) => ({
+              id: `finnhub:${result.ticker}`,
+              ticker: result.ticker,
+              name: result.name,
+              sector: null,
+              industry: result.type,
+              marketData: [],
+              positions: [],
+              isExternalLookup: true,
+            }),
+          ),
+        );
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setRemoteSecurities([]);
+          setSecuritySearchError(
+            error instanceof Error
+              ? error.message
+              : "Unable to search securities.",
+          );
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsSecuritySearchLoading(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [normalizedQuery, securityQuery, selectedSecurityId]);
+
+  const filteredSecurities = useMemo(() => {
+    const localMatches = localSecurities
+      .filter((security) => {
           if (!normalizedQuery) {
             return true;
           }
@@ -234,9 +332,22 @@ export default function TradeCalculatorWorkspace({
 
           return searchable.includes(normalizedQuery);
         })
-        .slice(0, 50),
-    [localSecurities, normalizedQuery],
-  );
+      .slice(0, 50);
+
+    if (!normalizedQuery) {
+      return localMatches;
+    }
+
+    const localTickers = new Set(
+      localSecurities.map((security) => String(security.ticker).toUpperCase()),
+    );
+
+    const externalMatches = remoteSecurities.filter(
+      (security) => !localTickers.has(security.ticker.toUpperCase()),
+    );
+
+    return [...localMatches, ...externalMatches].slice(0, 50);
+  }, [localSecurities, normalizedQuery, remoteSecurities]);
 
   const selectedSecurity =
     localSecurities.find((security) => security.id === selectedSecurityId) ??
@@ -265,7 +376,7 @@ export default function TradeCalculatorWorkspace({
     setBaselineMode("WELLS_PLUS_PENDING");
   }, [selectedPositionId]);
 
-  const currentPrice = selectedPosition
+  const currentPrice = selectedSecurity
     ? getCurrentPrice(selectedSecurity, selectedPosition)
     : null;
 
@@ -339,14 +450,30 @@ export default function TradeCalculatorWorkspace({
       }),
     );
   }
-  function handleSecurityChange(securityId: string) {
+  async function handleSecurityChange(securityId: string) {
+    const securityOption =
+      filteredSecurities.find((security) => security.id === securityId) ??
+      localSecurities.find((security) => security.id === securityId);
+
+    if (!securityOption) {
+      return;
+    }
+
+    const quoteRequestId = securityQuoteRequestRef.current + 1;
+    securityQuoteRequestRef.current = quoteRequestId;
+
+    if (!localSecurities.some((security) => security.id === securityId)) {
+      setLocalSecurities((currentSecurities) => [
+        ...currentSecurities,
+        securityOption,
+      ]);
+    }
+
     setSelectedSecurityId(securityId);
 
     setSelectedPositionId("");
 
-    const selectedSecurity = localSecurities.find(
-      (security) => security.id === securityId,
-    );
+    const selectedSecurity = securityOption;
 
     setSecurityQuery(
       selectedSecurity
@@ -357,12 +484,88 @@ export default function TradeCalculatorWorkspace({
     setIsSecurityDropdownOpen(false);
 
     setHighlightedSecurityIndex(0);
+
+    setSecuritySearchError("");
+    setSecurityQuoteError("");
+
+    if (
+      Array.isArray(securityOption.positions) &&
+      securityOption.positions.length > 0
+    ) {
+      setIsSecurityQuoteLoading(false);
+      return;
+    }
+
+    setIsSecurityQuoteLoading(true);
+
+    try {
+      const response = await fetch(
+        `/api/trade-calculator/security-quote/${encodeURIComponent(
+          securityOption.ticker,
+        )}`,
+        { credentials: "include" },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to load the current price.");
+      }
+
+      const currentPrice = toFiniteNumber(data.currentPrice);
+
+      if (currentPrice == null || currentPrice <= 0) {
+        throw new Error("Finnhub did not return a valid current price.");
+      }
+
+      if (securityQuoteRequestRef.current !== quoteRequestId) {
+        return;
+      }
+
+      const quoteAsOf = String(data.asOf || new Date().toISOString());
+
+      setLocalSecurities((currentSecurities) =>
+        currentSecurities.map((security) =>
+          security.id === securityId
+            ? {
+                ...security,
+                marketData: [
+                  {
+                    currentPrice,
+                    marketDataSource: "FINNHUB",
+                    snapshotAsOf: quoteAsOf,
+                    updatedAt: quoteAsOf,
+                  },
+                ],
+              }
+            : security,
+        ),
+      );
+    } catch (error) {
+      if (securityQuoteRequestRef.current === quoteRequestId) {
+        setSecurityQuoteError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load the current price.",
+        );
+      }
+    } finally {
+      if (securityQuoteRequestRef.current === quoteRequestId) {
+        setIsSecurityQuoteLoading(false);
+      }
+    }
   }
 
   function handleClearSecurity() {
+    securityQuoteRequestRef.current += 1;
     setSelectedSecurityId("");
     setSelectedPositionId("");
     setSecurityQuery("");
+    setRemoteSecurities([]);
+    setIsSecuritySearchLoading(false);
+    setSecuritySearchError("");
+    setIsSecurityQuoteLoading(false);
+    setSecurityQuoteError("");
     setIsSecurityDropdownOpen(true);
     setHighlightedSecurityIndex(0);
   }
@@ -419,8 +622,8 @@ export default function TradeCalculatorWorkspace({
           </h3>
 
           <p className="mt-1 text-sm leading-6 text-slate-500">
-            Choose the Security and active Wells position that will form the
-            scenario baseline.
+            Search the portfolio or Finnhub. Existing positions use their Wells
+            baseline; new positions begin flat.
           </p>
         </div>
 
@@ -439,16 +642,22 @@ export default function TradeCalculatorWorkspace({
               }}
               onChange={(event) => {
                 setSecurityQuery(event.target.value);
+                setRemoteSecurities([]);
+                setIsSecuritySearchLoading(false);
+                setSecuritySearchError("");
 
                 if (selectedSecurityId) {
+                  securityQuoteRequestRef.current += 1;
                   setSelectedSecurityId("");
                   setSelectedPositionId("");
+                  setIsSecurityQuoteLoading(false);
+                  setSecurityQuoteError("");
                 }
 
                 setIsSecurityDropdownOpen(true);
               }}
               onKeyDown={handleSecurityKeyDown}
-              placeholder="Search ticker, company, sector, or industry..."
+              placeholder="Search portfolio or enter a ticker..."
               autoComplete="off"
               role="combobox"
               aria-expanded={isSecurityDropdownOpen}
@@ -515,7 +724,11 @@ export default function TradeCalculatorWorkspace({
                             {security.ticker}
                           </span>
 
-                          {security.sector ? (
+                          {security.isExternalLookup ? (
+                            <span className="rounded-lg bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                              Finnhub
+                            </span>
+                          ) : security.sector ? (
                             <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
                               {security.sector}
                             </span>
@@ -544,24 +757,41 @@ export default function TradeCalculatorWorkspace({
               ) : (
                 <div className="px-4 py-8 text-center">
                   <p className="text-sm font-medium text-slate-700">
-                    No securities matched
+                    {isSecuritySearchLoading
+                      ? "Searching Finnhub..."
+                      : securitySearchError
+                        ? "Security search unavailable"
+                        : "No securities matched"}
                   </p>
 
                   <p className="mt-1 text-xs text-slate-500">
-                    Try searching by ticker, company, sector, or industry.
+                    {securitySearchError ||
+                      "Try a ticker or company name from outside the portfolio."}
                   </p>
                 </div>
               )}
+
+              {filteredSecurities.length > 0 && isSecuritySearchLoading ? (
+                <p className="px-3 py-2 text-xs text-slate-400">
+                  Searching Finnhub for more matches...
+                </p>
+              ) : null}
+
+              {filteredSecurities.length > 0 && securitySearchError ? (
+                <p className="px-3 py-2 text-xs text-amber-700">
+                  {securitySearchError}
+                </p>
+              ) : null}
             </div>
           ) : null}
         </div>
 
-        {selectedSecurity && selectedPosition ? (
+        {selectedSecurity ? (
           <div className="mt-4">
             <SecuritySummaryCard
               ticker={selectedSecurity.ticker}
               name={selectedSecurity.name}
-              side={selectedPosition.side}
+              side={selectedPosition?.side ?? "NEW"}
               currentPrice={currentPrice}
               portfolioPct={wellsPortfolioWeight}
               marketValue={selectedPositionMarketValue}
@@ -570,8 +800,25 @@ export default function TradeCalculatorWorkspace({
                   ? Math.abs(selectedPositionShares)
                   : null
               }
-              asOfDate={latestFundEquitySnapshot?.asOfDate ?? null}
+              asOfDate={
+                selectedPosition
+                  ? (latestFundEquitySnapshot?.asOfDate ?? null)
+                  : null
+              }
             />
+          </div>
+        ) : null}
+
+        {selectedSecurity && isSecurityQuoteLoading ? (
+          <div className="mt-3 rounded-2xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
+            Loading the current Finnhub price for {selectedSecurity.ticker}...
+          </div>
+        ) : null}
+
+        {selectedSecurity && securityQuoteError ? (
+          <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+            {securityQuoteError} You can still enter an estimated execution
+            price manually.
           </div>
         ) : null}
 
@@ -600,10 +847,10 @@ export default function TradeCalculatorWorkspace({
 
         {selectedSecurity && selectedSecurityPositions.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
-            This Security does not currently have an active Wells position.
-            Calculation for new-position scenarios will be added in the next
-            calculator stage, but manual trade submission will remain
-            unavailable without an active position.
+            This Security does not currently have an active Wells position, so
+            the scenario starts from a flat baseline. Calculation is available,
+            but trade submission remains unavailable until an active position
+            exists.
           </div>
         ) : null}
 
@@ -660,22 +907,22 @@ export default function TradeCalculatorWorkspace({
               </h3>
 
               <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
-                HCA will load the Wells position, current market data, pending
-                manual trades, and portfolio weight basis.
+                HCA will use the Wells position when one exists, or start a new
+                position from zero. Finnhub supplies current prices for external
+                ticker lookups.
               </p>
             </div>
           </div>
-        ) : !selectedPosition ? (
+        ) : selectedSecurityPositions.length > 1 && !selectedPosition ? (
           <div className="flex min-h-[430px] items-center justify-center rounded-3xl border border-dashed border-amber-300 bg-amber-50 p-8 text-center">
             <div>
               <h3 className="text-lg font-semibold text-amber-900">
-                Active position required for this stage
+                Select an active position
               </h3>
 
               <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-amber-800">
-                Select an active Wells position when multiple positions exist.
-                If no active position exists, the new-position calculator
-                workflow will be enabled in the next stage.
+                This Security has multiple active Wells positions. Choose the
+                position that should form the scenario baseline.
               </p>
             </div>
           </div>
@@ -703,21 +950,21 @@ export default function TradeCalculatorWorkspace({
               </div>
             ) : null}
 
-            {analytics ? (
-              <TradeScenarioPanel
-                security={selectedSecurity}
-                position={selectedPosition}
-                baselineMode={baselineMode}
-                pendingManualDelta={analytics.pendingManualDelta}
-                pendingProjectionIsValid={analytics.pendingProjectionIsValid}
-                currentPrice={currentPrice}
-                wellsWap={wellsWap}
-                grossPortfolioMarketValue={grossPortfolioMarketValue}
-                fundEquitySnapshots={fundEquitySnapshots}
-                canSubmitManualTrade={canLogManualTrade(currentUser?.role)}
-                onTradeCreated={handleTradeCreated}
-              />
-            ) : null}
+            <TradeScenarioPanel
+              security={selectedSecurity}
+              position={selectedPosition}
+              baselineMode={baselineMode}
+              pendingManualDelta={analytics?.pendingManualDelta ?? 0}
+              pendingProjectionIsValid={
+                analytics?.pendingProjectionIsValid ?? true
+              }
+              currentPrice={currentPrice}
+              wellsWap={wellsWap}
+              grossPortfolioMarketValue={grossPortfolioMarketValue}
+              fundEquitySnapshots={fundEquitySnapshots}
+              canSubmitManualTrade={canLogManualTrade(currentUser?.role)}
+              onTradeCreated={handleTradeCreated}
+            />
           </div>
         )}
       </section>

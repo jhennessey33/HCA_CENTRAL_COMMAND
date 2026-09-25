@@ -20,7 +20,7 @@ type FundEquitySnapshot = {
 
 type TradeScenarioPanelProps = {
   security: any;
-  position: any;
+  position: any | null;
   baselineMode: TradeBaselineMode;
   pendingManualDelta: number;
   pendingProjectionIsValid: boolean;
@@ -301,12 +301,17 @@ export default function TradeScenarioPanel({
     () =>
       calculateTradeScenario({
         securityId: security.id,
-        positionId: position.id,
+        positionId: position?.id ?? null,
         ticker: security.ticker,
         companyName: security.name,
-        wellsSide: position.side === "SHORT" ? "SHORT" : "LONG",
-        wellsShares: position.shares,
-        wellsMarketValue: position.marketValue,
+        wellsSide:
+          position?.side === "SHORT"
+            ? "SHORT"
+            : position?.side === "LONG"
+              ? "LONG"
+              : null,
+        wellsShares: position?.shares,
+        wellsMarketValue: position?.marketValue,
         wellsWap,
         pendingManualDelta,
         pendingProjectionIsValid,
@@ -1230,9 +1235,9 @@ export default function TradeScenarioPanel({
             </p>
 
             <p className="mt-1 text-xs leading-5 text-slate-500">
-              This scenario has not created a trade or changed
-              Wells-authoritative records. Review the calculated trade before
-              any Manual Pending record is created.
+              {position
+                ? "This scenario has not created a trade or changed Wells-authoritative records. Review the calculated trade before any Manual Pending record is created."
+                : "This new-position scenario is calculation-only and has not changed HCA records. Trade submission becomes available after an active position exists."}
             </p>
           </div>
 
@@ -1247,7 +1252,7 @@ export default function TradeScenarioPanel({
             disabled={!result?.canCreateDraft}
             className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
           >
-            Review &amp; Add Trade
+            {position ? "Review & Add Trade" : "Active Position Required"}
           </button>
         </div>
       </section>
